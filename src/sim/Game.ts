@@ -40,12 +40,12 @@ export class Game {
   netDirty = true;
   /** bumped every time the networks are rebuilt (the renderer caches wires on it) */
   netVersion = 0;
-  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers() };
+  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 } };
   /** whole tiers shed from the HUD (index 1..4) */
   tierOff = [false, false, false, false, false];
   /** waves started so far (0 = before wave 1) */
   wave = 0;
-  /** seconds until the next wave starts on its own (only runs once wave 1 has started) */
+  /** seconds of breather left before the next wave starts on its own (0 while a wave is on the field) */
   waveTimer = 0;
   spawners: Spawner[] = [];
   research = { active: null as string | null, progress: {} as Record<string, number>, done: new Set<string>() };
@@ -54,7 +54,7 @@ export class Game {
   brownoutClock = 0;
   events: GameEvent[] = [];
   stats: RunStats = {
-    kills: 0, leaks: 0, leaksByWave: [0, 0, 0, 0, 0, 0, 0, 0, 0], moneyEarned: 0, bonusEarned: 0, kjDelivered: 0,
+    kills: 0, leaks: 0, leaksByWave: [0, 0, 0, 0, 0, 0, 0, 0, 0], lightsLostBy: { moth: 0, shade: 0, pall: 0 }, moneyEarned: 0, kjDelivered: 0,
     wastedKj: 0, brownoutSeconds: 0, overcharges: 0, knocks: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
   };
   over: null | 'win' | 'lose' = null;

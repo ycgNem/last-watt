@@ -42,7 +42,7 @@ Nothing is named after, modeled on, or stat-copied from any shipped game.
 
 | Currency | Kind | Comes from | Spent on |
 |---|---|---|---|
-| Money | stock | wave bounty, call-early bonus | towers, tower upgrades, factory buildings, lines, storage |
+| Money | stock | wave bounty (the call-early bonus was dropped, `DECISIONS.md` 2026-10-11) | towers, tower upgrades, factory buildings, lines, storage |
 | Energy | flow (kW) / stored (kJ) | generators, batteries | running everything, research labs, gaffer abilities |
 | Fuel | physical items | map deposits via extractors; later, harvested kills | generators (via belts, by hand early) |
 | Embers | meta stock | end of run, by performance | the gaffer's skill tree between runs |

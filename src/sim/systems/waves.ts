@@ -1,13 +1,18 @@
-// Waves: the countdown, spawning each wave's sequence at its spacing, call-early, the win.
+// Waves: the breather, spawning each wave's sequence at its spacing, calling the next one, the win.
 import { WAVES } from '../../data/waves';
 import { ENEMY_BY_CODE } from '../../data/enemies';
 import { RULES } from '../../data/rules';
 import { DT, type Game } from '../Game';
 
 export function wavesSystem(g: Game) {
+  // the breather: once a wave has fully spawned and the field is clear, the next one comes in 20 s
   if (g.wave > 0 && g.wave < WAVES.length) {
-    g.waveTimer -= DT;
-    if (g.waveTimer <= 0) startNextWave(g);
+    const clear = g.spawners.length === 0 && g.enemies.length === 0;
+    if (clear) {
+      if (g.waveTimer <= 0) g.waveTimer = RULES.breather.v;
+      g.waveTimer -= DT;
+      if (g.waveTimer <= 0) startNextWave(g);
+    } else g.waveTimer = 0;
   }
   for (const s of g.spawners) {
     s.next -= DT;
@@ -39,25 +44,12 @@ export function waveBounty(n: number): number {
   return sum;
 }
 
-/** what calling the next wave right now would pay (§5): 25% × its bounty × time left / timer */
-export function callEarlyBonus(g: Game): number {
-  if (g.wave === 0 || g.wave >= WAVES.length) return 0;
-  return Math.round(RULES.callEarlyShare.v * waveBounty(g.wave + 1) * Math.max(0, g.waveTimer) / RULES.waveTimer.v);
-}
-
-/** start the next wave now; returns the call-early bonus paid */
-export function startNextWave(g: Game): number {
-  if (g.wave >= WAVES.length || g.over) return 0;
-  const bonus = g.waveTimer > 0 ? callEarlyBonus(g) : 0;
-  if (bonus > 0) {
-    g.money += bonus;
-    g.stats.bonusEarned += bonus;
-    g.stats.moneyEarned += bonus;
-  }
+/** start the next wave now (Space, or the breather running out) */
+export function startNextWave(g: Game) {
+  if (g.wave >= WAVES.length || g.over) return;
   const w = WAVES[g.wave];
   g.wave++;
-  g.waveTimer = RULES.waveTimer.v;
+  g.waveTimer = 0;
   g.spawners.push({ wave: w.n, seq: w.seq, i: 0, next: 0, spacing: w.spacing });
-  g.emit({ t: 'wave', n: w.n, note: w.note, bonus });
-  return bonus;
+  g.emit({ t: 'wave', n: w.n, note: w.note });
 }

@@ -11,7 +11,7 @@ describe('full run (bot)', () => {
     const s = g.stats;
     console.log(
       `bot: ${g.over} at wave ${g.wave}, lights ${g.lights}, leaks by wave ${s.leaksByWave.slice(1).join(' ')}, ` +
-        `money earned ${s.moneyEarned} (bonus ${s.bonusEarned}), overcharges ${s.overcharges}, knocks ${s.knocks}, ` +
+        `money earned ${s.moneyEarned}, lights lost ${JSON.stringify(s.lightsLostBy)}, overcharges ${s.overcharges}, knocks ${s.knocks}, ` +
         `brownout ${s.brownoutSeconds.toFixed(0)} s, wasted ${s.wastedKj.toFixed(0)} kJ, ` +
         `wall ${bot.wallI}/${BOT_PLAN.wall.length} power ${bot.powerI}/${BOT_PLAN.power.length}, time ${g.time.toFixed(0)} s`,
     );

@@ -15,7 +15,7 @@ import {
 } from '../sim/actions';
 import { Game } from '../sim/Game';
 import { touches } from '../sim/geom';
-import { callEarlyBonus } from '../sim/systems/waves';
+import { rebuildNetworks } from '../sim/systems/grid';
 import type { Building, GameEvent } from '../sim/types';
 import { UI } from '../ui/ui';
 import { textWidth } from '../ui/font';
@@ -25,7 +25,7 @@ interface Msg { text: string; color: string; t: number; life: number }
 
 const HUD_H = 30;
 const BAR_H = 36;
-const TIER_NAMES = ['', 'Wall', 'Fuel', 'Labs', 'Spare'];
+const TIER_NAMES = ['', 'Works', 'Wall', 'Labs', 'Spare'];
 
 export class Play {
   game: Game;
@@ -42,6 +42,7 @@ export class Play {
   private hintClock = 0;
   /** right edge of the first-steps card (UI px), so the message feed stays clear of it */
   stepsRight = 0;
+  stepsBottom = 0;
   /** wall-clock seconds since this run began (for message ages) */
   clock = 0;
 
@@ -87,7 +88,9 @@ export class Play {
     this.handleInput(dt);
     this.hints(dt);
     const g = this.game;
-    this.audio.setHum(Math.min(1, g.grid.demand / 120), g.grid.tiers[1].sat);
+    this.audio.setHum(Math.min(1, g.grid.demand / 120), g.grid.wall.sat);
+    // building while paused: show the network the next tick will see
+    if (g.netDirty) rebuildNetworks(g);
   }
 
   private handleEvents() {
@@ -124,23 +127,22 @@ export class Play {
       case 'wave': {
         const w = WAVES[e.n - 1];
         this.say(`WAVE ${e.n} of ${WAVES.length}${w.note ? ': ' + w.note : ''}`, C.gold, 7);
-        if (e.bonus) this.say(`+${e.bonus} money for calling it early.`, C.gold, 4);
         a.sfx('wave');
         break;
       }
       case 'brownout': {
-        this.sayOnce('brownout', 20, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (tier 1 bar, top). More Burners, or shed something.', C.violet, 8);
+        this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something.', C.violet, 8);
         a.sfx('brownout');
         break;
       }
       case 'recovered':
-        this.sayOnce('recovered', 20, 'The wall is back on full power.', C.amber, 3);
+        this.sayOnce('recovered', 25, 'Brownout over: the wall is back above 75%.', C.amber, 3);
         a.sfx('recovered');
         break;
       case 'knock':
         r.burst(e.x, e.y, 14, C.ice, 2, 0.5, 'spark');
         a.sfx('knock');
-        this.sayOnce('knock', 40, 'A Shade cut a Node beside the path: everything past it is dark for 10 s. Keep Nodes a tile back from the path, or give power two routes.', C.ice, 9);
+        this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 10 s. Shades reach 2.5 tiles (red when you place a Node). Build Nodes further back, or give power a second route.', C.ice, 9);
         break;
       case 'restore':
         break;
@@ -150,7 +152,7 @@ export class Play {
         a.sfx('overcharge');
         break;
       case 'research':
-        this.say(`Research done: ${RESEARCH[e.id].name}. ${e.id === 'jar' ? 'Build Jars (7); Overcharge a tower with E.' : 'Select a Lamp and upgrade it (U).'}`, C.cyan, 8);
+        this.say(`Research done: ${RESEARCH[e.id].name}. Select a Lamp and upgrade it (U).`, C.cyan, 8);
         a.sfx('research');
         break;
       case 'dry':
@@ -187,6 +189,7 @@ export class Play {
     if (this.hintClock < 1) return;
     this.hintClock = 0;
     const g = this.game;
+    if (g.wave === 0 || this.paused) return;
     const bs = [...g.buildings.values()];
     for (const b of bs) {
       if (b.def.role !== 'generator' || b.fuel > 1 || b.off) continue;
@@ -195,13 +198,17 @@ export class Play {
         this.sayOnce('nofeed', 25, 'A Burner has no Extractor touching it: put one on emberrock right next to it.', C.ember, 7);
         break;
       }
-      if (feeders.length && feeders.every((x) => x.sat < 0.3 && !x.off && x.stock === 0)) {
-        this.sayOnce('spiral', 25, 'Your Extractors are starved (tier 2) and the Burners are running out. Select an Extractor and set it to tier 1.', C.violet, 9);
+      const starved = feeders.filter((x) => x.sat < 0.3 && !x.off && x.stock === 0);
+      if (feeders.length && starved.length === feeders.length) {
+        const low = starved.some((x) => x.tier > 1 || g.tierOff[x.tier]);
+        this.sayOnce('spiral', 25, low
+          ? 'Your Extractors are starved and the Burners are running out. Their tier is below the towers: select one and press T (or click tier 1).'
+          : 'Your Extractors are starved even on the first tier: there is not enough power for anything. Shed some towers (X) so the Burners can refuel.', C.violet, 9);
         break;
       }
     }
-    if (g.grid.wasted > 12 && g.wave >= 2 && !g.research.done.has('jar'))
-      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Lab (8) turns spare power into research.`, C.amber, 7);
+    if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
+      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (7) stores it for the next wave and pays for Overcharge (E).`, C.amber, 7);
   }
 
   private handleInput(dt: number) {
@@ -259,7 +266,8 @@ export class Play {
     const target = hb ?? this.selected;
     if (k('KeyX') && target) this.act(toggleOff(g, target));
     if (k('KeyE') && target) this.act(overcharge(g, target));
-    if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, (target.tier % 4) + 1), 'click');
+    // T raises a building's priority one tier (1 wraps round to 4)
+    if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, target.tier === 1 ? 4 : target.tier - 1), 'click');
     if (k('KeyU') && target) this.act(upgrade(g, target), 'place');
     if ((k('Delete') || k('Backspace')) && this.selected) {
       const s = this.selected;
@@ -337,7 +345,7 @@ export class Play {
     this.drawTop(ui, g);
     this.drawBuildBar(ui, g);
     if (this.selected) this.drawSelected(ui, g, this.selected);
-    else if (this.hoverId && !this.buildId) this.hoverTip(ui, g, g.buildings.get(this.hoverId)!);
+    else if (this.hoverId && !this.buildId && !g.over && !this.help) this.hoverTip(ui, g, g.buildings.get(this.hoverId)!);
     if (g.wave === 0) this.drawFirstSteps(ui, g);
     this.drawMessages(ui);
     if (this.help) this.drawHelp(ui);
@@ -393,7 +401,7 @@ export class Play {
         { text: 'The grid, right now' },
         { text: `Supply ${supply} kW: the Hearth's 8 kW plus every lit Burner (20 kW each), plus Jars when they discharge.` },
         { text: `Demand ${demand} kW: towers ask 12+ kW while firing and 1 kW idle; Extractors 2 kW; Labs 10 kW.` },
-        { text: 'When demand beats supply everything in a tier slows together: satisfaction = supply / demand.' },
+        { text: 'When demand beats supply everything in a tier slows together, to its share of the power (supply / demand).' },
         { text: `Wasted ${wasted} kW: power nobody asked for. Jars store it; Labs turn it into research.` },
       ]);
     // tiers
@@ -413,12 +421,14 @@ export class Play {
         ui.tooltip([
           { text: `Tier ${t}: ${off ? 'SHED (off)' : `${Math.round(ts.served)} of ${Math.round(ts.demand)} kW served`}` },
           { text: [...counts].map(([n, c]) => `${c} ${n}${c > 1 ? 's' : ''}`).join(', ') || 'Nothing on this tier.' },
-          { text: 'Tier 1 is served in full before tier 2 sees a watt, and so on. Click to shed (or restore) the whole tier.', color: C.ash },
+          { text: 'Tier 1 is served in full before tier 2 sees a watt, and so on. Shift-click to shed (or restore) the whole tier.', color: C.ash },
         ]);
         if (ui.clicked) {
           ui.eat();
-          toggleTier(g, t);
-          this.audio.sfx('click');
+          if (this.input.shift || off) {
+            toggleTier(g, t);
+            this.audio.sfx('click');
+          } else this.say(`Shift-click the ${TIER_NAMES[t]} bar to shed the whole tier.`, C.ash, 3);
         }
       }
     }
@@ -431,10 +441,16 @@ export class Play {
       label = 'START [SPACE]';
       tip = ['Start wave 1', 'Build first. Wave 1 waits for you.'];
     } else if (g.wave < WAVES.length) {
-      const bonus = callEarlyBonus(g);
-      ui.text(`${Math.ceil(g.waveTimer)}s`, rx - 118, 4 + 10, C.steel);
-      label = `NEXT +${bonus} [SPACE]`;
-      tip = [`Call wave ${g.wave + 1} now`, `Pays 25% of its bounty × the time left: +${bonus} now. Waves overlap if you call while one is running.`];
+      if (g.waveTimer > 0) {
+        ui.text(`${Math.ceil(g.waveTimer)}s`, rx - 118, 4 + 10, C.gold);
+        label = 'NEXT NOW [SPACE]';
+        tip = [`Wave ${g.wave + 1} in ${Math.ceil(g.waveTimer)} s`, 'The field is clear: Jars charge and Labs research on spare power. Space starts the next wave now.'];
+      } else {
+        const left = g.enemies.length + g.spawners.reduce((a, s) => a + s.seq.length - s.i, 0);
+        ui.text(`${left} left`, rx - 130, 4 + 10, C.steel);
+        label = 'CALL NEXT [SPACE]';
+        tip = [`Call wave ${g.wave + 1} on top of this one`, 'The next wave comes 20 s after this one is cleared. Calling it now stacks the two.'];
+      }
     } else {
       label = '';
       tip = [];
@@ -491,9 +507,9 @@ export class Play {
   private wattLine(id: BuildingId): string {
     const d = BUILDINGS[id];
     switch (d.role) {
-      case 'tower': return `${d.firingDraw} kW firing, ${d.idleDraw} kW idle, efficiency ${d.efficiency} → ${(d.firingDraw! * d.efficiency!).toFixed(1)} kJ/s at full power. Range ${d.range}.`;
+      case 'tower': return `${d.firingDraw} kW firing, ${d.idleDraw} kW idle, efficiency ${d.efficiency} → ${(d.firingDraw! * d.efficiency!).toFixed(1)} kJ/s at full power. Range ${d.range}. Tier 2 (Wall).`;
       case 'beacon': return `${d.constantDraw} kW always. Range ${d.range}.`;
-      case 'extractor': return `${d.workDraw} kW while digging (tier 2).`;
+      case 'extractor': return `${d.workDraw} kW while digging. Tier 1 (Works): fed before the towers.`;
       case 'generator': return `+${d.output} kW while it has emberrock.`;
       case 'node': return `Draws nothing. Reach ${d.nodeRadius} tiles.`;
       case 'storage': return `${d.capacity} kJ; charges ≤ ${d.maxCharge} kW, discharges ≤ ${d.maxDischarge} kW.`;
@@ -530,7 +546,7 @@ export class Play {
         break;
       }
       case 'beacon':
-        out.push({ text: `Asks ${d.constantDraw} kW always.` }, { text: `Slows by ${Math.round((d.slow ?? 0) * b.sat * 100)}% (40% × satisfaction).`, color: C.amber });
+        out.push({ text: `Asks ${d.constantDraw} kW always.` }, { text: `Slows by ${Math.round((d.slow ?? 0) * b.sat * 100)}% (40% × its share of power).`, color: C.amber });
         break;
       case 'extractor': {
         const feeds = [...g.buildings.values()].some((u) => u.def.role === 'generator' && touches(g.rect(u), g.rect(b)));
@@ -547,7 +563,7 @@ export class Play {
         break;
       }
       case 'node':
-        out.push({ text: `Carries power ${d.nodeRadius} tiles.` }, { text: 'A Shade passing right beside it cuts it for 10 s.' });
+        out.push({ text: `Carries power ${d.nodeRadius} tiles.` }, { text: 'A Shade passing within 2.5 tiles cuts it for 10 s.' });
         break;
       case 'storage':
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });
@@ -640,8 +656,13 @@ export class Play {
     ui.layer = 3;
     let y = HUD_H + 6;
     // centre the feed in the space the first-steps card and the selected panel leave free
-    const left = this.game.wave === 0 ? this.stepsRight + 6 : 4;
+    let left = this.game.wave === 0 ? this.stepsRight + 6 : 4;
     const right = this.selected ? ui.w - 166 : ui.w - 4;
+    // too narrow beside the first-steps card: go under it instead
+    if (right - left < 170 && this.game.wave === 0) {
+      left = 4;
+      y = this.stepsBottom + 4;
+    }
     const cx = (left + right) / 2;
     const maxW = Math.max(120, Math.min(360, right - left - 12));
     for (const m of this.msgs.slice(-4)) {
@@ -666,11 +687,12 @@ export class Play {
       [lamps >= 2, 'Two Lamps (1) inside the bends; a Node (4) carries power on'],
       [ex, 'An Extractor (5) on glowing emberrock near the Hearth'],
       [burner, 'A Burner (6) touching the Extractor: +20 kW'],
-      [false, 'SPACE starts wave 1 when you are ready'],
+      [false, 'SPACE starts wave 1 when you are ready (Jars (7) store power)'],
     ];
     const w = Math.max(...steps.map(([, t]) => textWidth(t))) + 22, h = 16 + steps.length * 11 + 13;
     const x = 4, y = HUD_H + 4;
     this.stepsRight = x + w;
+    this.stepsBottom = y + h;
     ui.panel(x, y, w, h);
     ui.text('FIRST STEPS', x + 5, y + 4, C.gold);
     steps.forEach(([done, text], i) => {
@@ -687,12 +709,13 @@ export class Play {
       ['Click', 'place it / select a building'],
       ['Right-click, Esc', 'cancel / deselect'],
       ['X', 'shed (turn off) the building under the mouse'],
-      ['T', 'cycle its priority tier'],
+      ['T', 'raise its priority one tier'],
       ['E', 'Overcharge a tower (needs a charged Jar)'],
       ['U', 'upgrade a Lamp (after research)'],
       ['Del', 'sell the selected building (half back)'],
-      ['Space', 'start wave 1 / call the next wave early'],
+      ['Space', 'start the next wave now'],
       ['WASD, middle-drag', 'pan; wheel zooms; C recentres'],
+      ['Shift-click', 'a tier bar (top): shed the whole tier'],
       ['F / P / M', 'speed / pause / mute'],
     ];
     const w = 300, h = 28 + lines.length * 10 + 46;
@@ -704,7 +727,7 @@ export class Play {
       ui.text(t, x + 98, y + 20 + i * 10, C.mist);
     });
     const yy = y + 24 + lines.length * 10;
-    ui.wrap('Every tower fires at its base rate × satisfaction (supply ÷ demand). Buying more Lamps than your Burners can run makes the whole wall weaker. Bright = powered, dim purple = starved, dark with one blue pixel = no power.', x + 8, yy, w - 16, C.ash);
+    ui.wrap('Every tower fires at its base rate × its share of power (supply ÷ demand). Buying more Lamps than your Burners can run makes the whole wall weaker. Bright = powered, flickering purple = starved, dark with one blue pixel = no power.', x + 8, yy, w - 16, C.ash);
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.help = false;
   }
 
@@ -712,7 +735,9 @@ export class Play {
     ui.layer = 7;
     const win = g.over === 'win';
     const s = g.stats;
-    const w = 260, h = 132;
+    const lost = g.stats.lightsLostBy;
+    const worst = g.stats.leaksByWave.reduce((bi, v, i, a) => (v > a[bi] ? i : bi), 1);
+    const w = 260, h = win ? 132 : 152;
     const x = ui.w / 2 - w / 2, y = ui.h / 2 - h / 2;
     ui.panel(x, y, w, h, { border: win ? C.gold : C.ember, alpha: 0.96 });
     ui.big(win ? 'THE LIGHTS HELD' : 'THE HEARTH WENT DARK', ui.w / 2, y + 8, 2, win ? C.gold : C.ember);
@@ -720,6 +745,7 @@ export class Play {
       ['Waves', win ? `all ${WAVES.length}` : `reached ${g.wave} of ${WAVES.length}`],
       ['Lights left', `${g.lights} of ${RULES.startLights.v}`],
       ['Kills / leaks', `${s.kills} / ${s.leaks}`],
+      ...(win ? [] : ([['Lights lost to', `Moths ${lost.moth ?? 0}, Shades ${lost.shade ?? 0}, Palls ${lost.pall ?? 0}`], ['Worst wave', `wave ${worst}: ${s.leaksByWave[worst]} got through`]] as [string, string][])),
       ['Damage delivered', `${Math.round(s.kjDelivered)} kJ`],
       ['Power wasted', `${Math.round(s.wastedKj)} kJ`],
       ['Time in brownout', `${Math.round(s.brownoutSeconds)} s`],

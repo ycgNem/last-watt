@@ -22,8 +22,10 @@ looking up what another game uses. When you change a number, write the new deriv
 3. Consumers sit in **priority tiers**. Power is allocated tier by tier: tier 1 is served fully
    before tier 2 sees anything. Within a tier, every consumer gets the same
    `satisfaction = min(1, remaining supply / tier demand)`.
-   Default tiers: 1 towers · 2 extractors · 3 labs · 4 constructors. The player can move any
-   consumer or sector to another tier, or to **off** (this is the shed-load verb).
+   Default tiers: **1 Works (Extractors) · 2 Wall (towers, Beacons) · 3 Labs · 4 constructors**
+   (empty in the slice). The player can move any consumer or sector to another tier, or to
+   **off** (this is the shed-load verb). *Changed 2026-10-11 after the first td-critic review;
+   it was 1 towers · 2 extractors. See the brownout spiral below.*
 4. Surplus charges batteries (up to each one's max charge rate). Surplus beyond that is
    **wasted**, and the HUD says so in kW. Wasted power is the game's nudge toward storage and labs.
 5. **Networks**: a network is a connected set of nodes. Anything within a node's radius is on
@@ -35,12 +37,13 @@ Everything scales with satisfaction: tower fire rate, beacon slow strength, extr
 research speed, construction speed. There is no state where "not enough power" blocks an action;
 it only slows it.
 
-**The brownout spiral (found in play, 2026-10-11).** With the default tiers, once the towers on
-tier 1 ask for more than the Hearth's 8 kW (eight idle Lamps do), the Extractors on tier 2 get
-nothing, the Burners run dry, and the grid can't restart itself. It is the strongest argument for
-the tier verb: moving Extractors to tier 1 fixes it for 2 kW each. The slice warns when it
-starts ("Your Extractors are starved... set it to tier 1"). Whether it reads as drama or as a
-trap is a question for the Milestone 2 gate.
+**The brownout spiral (found in play, 2026-10-11).** With towers on tier 1 and Extractors on
+tier 2, once the towers asked for more than the Hearth's 8 kW (eight idle Lamps do), the
+Extractors got nothing, the Burners ran dry, and the grid couldn't restart itself. The critic's
+real-click run followed every hint and still lost to it: it read as a bug, not a decision. So
+the Works tier now comes first by default. Each Extractor asks only 2 kW, so feeding them first
+costs the wall almost nothing, and starving the factory becomes a deliberate burst play (move the
+wall to tier 1 while a Pall is in range, and pay for it with cold Burners later), not a trap.
 
 ## 3. Buildings (slice set)
 
@@ -59,6 +62,8 @@ trap is a question for the Milestone 2 gate.
   node's footprint, so the Hearth reaches 4 tiles past its own edge. A building is on a network
   when any of its tiles is. Two nodes link when either covers the other; a building covered by
   two networks joins them.
+- **Jars are buildable from the start** (60 money; they were a research unlock until the first
+  critic review), so Overcharge is a verb from wave 1.
 - **Fuel by adjacency.** An Extractor hands each rock to a Burner whose footprint touches its own
   (edge or corner), the emptiest first, and holds up to 3 rocks while none has room. This
   replaces hand-carrying (a rock every 10 s per Burner is a chore with no decision in it;
@@ -104,14 +109,23 @@ Milestone 4 and are expressed as different (draw, efficiency, range, targets) tu
 | Enemy | Health | Speed | Bounty | Behavior | Station damage on leak |
 |---|---|---|---|---|---|
 | **Moth** | 30 kJ | 1.5 t/s | 5 | walks the path | 1 light |
-| **Shade** | 90 kJ | 1.0 t/s | 14 | knocks offline any node whose footprint is within 1 tile of it (so: Nodes touching the path) for 10 s; never the Hearth | 2 lights |
-| **Pall** | 400 kJ | 0.6 t/s | 60 | walks; casts a shadow: a Pall in a Floodlight's beam takes its own share *and every share after it*, whether or not there are enemies to receive them, so the Moths beside it get nothing | 5 lights |
+| **Shade** | 90 kJ | 1.0 t/s | 14 | cuts any Node whose footprint is within **2.5 tiles** of it for 10 s; never the Hearth | 2 lights |
+| **Pall** | 400 kJ | 0.6 t/s | 60 | walks; casts a shadow: a Pall in a Floodlight's beam takes its own share *and every share after it*, whether or not there are enemies to receive them, so the Moths beside it get nothing; a **single narrow beam** (a Lamp) lands only **1/4** on it, the rest is drunk | 5 lights |
 
 Station starts with **20 lights**. At 0 the run ends.
 
-Slice waves (path length 36 tiles; spawn spacing per wave, derived in §6; player may call the
-next wave early for a bonus of `25% × next wave bounty × (time remaining / wave timer)`; wave
-timer 45 s):
+Slice waves (spawn spacing per wave, derived in §6). **The breather:** once a wave has fully
+spawned and the field is clear, the next wave starts 20 s later; Space starts it sooner. There is
+no call-early bonus. *Until the first critic review the timer ran 45 s from each wave's start,
+so waves stacked and there was never a quiet moment for Jars or Labs; and the time-scaled
+call-early bonus was flagged as Kingdom Rush's mechanic almost one to one. Both went.*
+
+Why the Shade reaches 2.5 tiles (it was 1): at 1 tile a Node one tile back from the path was safe
+and still powered Lamps across it, so no real layout ever exposed a Node and the bot was cut 0
+times a run. At 2.5, power that crosses or hugs the path is always cuttable, and where Nodes go
+becomes the transmission decision. Why the Pall drinks narrow beams: about seven ordinary Lamps
+killed a Pall, so the §6 claim that "the Pall needs burst" was false and the Floodlight and
+Overcharge had no job.
 
 | Wave | Composition | Total health | Bounty | Spacing (was) |
 |---|---|---|---|---|
@@ -120,13 +134,14 @@ timer 45 s):
 | 3 | 10 Moth, 2 Shade | 480 | 78 | 3.0 s (1.75) |
 | 4 | 15 Moth, 4 Shade | 810 | 131 | 2.3 s (1.5) |
 | 5 | 10 Moth, 1 Pall | 700 | 110 | 1.5 s (1.75) |
-| 6 | 20 Moth, 4 Shade | 960 | 156 | 1.75 s (1.0) |
-| 7 | 12 Moth, 6 Shade, 1 Pall | 1,300 | 204 | 0.9 s (1.25) |
-| 8 | 20 Moth, 6 Shade, 2 Pall | 1,940 | 304 | 0.75 s (1.0) |
+| 6 | 20 Moth, 4 Shade | 960 | 156 | 1.0 s (1.75) |
+| 7 | 18 Moth, 9 Shade, 2 Pall (was 12 / 6 / 1) | 2,150 | 336 | 0.5 s (0.9) |
+| 8 | 30 Moth, 9 Shade, 3 Pall (was 20 / 6 / 2) | 2,910 | 456 | 0.4 s (0.75) |
 
 Starting money: **120**. Wave 1 waits for the player (there is no countdown before it); from
-then on each wave starts 45 s after the one before, or earlier when called. Spacing for waves
-2–8 was set by the bot (§6, "What the real map and the bot said").
+then on each wave starts 20 s after the field clears (the breather), or earlier when called.
+Spacing for waves 2–8 was set by the bot (§6, "What the real map and the bot said", and "After
+the first td-critic review").
 
 ## 6. Derived checks (these become tests, see CLAUDE.md)
 
@@ -170,7 +185,8 @@ never an investment you regret in the short term.
 chain of nodes from Hearth to the far lamps means one Shade blacks out the whole far wall for
 10 s. A second node path (ring, not chain) costs 10–20 money and is the third lesson.
 
-**Jar teaches burst (wave 5).** The earliest a Jar exists in play: a Lab (50) after wave 2, the
+**Jar teaches burst** *(superseded 2026-10-11: Jars are buildable from wave 1 and the breather
+gives them 20 s of spare power to fill; the paragraph below is the original reasoning).* The earliest a Jar exists in play: a Lab (50) after wave 2, the
 Jar project (600 kJ: 60 s at 10 kW, in tier 3, so it runs between waves), and the Jar (60) after
 wave 4, in time for wave 5's Pall. That is 110 money not spent on the wall over waves 3–4: the
 money split §10 asks about. One Jar holds 600 kJ: a Floodlight at full firing draw for 25 s on
@@ -233,13 +249,31 @@ who has kept up owns most of what the map can hold. Unit stats did not change. T
 tier 1, Lab and Jars from wave 4, Overcharges at Palls) wins with **9 of 20 lights**; with no
 factory it loses in wave 3. Waves 7–8 are easy for the bot and are the ones to watch in play.
 
+**After the first td-critic review (2026-10-11, same day).** The critic played the slice and found
+the model never under pressure: one build (about two Lamps per Burner, Lamps at the bends) won
+with 19 lights; the Lab → Jar → Overcharge line lost runs; idle towers starved the factory into a
+spiral the hints couldn't rescue; waves always overlapped, so Jars and Labs never had a quiet
+minute; Shades cut nothing; a Pall died to seven Lamps; and waves 7–8 leaked nothing. The model
+changes, each written into its section above: Works tier first (§2.3), Jars from the start (§3),
+the 20 s breather after a cleared field and no call-early bonus (§5), the Shade's reach 2.5 tiles
+(§5), the Pall drinking 3/4 of a narrow beam (§5), waves 7–8 at about 1.5× the kJ, and spacing
+for waves 6–8 tuned again with a bot that Overcharges Shades as well as Palls. Bounty stays at
+health × 0.15 (× 0.125 loses by wave 6). With the Node for bend A moved one tile back
+(21, 10, out of a Shade's reach) the bot wins with **10 of 20 lights**, leaking in waves 2, 3 and 5;
+one notch tighter on waves 6–8 (0.9 / 0.45 / 0.35 s) a Pall gets through in wave 7 and it ends on
+5 lights; at 1.0 / 0.45 / 0.3 it loses. The run is now about 11 minutes. Still open, for the
+owner: the Floodlight's 4 : 2 : 1 spill rarely lands on spaced Moths (the critic would re-derive
+it as a cone), lights as 20 hit points, and how much Overcharge a run should allow (the bot
+fires about 55).
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
   Burner) leaks ≥ 5;
 - wave 2: three Lamps on one Burner leak fewer than two Lamps;
-- a Jar placed when wave 4 ends is full before wave 5's first spawn;
-- a chain-of-nodes layout loses ≥ 10 s of far-wall uptime in wave 3 and a ring loses ≤ 2 s;
+- a Jar charges at its 15 kW limit in a breather: two Overcharges' worth in one 20 s gap, full in two;
+- a far Lamp fed by Nodes inside a Shade's reach loses ≥ 10 s of uptime in wave 3; fed from Nodes
+  out of reach, none;
 - the bot wins the whole run, and the same bot with no factory loses (`tests/bot.test.ts`).
 
 If the real map's bends differ from the reference path, tune **wave 1's spacing** (2.0–2.4 s;
@@ -249,8 +283,9 @@ until these hold. Don't change unit stats to fit a map.
 ## 7. Research (energy)
 
 A Lab draws 10 kW while a project is active and converts it at 1:1 into progress. Projects are
-priced in kJ. Slice: two projects to prove the scheduling feel —
-**Jar** (unlock; 600 kJ = 1 min at full power) and **Lamp tier 2** (900 kJ).
+priced in kJ. Slice: **Lamp tier 2** (900 kJ). *The Jar unlock (600 kJ) was a second project
+until the first critic review showed the Lab → Jar line losing runs (the bot did better without
+it); Jars are now buildable from the start.*
 Research during a wave sits in tier 3, so it starves first under load unless the player moves it
 up, which starves towers instead. That trade is the point. Full tree in Milestone 5: generators
 (wind spinner, tar still, vent tap), transmission tiers (capacity, long lines), storage (flywheel,

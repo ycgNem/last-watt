@@ -87,36 +87,38 @@ describe('pace tests (§6)', () => {
     expect(l3).toBeLessThan(l2);
   });
 
-  it('a Jar placed when wave 4 ends is full before wave 5 starts (§6)', () => {
+  it('a Jar charges at its 15 kW limit in a breather: two Overcharges in one 20 s gap (§6)', () => {
     // two Burners on the Hearth between waves: 48 kW, towers idle at a few kW, so the Jar
-    // charges at its 15 kW limit: 600 kJ in 40 s, inside the 45 s wave timer
+    // charges at 15 kW: 300 kJ in the 20 s breather, full in two
     const g = new Game();
     layoutA(g);
     put(g, 'extractor', 15, 19);
     put(g, 'burner', 13, 18);
-    g.research.done.add('jar');
     settle(g, 10);
     const jar = put(g, 'jar', 22, 18);
-    settle(g, RULES.waveTimer.v);
+    settle(g, RULES.breather.v);
+    expect(jar.charge).toBeGreaterThanOrEqual(2 * RULES.overchargeCost.v);
+    settle(g, RULES.breather.v);
     expect(jar.charge).toBeCloseTo(600, 0);
   });
 
-  it('wave 3: a chain of Nodes beside the path loses ≥ 10 s of far-wall uptime; a ring loses ≤ 2 s', () => {
-    // the far wall: two Lamps north of the first straight, fed across the path
-    const farWall = (g: Game, ring: boolean) => {
+  it('wave 3: a far Lamp fed by Nodes inside a Shade\'s reach loses ≥ 10 s of uptime; fed from out of reach, none', () => {
+    // the far wall: a Lamp beside the first straight, west of anything the Hearth reaches
+    const farWall = (g: Game, back: boolean) => {
       wave1Factory(g);
-      put(g, 'node', 17, 10);
-      put(g, 'node', 14, 7); // beside the path: a Shade passing knocks it out
-      put(g, 'node', 10, 7); // beside the path
-      if (ring) {
-        put(g, 'node', 14, 8 + 1); // a second route, a tile of ground off the path
+      put(g, 'node', 17, 10); // 3.5 tiles from the path: safe
+      if (back) {
+        put(g, 'node', 13, 11); // 4.5 tiles back: safe
+        put(g, 'node', 10, 11);
+      } else {
+        put(g, 'node', 13, 9); // 2.5 tiles: inside a Shade's reach
         put(g, 'node', 10, 9);
       }
-      return [put(g, 'lamp', 12, 4), put(g, 'lamp', 9, 4)];
+      return [put(g, 'lamp', 8, 7)];
     };
-    const downtime = (ring: boolean) => {
+    const downtime = (back: boolean) => {
       const g = new Game();
-      const lamps = farWall(g, ring);
+      const lamps = farWall(g, back);
       settle(g, 10);
       g.wave = 2;
       let dark = 0;
@@ -129,9 +131,9 @@ describe('pace tests (§6)', () => {
       }
       return dark;
     };
-    const chain = downtime(false), ring = downtime(true);
-    console.log(`wave 3 far-wall downtime: chain ${chain.toFixed(1)} s, ring ${ring.toFixed(1)} s`);
-    expect(chain).toBeGreaterThanOrEqual(10);
-    expect(ring).toBeLessThanOrEqual(2);
+    const near = downtime(false), back = downtime(true);
+    console.log(`wave 3 far-wall downtime: Nodes in reach ${near.toFixed(1)} s, out of reach ${back.toFixed(1)} s`);
+    expect(near).toBeGreaterThanOrEqual(10);
+    expect(back).toBe(0);
   });
 });

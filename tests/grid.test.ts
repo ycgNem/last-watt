@@ -34,38 +34,38 @@ describe('grid (§2)', () => {
     settle(g, 0.2);
     for (const l of lamps) expect(l.target).toBeGreaterThan(0);
     expect(g.grid.demand).toBe(48);
-    expect(g.grid.tiers[1].sat).toBeCloseTo(8 / 48);
+    expect(g.grid.wall.sat).toBeCloseTo(8 / 48);
     for (const l of lamps) expect(l.dps).toBeCloseTo(12 * 0.5 * (8 / 48));
   });
 
-  it('tiers: tier 1 is served fully before tier 2 sees anything', () => {
+  it('tiers: tier 1 (Works) is served fully before tier 2 (Wall) sees anything', () => {
     const g = new Game();
     const lamp = put(g, 'lamp', 24, 13);
     const ex = put(g, 'extractor', 16, 19);
     park(g, 'moth', BEND_B_DIST);
     settle(g, 0.1);
-    // 8 kW: the firing Lamp (12 kW) takes it all; the Extractor (tier 2) gets nothing
-    expect(lamp.sat).toBeCloseTo(8 / 12);
-    expect(ex.sat).toBe(0);
-    // move the Extractor up to tier 1: both share 8 / 14
-    setTier(g, ex, 1);
+    // 8 kW: the Extractor (tier 1, 2 kW) is fed first; the firing Lamp (tier 2, 12 kW) gets 6
+    expect(ex.sat).toBe(1);
+    expect(lamp.sat).toBeCloseTo(6 / 12);
+    // move the Lamp up to tier 1: both share 8 / 14
+    setTier(g, lamp, 1);
     settle(g, 0.1);
     expect(ex.sat).toBeCloseTo(8 / 14);
-    // shed the Lamp: the Extractor gets everything
-    toggleOff(g, lamp);
+    expect(lamp.sat).toBeCloseTo(8 / 14);
+    // shed the Extractor: the Lamp gets everything there is
+    toggleOff(g, ex);
     settle(g, 0.1);
-    expect(ex.sat).toBe(1);
-    expect(lamp.sat).toBe(0);
+    expect(lamp.sat).toBeCloseTo(8 / 12);
+    expect(ex.sat).toBe(0);
     // shedding a whole tier from the HUD
     toggleTier(g, 1);
     settle(g, 0.1);
-    expect(ex.sat).toBe(0);
+    expect(lamp.sat).toBe(0);
   });
 
   it('Jar: charges at most 15 kW from surplus, fills 600 kJ in 40 s (§3, §6)', () => {
     const g = new Game();
     factory(g);
-    g.research.done.add('jar');
     const jar = put(g, 'jar', 22, 18);
     settle(g, 1);
     expect(jar.flow).toBeCloseTo(15);
@@ -77,7 +77,6 @@ describe('grid (§2)', () => {
 
   it('Jar: discharges on a deficit, at most 30 kW (§2.1)', () => {
     const g = new Game();
-    g.research.done.add('jar');
     const jar = put(g, 'jar', 22, 18);
     jar.charge = 600;
     put(g, 'node', 23, 10);
@@ -106,10 +105,10 @@ describe('grid (§2)', () => {
     expect(lamp.net).toBeGreaterThanOrEqual(0);
   });
 
-  it('a Shade knocks out a Node right beside the path, not one with a tile of ground between (§5)', () => {
+  it('a Shade cuts a Node within 2.5 tiles of the path, not one further back (§5)', () => {
     const g = new Game();
-    const beside = put(g, 'node', 10, 7); // row 7: touching the path (row 6)
-    const off = put(g, 'node', 14, 8); // row 8: a tile of ground between it and the path
+    const beside = put(g, 'node', 10, 9); // row 9: 2.5 tiles from the path's centreline
+    const off = put(g, 'node', 14, 10); // row 10: 3.5 tiles
     g.enemies.push({ id: g.nextId++, def: ENEMIES.shade, hp: 1e9, dist: 5, x: 4, y: 6.5, slow: 0, face: 1, hit: 0, wave: 0 });
     settle(g, 12);
     expect(g.stats.knocks).toBe(1);
@@ -155,7 +154,6 @@ describe('towers (§4, §8)', () => {
 
   it('Overcharge: 120 kJ from the Jar, a Lamp delivers 72 kJ in 4 s (§8)', () => {
     const g = new Game();
-    g.research.done.add('jar');
     const jar = put(g, 'jar', 22, 18);
     jar.charge = 600;
     const lamp = put(g, 'lamp', 24, 13);
@@ -199,6 +197,16 @@ describe('towers (§4, §8)', () => {
     expect(lead.hit).toBeCloseTo((14.4 * 4) / 7);
     expect(pall.hit).toBeCloseTo((14.4 * 3) / 7);
     expect(back.hit).toBe(0);
+  });
+
+  it('a Pall drinks 3/4 of a Lamp\'s narrow beam, none of a Floodlight\'s (§5)', () => {
+    const g = new Game();
+    factory(g);
+    factory(g, 1);
+    put(g, 'lamp', 24, 13);
+    const p = park(g, 'pall', BEND_B_DIST, 10000);
+    settle(g, 1);
+    expect(p.hit).toBeCloseTo(6 * 0.25);
   });
 
   it('Beacon slows 40% × satisfaction (§4)', () => {

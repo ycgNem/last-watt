@@ -70,7 +70,7 @@ describe('data validation', () => {
       expect(counts).toEqual(w.composition);
     }
     // §5 totals: health and bounty per wave
-    const health = [240, 360, 480, 810, 700, 960, 1300, 1940];
+    const health = [240, 360, 480, 810, 700, 960, 2150, 2910];
     WAVES.forEach((w, i) => {
       const h = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
       expect(h, `wave ${w.n} total health`).toBe(health[i]);

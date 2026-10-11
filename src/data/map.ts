@@ -36,7 +36,7 @@ export const SLICE_MAP: MapDef = {
     // far, out by the first straight: needs a chain of Nodes past the path
     [[6, 8], [7, 8], [6, 9], [7, 9], [8, 9], [7, 10]],
   ],
-  focus: [20, 14],
+  focus: [20, 12.5],
   why: {
     w: '§6 / ROADMAP M0: 40 × 30 tiles', h: '§6 / ROADMAP M0: 40 × 30 tiles',
     hearth: '§6: the Hearth sits where both bends face it, so layout A costs one Node (§6 wave 1 budget)',

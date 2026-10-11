@@ -18,7 +18,8 @@ async function fresh(w = 1280, h = 720) {
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
   await page.goto(base);
   await page.waitForFunction(() => window.__app && window.__app.screen === 'title', null, { timeout: 15000 });
-  await page.mouse.move(w * 0.45, h * 0.55);
+  // park the mouse on empty ground at the right, so no hover tooltip covers the shot
+  await page.mouse.move(w * 0.9, h * 0.45);
   return page;
 }
 
@@ -33,7 +34,9 @@ const run = (page, seconds, until) => page.evaluate(([s, u]) => {
     if (i < n - 60) p.game.drainEvents();
     if (stop(p.game)) break;
   }
-  p.msgs = p.msgs.slice(-2);
+  // the fast-forward drained the events that would have replaced the opening messages: drop them,
+  // so the feed shows only what the last second's events say on the next frame
+  p.msgs = [];
 }, [seconds, until ?? null]);
 
 const shot = async (page, name) => {
@@ -103,7 +106,6 @@ const SCENES = {
       const p = window.__app.newGame();
       const g = p.game;
       const put = (id, x, y) => window.__place(g, id, x, y);
-      g.research.done.add('jar');
       put('extractor', 16, 19); put('burner', 16, 20); put('extractor', 15, 19); put('burner', 13, 18);
       put('node', 23, 10); put('lamp', 24, 7); put('lamp', 24, 13); put('floodlight', 24, 10); put('lamp', 22, 16);
       const j = put('jar', 22, 18); j.charge = 600;

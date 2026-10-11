@@ -5,7 +5,7 @@
 // Hearth. Positions are top-left tiles on SLICE_MAP.
 import type { BuildingId } from '../data/buildings';
 import type { Game } from '../sim/Game';
-import { nextWave, overcharge, overchargeProblem, place, setTier, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
+import { nextWave, overcharge, overchargeProblem, place, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
 import { BUILDINGS } from '../data/buildings';
 
 export interface Spot { b: BuildingId; x: number; y: number; /** don't build before this wave has started */ wave?: number }
@@ -27,7 +27,8 @@ export interface BotPlan {
 
 export const BOT_PLAN: BotPlan = {
   opening: [
-    { b: 'extractor', x: 16, y: 19 }, { b: 'burner', x: 16, y: 20 }, { b: 'node', x: 23, y: 10 },
+    // layout A, with its Node at (21, 10): out of a Shade's reach, still covering the bend-A Lamp
+    { b: 'extractor', x: 16, y: 19 }, { b: 'burner', x: 16, y: 20 }, { b: 'node', x: 21, y: 10 },
     { b: 'lamp', x: 24, y: 7 }, { b: 'lamp', x: 24, y: 13 },
   ],
   wall: [
@@ -52,11 +53,11 @@ export const BOT_PLAN: BotPlan = {
     [{ b: 'extractor', x: 15, y: 11 }, { b: 'burner', x: 13, y: 12 }],
   ],
   extras: [
-    { b: 'lab', x: 19, y: 18, wave: 3 },
-    { b: 'jar', x: 22, y: 18, wave: 4 },
-    { b: 'jar', x: 23, y: 18, wave: 6 },
+    { b: 'jar', x: 22, y: 18, wave: 2 },
+    { b: 'lab', x: 19, y: 18, wave: 4 },
+    { b: 'jar', x: 23, y: 18, wave: 5 },
   ],
-  research: ['jar', 'lamp2'],
+  research: ['lamp2'],
   upgradeLamps: true,
   headroom: 1.5,
 };
@@ -67,17 +68,14 @@ export class Bot {
   powerI = 0;
   extraI = 0;
   shedLab = false;
-  /** a player who has learned the brownout spiral: Extractors on tier 1 so the Burners never starve */
-  extractorsFirst = true;
   log: string[] = [];
 
-  constructor(public plan: BotPlan = BOT_PLAN, public callEarly = true) {}
+  constructor(public plan: BotPlan = BOT_PLAN, public callEarly = false) {}
 
   private build(g: Game, s: Spot): boolean {
     if (g.money < BUILDINGS[s.b].cost) return false;
     const r = place(g, s.b, s.x, s.y);
     if (typeof r === 'string') this.log.push(`skip ${s.b} ${s.x},${s.y}: ${r}`);
-    else if (this.extractorsFirst && r.def.role === 'extractor') setTier(g, r, 1);
     return true;
   }
 
@@ -151,7 +149,7 @@ export class Bot {
     if (this.shedLab)
       for (const b of g.buildings.values()) {
         if (b.def.role !== 'lab') continue;
-        const wallStarved = g.grid.tiers[1].sat < 0.95 && g.enemies.length > 0;
+        const wallStarved = g.grid.wall.sat < 0.95 && g.enemies.length > 0;
         if (wallStarved && !b.off) toggleOff(g, b);
         else if (b.off && g.enemies.length === 0) toggleOff(g, b);
       }
@@ -161,17 +159,17 @@ export class Bot {
       const t = g.enemyById(b.target);
       if (!t) continue;
       const close = g.enemies.filter((e) => e.dist > g.path.length - 8).length;
-      if (t.def.id === 'pall' || (close >= 3 && b.def.id === 'floodlight') || close >= 5) {
+      // a Shade that has come most of the way with most of its health is worth 120 kJ
+      const shadeLate = t.def.id === 'shade' && t.dist > g.path.length - 14 && t.hp > 40;
+      if (t.def.id === 'pall' || shadeLate || (close >= 3 && b.def.id === 'floodlight') || close >= 5) {
         overcharge(g, b);
         break;
       }
     }
-    // waves: start wave 1 once the opening is built; call early only after a clean wave
+    // waves: start wave 1 once the opening is built; later waves come on the breather, or
+    // sooner (callEarly) once the field is clear after a clean wave
     if (g.wave === 0) nextWave(g);
-    else if (this.callEarly && g.wave < 8 && g.enemies.length === 0 && g.spawners.length === 0) {
-      const clean = (g.stats.leaksByWave[g.wave] ?? 0) === 0;
-      if (clean && g.waveTimer < 45 - 15) nextWave(g);
-    }
+    else if (this.callEarly && g.wave < 8 && g.waveTimer > 0 && (g.stats.leaksByWave[g.wave] ?? 0) === 0) nextWave(g);
   }
 }
 

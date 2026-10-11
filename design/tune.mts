@@ -11,7 +11,7 @@ const run = () => { const bot = new Bot({ ...BOT_PLAN, headroom: 1.5 }); const g
 for (let i = 1; i < 8; i++) {
   for (let j = i; j < 8; j++) WAVES[j].spacing = 4.0;
   let best = 4.0;
-  for (let s = 4.0; s >= 0.6; s = +(s - 0.05).toFixed(2)) {
+  for (let s = 4.0; s >= 0.3; s = +(s - 0.05).toFixed(2)) {
     WAVES[i].spacing = s;
     const { g } = run();
     const leaks = g.stats.leaksByWave[i + 1];

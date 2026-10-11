@@ -8,7 +8,7 @@ import fs from 'node:fs';
 const base = process.env.BASE ?? 'http://127.0.0.1:5173/';
 const out = 'e2e/out/screens';
 fs.mkdirSync(out, { recursive: true });
-const sizes = [[1280, 720], [1920, 1080], [1024, 640]];
+const sizes = [[1280, 720], [1920, 1080], [1024, 768], [1024, 640]];
 
 const STATES = {
   title: async () => {},
@@ -35,7 +35,7 @@ const STATES = {
     const g = p.game;
     window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20);
     const b = window.__place(g, 'lab', 19, 18);
-    g.research.active = 'jar';
+    g.research.active = 'lamp2';
     p.selectedId = b.id;
   }),
   burner: async (page) => page.evaluate(() => {
@@ -46,7 +46,6 @@ const STATES = {
   jars: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
-    g.research.done.add('jar');
     const j = window.__place(g, 'jar', 22, 18); j.charge = 400;
     window.__place(g, 'jar', 23, 18);
     const l = window.__place(g, 'lamp', 24, 13);

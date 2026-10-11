@@ -55,7 +55,7 @@ export function rebuildNetworks(g: Game) {
       index.set(r, nets.length);
       nets.push({
         id: nets.length, nodes: [], members: [], gen: 0, demand: 0, discharge: 0, charged: 0, wasted: 0,
-        stored: 0, capacity: 0, tiers: emptyTiers(), hasHearth: false,
+        stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, hasHearth: false,
       });
     }
     const n = nets[index.get(r)!];
@@ -110,7 +110,7 @@ export function gridSystem(g: Game) {
   }
   if (g.netDirty) rebuildNetworks(g);
 
-  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers() };
+  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 } };
   for (const b of g.buildings.values()) {
     if (b.net < 0) {
       b.demand = 0;
@@ -185,7 +185,15 @@ export function gridSystem(g: Game) {
       ts.served = ts.sat * ts.demand;
       rem = Math.max(0, rem - ts.served);
     }
-    for (const b of consumers) b.sat = b.off || g.tierOff[b.tier] ? 0 : n.tiers[b.tier].sat;
+    n.wall = { demand: 0, served: 0, sat: 1 };
+    for (const b of consumers) {
+      b.sat = b.off || g.tierOff[b.tier] ? 0 : n.tiers[b.tier].sat;
+      if (b.def.role === 'tower' || b.def.role === 'beacon') {
+        n.wall.demand += b.demand;
+        n.wall.served += b.demand * b.sat;
+      }
+    }
+    n.wall.sat = n.wall.demand > 0 ? n.wall.served / n.wall.demand : 1;
     for (const j of jars) {
       n.stored += j.charge;
       n.capacity += j.def.capacity ?? 0;
@@ -200,7 +208,10 @@ export function gridSystem(g: Game) {
       total.tiers[t].demand += n.tiers[t].demand;
       total.tiers[t].served += n.tiers[t].served;
     }
+    total.wall.demand += n.wall.demand;
+    total.wall.served += n.wall.served;
   }
+  total.wall.sat = total.wall.demand > 0 ? total.wall.served / total.wall.demand : 1;
   for (let t = 1; t <= 4; t++) {
     const ts = total.tiers[t];
     ts.sat = ts.demand > 0 ? ts.served / ts.demand : 1;
@@ -208,12 +219,12 @@ export function gridSystem(g: Game) {
   g.grid = total;
   g.stats.wastedKj += total.wasted * DT;
 
-  // brownout: the wall (tier 1) below the starved line, with a little hysteresis
-  const wall = total.tiers[1];
-  const starved = wall.demand > 0 && wall.sat < RULES.starvedBelow.v;
+  // brownout: the wall below the starved line; it ends only once the wall is clearly back
+  const wall = total.wall;
+  const starved = g.brownout ? !(wall.demand <= 0 || wall.sat >= RULES.brownoutEnds.v) : wall.demand > 0 && wall.sat < RULES.starvedBelow.v;
   if (starved !== g.brownout) {
     g.brownoutClock += DT;
-    if (g.brownoutClock >= (starved ? 0.25 : 1)) {
+    if (g.brownoutClock >= (starved ? 0.25 : 2)) {
       g.brownout = starved;
       g.brownoutClock = 0;
       if (starved) {

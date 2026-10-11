@@ -76,6 +76,8 @@ export interface Network {
   stored: number;
   capacity: number;
   tiers: TierStat[];
+  /** the towers and Beacons on this network */
+  wall: TierStat;
   hasHearth: boolean;
 }
 
@@ -88,6 +90,8 @@ export interface GridStats {
   capacity: number;
   /** index 1..4 */
   tiers: TierStat[];
+  /** the towers and Beacons together, whatever tiers they sit on */
+  wall: TierStat;
 }
 
 export type GameEvent =
@@ -95,7 +99,7 @@ export type GameEvent =
   | { t: 'sell'; x: number; y: number; money: number }
   | { t: 'kill'; x: number; y: number; money: number; enemy: string }
   | { t: 'leak'; x: number; y: number; lights: number; enemy: string }
-  | { t: 'wave'; n: number; note?: string; bonus?: number }
+  | { t: 'wave'; n: number; note?: string }
   | { t: 'brownout'; sat: number }
   | { t: 'recovered' }
   | { t: 'knock'; id: number; x: number; y: number }
@@ -112,8 +116,9 @@ export interface RunStats {
   kills: number;
   leaks: number;
   leaksByWave: number[];
+  /** lights lost to each kind of enemy */
+  lightsLostBy: Record<string, number>;
   moneyEarned: number;
-  bonusEarned: number;
   kjDelivered: number;
   wastedKj: number;
   brownoutSeconds: number;

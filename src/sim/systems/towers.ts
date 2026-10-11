@@ -27,7 +27,8 @@ export function towersSystem(g: Game) {
     if (dps <= 0) continue;
     b.dps = dps;
     if (!d.shares) {
-      hurt(g, target, dps);
+      // a narrow beam: a Pall drinks most of it (§5)
+      hurt(g, target, dps * (target.def.narrowBeam ?? 1));
       continue;
     }
     // Floodlight: target, then up to two more within the spill radius, split 4 : 2 : 1;

@@ -46,9 +46,9 @@ class App {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.floor(window.innerWidth * dpr), h = Math.floor(window.innerHeight * dpr);
     this.r.resize(w, h);
-    this.uiScale = Math.max(1, Math.floor(Math.min(w / 620, h / 340)));
+    this.uiScale = Math.max(1, Math.floor(Math.min(w / 500, h / 290)));
     const uiH = (HUD_H + BAR_H) * this.uiScale;
-    this.r.cam.z = Math.max(1, Math.min(6, Math.floor(Math.min(w / (27 * TILE), (h - uiH) / (18 * TILE)))));
+    this.r.cam.z = Math.max(1, Math.min(6, Math.floor(Math.min(w / (26 * TILE), (h - uiH) / (14 * TILE)))));
   }
 
   newGame(withBot = false) {

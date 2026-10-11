@@ -4,6 +4,7 @@
 import { BUILDINGS, type BuildingId } from '../data/buildings';
 import { C, rgb, rgba } from '../data/palette';
 import { RULES } from '../data/rules';
+import { ENEMIES } from '../data/enemies';
 import type { Game } from '../sim/Game';
 import { covers, pointRectDist } from '../sim/geom';
 import type { Building, Enemy } from '../sim/types';
@@ -138,7 +139,7 @@ export class Renderer {
       if (b.offline > 0) return 'dark';
       const n = g.networks[b.net];
       if (!n || n.gen <= 0) return 'dark';
-      return n.tiers[1].sat < RULES.starvedBelow.v ? 'starved' : 'lit';
+      return n.wall.sat < RULES.starvedBelow.v ? 'starved' : 'lit';
     }
     if (r === 'generator') return b.output > 0 ? 'lit' : 'starved';
     if (r === 'storage') return 'lit';
@@ -393,7 +394,7 @@ export class Renderer {
       const bx = pb.lx, by = b.def.role === 'core' ? pb.y + 20 : pb.ly + 1;
       const live = a.offline <= 0 && b.offline <= 0 && a.net >= 0 && a.net === b.net && (g.networks[a.net]?.gen ?? 0) > 0;
       if (live) {
-        const sat = g.networks[a.net].tiers[1].sat;
+        const sat = g.networks[a.net].wall.sat;
         this.pixelLine(ax, ay, bx, by, sat < RULES.starvedBelow.v ? C.violet : C.amber, 0.55 + 0.25 * Math.sin(this.time * 3 + a.id));
       } else this.pixelLine(ax, ay, bx, by, C.slate, 0.9); // a cut line goes dark along its whole length (STYLE.md rule 2)
     }
@@ -533,6 +534,24 @@ export class Renderer {
       }
   }
 
+  private reachMask: Uint8Array | null = null;
+  /** is a Node on this tile within a Shade's reach of the path? (cached per map) */
+  shadeReach(g: Game, tx: number, ty: number): boolean {
+    if (!this.reachMask || this.reachMask.length !== g.map.w * g.map.h) {
+      const r = ENEMIES.shade.knockRadius ?? 0;
+      const m = new Uint8Array(g.map.w * g.map.h);
+      const pts: { x: number; y: number }[] = [];
+      for (let d = 0; d <= g.path.length; d += 0.25) pts.push(g.path.at(d));
+      for (let y = 0; y < g.map.h; y++)
+        for (let x = 0; x < g.map.w; x++) {
+          const rect = { x, y, w: 1, h: 1 };
+          if (pts.some((p) => pointRectDist(p.x, p.y, rect) <= r)) m[y * g.map.w + x] = 1;
+        }
+      this.reachMask = m;
+    }
+    return this.reachMask[ty * g.map.w + tx] === 1;
+  }
+
   /** build mode: where power reaches now (live networks only) */
   private drawCoverage(g: Game, ov: Overlay) {
     const ctx = this.ctx;
@@ -545,7 +564,13 @@ export class Renderer {
         for (const c of cond) if (pointRectDist(tx + 0.5, ty + 0.5, g.rect(c)) <= c.def.nodeRadius!) { on = true; break; }
         if (on) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
       }
-    if (ov.ghost && BUILDINGS[ov.ghost.id].role === 'node') this.drawReach(g, BUILDINGS.node, ov.ghost.x, ov.ghost.y, rgba(C.gold, 0.14));
+    if (ov.ghost && BUILDINGS[ov.ghost.id].role === 'node') {
+      // where a passing Shade would cut a Node
+      ctx.fillStyle = rgba(C.red, 0.22);
+      for (let ty = 0; ty < g.map.h; ty++)
+        for (let tx = 0; tx < g.map.w; tx++) if (this.shadeReach(g, tx, ty)) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
+      this.drawReach(g, BUILDINGS.node, ov.ghost.x, ov.ghost.y, rgba(C.gold, 0.14));
+    }
   }
 
   private drawGhost(g: Game, gh: NonNullable<Overlay['ghost']>) {

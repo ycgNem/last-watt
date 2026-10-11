@@ -21,7 +21,7 @@ Pages; `PROGRESS.md` and `DECISIONS.md` exist with their first entries.
 
 Exactly the `DESIGN.md` slice set: one hand-made map (36-tile path with two bends, two near
 deposits and one far), Hearth, Extractor, Burner, Node, Jar, Lab with two projects, Lamp (tiers
-1–2), Floodlight, Beacon, Moth, Shade, Pall, 8 waves with call-early, money and bounty, priority
+1–2), Floodlight, Beacon, Moth, Shade, Pall, 8 waves with call-early (bonus dropped after the first critic review: the breather instead), money and bounty, priority
 tiers with Shed, Overcharge, lights and run end, win screen after wave 8, restart. Placeholder
 art is fine for a week; the three readability states are not optional even with placeholders.
 The pace tests in `DESIGN.md` §6. A bot that plays layouts A, S and B.

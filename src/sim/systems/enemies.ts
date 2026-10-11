@@ -32,6 +32,7 @@ export function enemiesSystem(g: Game) {
       g.lights = Math.max(0, g.lights - e.def.leak);
       g.stats.leaks++;
       g.stats.leaksByWave[e.wave] = (g.stats.leaksByWave[e.wave] ?? 0) + 1;
+      g.stats.lightsLostBy[e.def.id] = (g.stats.lightsLostBy[e.def.id] ?? 0) + e.def.leak;
       g.emit({ t: 'leak', x: e.x, y: e.y, lights: e.def.leak, enemy: e.def.id });
     }
   }
