@@ -132,6 +132,14 @@ const STATES = {
     for (let i = 0; i < 60 * 34; i++) { p.tick(); g.drainEvents(); }
     p.msgs = [];
   }),
+  continue: async (page) => {
+    await page.evaluate(() => {
+      const a = window.__app;
+      a.saved = { v: 1, hash: '', map: 'switchback', seed: 3, skills: [], tick: 9000, wave: 6, lights: 17, log: [] };
+      a.profile.best.wave = 9;
+    });
+    await page.mouse.move(4, 4);
+  },
   skills: async (page) => {
     await page.evaluate(() => {
       const a = window.__app;

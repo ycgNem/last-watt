@@ -11,10 +11,7 @@ import type { Audio } from '../engine/audio';
 import type { Input } from '../engine/input';
 import { TILE, type Renderer } from '../render/renderer';
 import { drawFrame } from '../render/art';
-import {
-  endless, nextWave, overcharge, overchargeProblem, pulse, pulseProblem, place, placeProblem, researchProblem, sell, sellValue, setTier, startResearch, toggleOff,
-  toggleTier, upgrade, upgradeProblem,
-} from '../sim/actions';
+import { overchargeProblem, pulseProblem, placeProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
 import { Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
@@ -24,6 +21,8 @@ import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
+import { clearRun, saveRun } from './runsave';
+import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
 import { embersFor } from '../data/skills';
 import type { MapDef } from '../data/map';
@@ -42,6 +41,8 @@ export interface PlayOpts {
   tutorial?: boolean;
   /** the map (the station when left out; the tutorial is always on the station) */
   map?: MapDef;
+  /** a game already rebuilt from a saved run (CONTINUE) */
+  game?: Game;
   seed?: number;
   profile?: Profile;
   onProfile?: (p: Profile) => void;
@@ -72,6 +73,10 @@ export class Play {
   /** the build-bar slot rects drawn last frame (for the tutorial's highlight) */
   private slotRects = new Map<BuildingId, { x: number; y: number; w: number; h: number }>();
   private recorded = false;
+  /** autosave: seconds to the next save, the tick last saved, the save cleared at the end */
+  private saveSoon = 3;
+  private savedTick = -1;
+  private cleared = false;
   /** the run is in the profile's run count (endless records again without counting again) */
   private counted = false;
   /** waves already paid in embers, whether the win's bonus was paid, and the last award */
@@ -82,7 +87,7 @@ export class Play {
   private stripLeft = 0;
 
   constructor(public r: Renderer, public ui: UI, public input: Input, public audio: Audio, public onRestart: () => void, public opts: PlayOpts = {}) {
-    this.game = new Game({ seed: opts.seed, map: opts.tutorial ? undefined : opts.map, skills: opts.profile?.skills });
+    this.game = opts.game ?? new Game({ seed: opts.seed, map: opts.tutorial ? undefined : opts.map, skills: opts.profile?.skills });
     this.profile = opts.profile ?? null;
     const [fx, fy] = this.game.map.focus;
     r.cam.x = fx * TILE;
@@ -131,6 +136,7 @@ export class Play {
     this.handleEvents();
     this.handleInput(dt);
     this.hints(dt);
+    this.autosave(dt);
     this.tutorial?.update(this.game);
     const g = this.game;
     this.audio.setHum(Math.min(1, g.grid.demand / 160), g.grid.wall.sat);
@@ -414,15 +420,15 @@ export class Play {
     const hb = overUI ? undefined : g.buildingAt(t.x, t.y);
     this.hoverId = hb?.id ?? 0;
     const target = hb ?? this.selected;
-    if (k('KeyX') && target) this.act(toggleOff(g, target));
-    if (k('KeyE') && target) this.act(overcharge(g, target));
-    if (k('KeyQ') && g.research.done.has('pulse')) this.act(pulse(g));
+    if (k('KeyX') && target) this.act(this.cmd({ k: 'off', b: target.id }));
+    if (k('KeyE') && target) this.act(this.cmd({ k: 'oc', b: target.id }));
+    if (k('KeyQ') && g.research.done.has('pulse')) this.act(this.cmd({ k: 'pulse' }));
     // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
-    if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1)), 'click');
-    if (k('KeyU') && target) this.act(upgrade(g, target), 'place');
+    if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
+    if (k('KeyU') && target) this.act(this.cmd({ k: 'up', b: target.id }), 'place');
     if ((k('Delete') || k('Backspace')) && this.selected) {
       const s = this.selected;
-      if (!this.act(sell(g, s))) this.selectedId = 0;
+      if (!this.act(this.cmd({ k: 'sell', b: s.id }))) this.selectedId = 0;
     }
 
     // mouse on the world
@@ -434,11 +440,11 @@ export class Play {
       if (inp.mouse.pressed[0]) {
         if (this.buildId) {
           const gx = this.ghostXY();
-          const res = place(g, this.buildId, gx.x, gx.y);
+          const res = run(g, { k: 'place', id: this.buildId, x: gx.x, y: gx.y });
           if (typeof res === 'string') {
             this.say(res, C.ember, 3);
             this.audio.sfx('error');
-          } else {
+          } else if (res) {
             this.selectedId = res.id;
             if (!inp.shift) this.buildId = null;
           }
@@ -449,6 +455,30 @@ export class Play {
 
   cycleSpeed() {
     this.speed = this.speed === 1 ? 2 : this.speed === 2 ? 3 : 1;
+  }
+
+  /** run a player command through the log (sim/commands.ts); the reason it was refused, or null */
+  private cmd(c: Command): string | null {
+    const r = run(this.game, c);
+    if (typeof r === 'string') return r;
+    this.saveSoon = 0;
+    return null;
+  }
+
+  /** the run in progress into localStorage: its seed, skills and command log (app/runsave.ts) */
+  private autosave(dt: number) {
+    const g = this.game;
+    if (this.tutorial || this.bot || !this.profile) return;
+    if (g.over) {
+      if (!this.cleared) clearRun();
+      this.cleared = true;
+      return;
+    }
+    this.saveSoon -= dt;
+    if (this.saveSoon > 0 || g.tick === this.savedTick) return;
+    this.saveSoon = 3;
+    this.savedTick = g.tick;
+    saveRun({ map: g.map.id, seed: g.seed, skills: [...g.skills], tick: g.tick, wave: g.wave, lights: g.lights, log: g.log });
   }
 
   /** a short message for a refused action; returns the reason (null on success) */
@@ -478,7 +508,7 @@ export class Play {
       this.say('Finish the tutorial steps first (or SKIP), then start the wave.', C.ash, 3);
       return;
     }
-    this.act(nextWave(g), 'click');
+    this.act(this.cmd({ k: 'wave' }), 'click');
   }
 
   /** the ghost's top-left: footprint centred on the mouse */
@@ -731,7 +761,7 @@ export class Play {
         if (ui.clicked) {
           ui.eat();
           if (this.input.shift || off) {
-            toggleTier(g, t);
+            this.cmd({ k: 'shedTier', t });
             this.audio.sfx('click');
           } else this.say(`Shift-click the ${TIER_NAMES[t]} bar to shed the whole tier.`, C.ash, 3);
         }
@@ -837,7 +867,7 @@ export class Play {
         const near = g.enemies.filter((e) => [...g.buildings.values()].some((t) => t.def.role === 'tower' && !t.off && t.sat > 0 && Math.hypot(e.x - t.x - t.def.size / 2, e.y - t.y - t.def.size / 2) <= RULES.pulseRadius.v)).length;
         const tip = ['Pulse (Q)', `Every Jar empties at once in a flash from every lit tower. ${Math.round(RULES.pulseEff.v * 100)}% of the stored kJ lands, split evenly across every enemy within ${RULES.pulseRadius.v} tiles of a lit tower. No shadows: a Pall takes its share.`,
           lit ? `Now: ${stored} kJ makes ${Math.round(stored * RULES.pulseEff.v)} kJ of light${near ? `, ${Math.round((stored * RULES.pulseEff.v) / near)} on each of the ${near} in reach` : ''}.` : 'No tower is lit.', ...(why ? [why] : ['Fewer enemies in reach, more on each: a Pall alone at the wall takes all of it.'])];
-        if (ui.button('PULSE [Q]', bx, y0 - TAB_H - 1, side, TAB_H + 1, { disabled: !!why, color: why ? C.steel : C.bone, active: !why, tip })) this.act(pulse(g));
+        if (ui.button('PULSE [Q]', bx, y0 - TAB_H - 1, side, TAB_H + 1, { disabled: !!why, color: why ? C.steel : C.bone, active: !why, tip })) this.act(this.cmd({ k: 'pulse' }));
       }
     }
     if (this.buildId) {
@@ -1010,25 +1040,25 @@ export class Play {
       ui.text('Priority tier (T)', x + 5, y, C.ash);
       y += 10;
       for (let t = 1; t <= 4; t++) {
-        if (ui.button(`${t}`, x + 5 + (t - 1) * 22, y, 20, 14, { active: b.tier === t, tip: [`Tier ${t}: ${TIER_NAMES[t]}`, 'Tier 1 is served in full before tier 2 sees a watt.'] })) setTier(g, b, t);
+        if (ui.button(`${t}`, x + 5 + (t - 1) * 22, y, 20, 14, { active: b.tier === t, tip: [`Tier ${t}: ${TIER_NAMES[t]}`, 'Tier 1 is served in full before tier 2 sees a watt.'] })) this.cmd({ k: 'tier', b: b.id, t });
       }
       y += 20;
     }
     if (b.def.role !== 'core' && b.def.role !== 'node') {
-      if (ui.button(b.off ? 'TURN ON (X)' : 'SHED (X)', x + 5, y, w - 10, 14, { active: b.off, tip: ['Shed', 'Turn it off: it asks for nothing and does nothing. A shed Burner keeps its fuel.'] })) this.act(toggleOff(g, b));
+      if (ui.button(b.off ? 'TURN ON (X)' : 'SHED (X)', x + 5, y, w - 10, 14, { active: b.off, tip: ['Shed', 'Turn it off: it asks for nothing and does nothing. A shed Burner keeps its fuel.'] })) this.act(this.cmd({ k: 'off', b: b.id }));
       y += 16;
     }
     if (isTower) {
       const why = overchargeProblem(g, b);
       const ask = this.overchargeAsk(b);
       const label = `OVERCHARGE (E) ${ask} kW`;
-      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else: spare power first, then the Jars, then whatever the rest of the wall was getting. Big Overcharges with no Jars behind them starve the wall.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(overcharge(g, b));
+      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else: spare power first, then the Jars, then whatever the rest of the wall was getting. Big Overcharges with no Jars behind them starve the wall.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
       y += 16;
     }
     if (up) {
       const why = upgradeProblem(g, b);
       const next = specOf(b.def, b.level + 1);
-      if (ui.button(`UPGRADE (U) ${up.cost}`, x + 5, y, w - 10, 14, { disabled: !!why, tip: ['Tier 2', up.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] })) this.act(upgrade(g, b), 'place');
+      if (ui.button(`UPGRADE (U) ${up.cost}`, x + 5, y, w - 10, 14, { disabled: !!why, tip: ['Tier 2', up.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'up', b: b.id }), 'place');
       y += 16;
     }
     if (b.def.role === 'lab') {
@@ -1037,7 +1067,7 @@ export class Play {
     }
     if (b.def.role !== 'core') {
       if (ui.button(`SELL +${sellValue(b)} (DEL)`, x + 5, y, w - 10, 14)) {
-        if (!this.act(sell(g, b))) this.selectedId = 0;
+        if (!this.act(this.cmd({ k: 'sell', b: b.id }))) this.selectedId = 0;
       }
     }
   }
@@ -1206,7 +1236,7 @@ export class Play {
         if (ui.button(label, cx, ry, colW, 13, {
           active, disabled: done || (!!why && !active), color: done ? C.steel : C.bone,
           tip: [r.name, r.blurb, done ? 'Done.' : why && !active ? why : `${cost} kJ${cost < r.cost ? ' (Head Start)' : ''}: about ${secs} s at ${kw > 0 ? kw.toFixed(0) : 10} kW. ${active ? 'Click to pause it.' : 'Click to work on it.'}`],
-        })) this.act(startResearch(g, id));
+        })) this.act(this.cmd({ k: 'research', id }));
         ui.bar(cx, ry + 14, colW, 4, done ? 1 : p, done ? C.steel : active ? C.cyan : C.navy);
       });
     });
@@ -1292,7 +1322,7 @@ export class Play {
     whyLines.forEach((l, i) => ui.text(l, x + 14, y + 32 + rows.length * 10 + 4 + i * LINE_H, C.gold));
     if (win) {
       if (ui.button('KEEP GOING: ENDLESS', ui.w / 2 - 118, y + h - 22, 120, 15, { color: C.gold, tip: ['Endless', 'Waves keep coming, each 14% heavier. How long can the Hearth hold?'] })) {
-        endless(g);
+        this.cmd({ k: 'endless' });
         this.recorded = false;
         this.say('Endless: the dark keeps coming. Each wave 14% heavier.', C.gold, 6);
       }

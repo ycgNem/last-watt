@@ -7,6 +7,7 @@ import { SKILL_RULES } from '../data/skills';
 import type { EnemyId } from '../data/enemies';
 import { Path, type Rect } from './geom';
 import type { Building, Enemy, GameEvent, GridStats, Network, RunStats, Shot } from './types';
+import type { LogEntry } from './commands';
 import { wavesSystem } from './systems/waves';
 import { enemiesSystem } from './systems/enemies';
 import { targetingSystem } from './systems/targeting';
@@ -64,6 +65,8 @@ export class Game {
   wavePaid = new Set<number>();
   /** enemy kinds seen this run (for the intel card the first time) */
   seenKinds = new Set<EnemyId>();
+  /** every player command so far, with the tick it came before (sim/commands.ts; saves replay it) */
+  log: LogEntry[] = [];
   research = { active: null as string | null, progress: {} as Record<string, number>, done: new Set<string>() };
   /** towers' tier-1 satisfaction has fallen below the starved line */
   brownout = false;

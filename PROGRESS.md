@@ -86,7 +86,7 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
 - **M4**: towers 7–10, enemies 7–10, tier 3 and branches, walls and gates.
 - **M5**: multiple-Lab scheduling UI beyond "all Labs on one project"; the rest of the tree.
 - **M6**: Pulse exists (research, Q); Reroute and Dark Bait do not.
-- **M7**: three maps exist (below); still missing: mid-run saves, per-map waves, a map preview on the picker.
+- **M7**: three maps, embers, and mid-run saves (CONTINUE) exist; still missing: per-map waves, more maps, a map preview on the picker.
 - **M8**: embers and the skill tree exist (nine nodes, respec); still missing: a meta save separate from the run save (there is no run save yet). **M9**: the jsfxr bank. **M10**: settings, keybinds, UI scale.
 - Milestone 0 leftovers: `Package for web.bat`, the PixelLab scripts and art importers.
 

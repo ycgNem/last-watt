@@ -10,10 +10,12 @@ import { loadProfile, saveProfile, type Profile } from './app/save';
 import { LAST_WAVE } from './data/waves';
 import { MAPS, mapById, type MapDef } from './data/map';
 import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
+import { clearRun, loadRun, type RunSave } from './app/runsave';
+import { replay } from './sim/commands';
 import { Game } from './sim/Game';
 import { Bot } from './app/bot';
 import { C } from './data/palette';
-import { drawText, wrapText, LINE_H } from './ui/font';
+import { drawText, textWidth, wrapText, LINE_H } from './ui/font';
 import { nextWave, overcharge, place } from './sim/actions';
 
 class App {
@@ -32,6 +34,9 @@ class App {
   uiScale = 2;
   /** the skill tree is open over the title */
   skillsOpen = false;
+  /** the run saved mid-way (CONTINUE), and a note when one could not be used */
+  saved: RunSave | null = null;
+  saveNote = '';
 
   constructor() {
     this.input.attach(this.canvas);
@@ -46,8 +51,40 @@ class App {
     this.loop.start();
     void loadArt().then(() => {
       this.screen = 'title';
+      // the loading screen baked the title's ground before the art arrived: bake it again
+      this.title = new Game({ map: this.map });
       this.focusTitle();
+      this.readSave();
     });
+  }
+
+  /** look for a run saved mid-way */
+  readSave() {
+    const { run, problem } = loadRun();
+    this.saved = run;
+    if (problem) this.saveNote = problem;
+  }
+
+  /** rebuild the saved run by replaying its commands, then play on from there */
+  continueRun() {
+    const s = this.saved;
+    if (!s) return;
+    const map = mapById(s.map);
+    const g = new Game({ map, seed: s.seed, skills: s.skills });
+    const err = replay(g, s.log, s.tick);
+    if (err) {
+      clearRun();
+      this.saved = null;
+      this.saveNote = 'Your saved run could not be rebuilt, so it was dropped.';
+      console.warn('replay failed:', err);
+      return;
+    }
+    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), { game: g, map, seed: s.seed, profile: this.profile, onProfile: (p) => saveProfile(p) });
+    this.play.paused = true;
+    this.play.say(`Continued: ${map.name}, wave ${g.wave}. Paused: P to play on.`, C.gold, 6);
+    this.screen = 'play';
+    this.resize();
+    (window as any).__game = this.play.game;
   }
 
   /** a map is open once the player has reached its unlock wave on any map */
@@ -126,6 +163,8 @@ class App {
   }
 
   newGame(withBot = false, tutorial = false) {
+    // a new run replaces the saved one (it saves itself as soon as it has a tick to save)
+    if (!withBot && !tutorial) this.saved = null;
     const seed = withBot ? 1 : Math.floor(Math.random() * 1000);
     this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), {
       tutorial, seed, map: withBot ? undefined : this.map, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p),
@@ -180,6 +219,16 @@ class App {
     ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
     ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
     const by = Math.round(ui.h * 0.58);
+    if (this.saved) {
+      const s = this.saved;
+      const cw = 220;
+      if (ui.button(`CONTINUE: ${mapById(s.map).name.toUpperCase()}, WAVE ${s.wave}`, Math.round(ui.w / 2 - cw / 2), by - 24, cw, 18, { color: C.gold, active: true, tip: ['Continue', `Your run on ${mapById(s.map).name}: wave ${s.wave}, ${s.lights} lights. It is rebuilt from your moves, then paused.`] }) || this.input.key('KeyC')) {
+        this.audio.unlock();
+        this.continueRun();
+        ui.end();
+        return;
+      }
+    } else if (this.saveNote) ui.textC(this.saveNote, ui.w / 2, by - 18, C.ash);
     const first = !this.profile.tutorialDone;
     const tbw = 112, bx = Math.round(ui.w / 2 - (tbw * 3 + 12) / 2);
     if (ui.button(first ? 'TUTORIAL (START HERE)' : 'TUTORIAL', bx, by, tbw, 18, { color: first ? C.gold : C.bone, active: first, tip: ['Tutorial', 'A guided first run: place each piece on a marked spot and learn why watts matter. About 4 minutes, then the run carries on.'] }) || this.input.key('KeyT')) {
@@ -206,7 +255,8 @@ class App {
       const open = MAPS.filter((m) => this.open(m));
       this.pickMap(open[(open.indexOf(this.map) + step + open.length) % open.length]);
     }
-    const bw = Math.min(ui.w - 32, 360);
+    const hint = `${this.saved ? 'C continue, ' : ''}T tutorial, Enter play, K skills, arrows pick a map. H in game shows the controls.`;
+    const bw = Math.min(ui.w - 32, Math.max(360, textWidth(hint) + 8));
     const b = this.profile.maps[this.map.id];
     const ph = wrapText(this.map.blurb, bw).length * LINE_H + (b && b.wave > 0 ? 12 : 0) + 22;
     ui.panel(Math.round(ui.w / 2 - bw / 2) - 8, my + 17, bw + 16, ph, { alpha: 0.8 });
@@ -216,7 +266,7 @@ class App {
       ui.textC(b.won ? `Best here: held all ${LAST_WAVE} waves with ${b.lights} lights${b.endless ? `; endless to wave ${b.endless}` : ''}.` : `Best here: reached wave ${b.wave} of ${LAST_WAVE}.`, ui.w / 2, y, C.amber);
       y += 12;
     }
-    ui.textC('T tutorial, Enter play, K skills, arrows pick a map. H in game shows the controls.', ui.w / 2, y + 2, C.steel);
+    ui.textC(hint, ui.w / 2, y + 2, C.steel);
     ui.end();
   }
 }
