@@ -8,6 +8,7 @@ import { ENEMIES } from '../data/enemies';
 import type { Game } from '../sim/Game';
 import { covers, pointRectDist, touches } from '../sim/geom';
 import type { Building, Enemy } from '../sim/types';
+import type { LineReport, Neck } from '../sim/lines';
 import { coneCatchers } from '../sim/systems/towers';
 import { hash2 } from '../engine/rng';
 import { drawFrame, frameIndex, SHEETS, type Variant } from './art';
@@ -40,7 +41,13 @@ export interface Overlay {
   spot?: { x: number; y: number; size: number };
   /** which enemies' reach to show in red while placing (only once they matter) */
   danger?: { shade: boolean; snuffer: boolean };
+  /** the Lines view (V): every network outlined in its own colour, with what holds it back */
+  lines?: LineReport[];
 }
+
+/** a colour per power line in the Lines view, and a colour per bottleneck */
+const LINE_COLORS = [C.gold, C.cyan, C.lime, C.orange, C.ice, C.tan];
+const NECK_COLORS: Record<Neck, string> = { nopower: C.violet, fuel: C.ember, short: C.ember, peak: C.amber, waste: C.sky, loss: C.amber, ok: C.lime };
 
 export class Renderer {
   ctx: CanvasRenderingContext2D;
@@ -285,6 +292,7 @@ export class Renderer {
     if (ov.hover && ov.hover !== ov.selected && g.buildings.has(ov.hover.id)) this.drawSelection(g, ov.hover, C.ash, true);
     if (ov.spot) this.drawSpot(ov.spot);
     if (ov.ghost) this.drawGhost(g, ov.ghost);
+    if (ov.lines) this.drawLines(g, ov.lines);
     this.drawFx();
     if (this.flash.red > 0 && this.flashOn) {
       const gr = ctx.createRadialGradient(this.W / 2, this.H / 2, Math.min(this.W, this.H) * 0.3, this.W / 2, this.H / 2, Math.max(this.W, this.H) * 0.7);
@@ -636,6 +644,45 @@ export class Renderer {
       ctx.fillStyle = lit ? C.gold : C.steel;
       ctx.fillRect(this.sx(bx), this.sy(by), Math.max(1, Math.round((bw * e.hp) / e.def.health)) * z, z);
     }
+  }
+
+  /** the Lines view: members outlined in their line's colour, a label card on each line */
+  private drawLines(g: Game, lines: LineReport[]) {
+    const z = this.cam.z;
+    const ctx = this.ctx;
+    lines.forEach((l, i) => {
+      const color = LINE_COLORS[i % LINE_COLORS.length];
+      const n = g.networks[l.net];
+      if (!n) return;
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.85;
+      for (const id of n.members) {
+        const b = g.buildings.get(id);
+        if (!b) continue;
+        const x = b.x * TILE, y = b.y * TILE, s = b.def.size * TILE;
+        ctx.fillRect(this.sx(x), this.sy(y), s * z, z);
+        ctx.fillRect(this.sx(x), this.sy(y + s - 1), s * z, z);
+        ctx.fillRect(this.sx(x), this.sy(y), z, s * z);
+        ctx.fillRect(this.sx(x + s - 1), this.sy(y), z, s * z);
+      }
+      ctx.globalAlpha = 1;
+    });
+    // the cards last, so no outline crosses one
+    lines.forEach((l, i) => {
+      const color = LINE_COLORS[i % LINE_COLORS.length];
+      const head = `${l.name}: ${Math.round(l.made)} kW in, ${Math.round(l.peak)} at full fire`;
+      const w = Math.max(textWidth(head), textWidth(l.text), textWidth(l.fix)) + 6;
+      // kept on screen however the camera sits
+      const px = Math.max(4, Math.min(this.W - w * z - 4, this.sx(Math.round(l.at.x * TILE - w / 2))));
+      const py = Math.max(4, Math.min(this.H - 31 * z - 4, this.sy(Math.round(l.at.y * TILE - 31))));
+      ctx.fillStyle = 'rgba(9,10,20,0.88)';
+      ctx.fillRect(px, py, w * z, 30 * z);
+      ctx.fillStyle = color;
+      ctx.fillRect(px, py, z, 30 * z);
+      drawText(ctx, head, px + 3 * z, py + 2 * z, color, z);
+      drawText(ctx, l.text, px + 3 * z, py + 11 * z, NECK_COLORS[l.neck], z);
+      drawText(ctx, l.fix, px + 3 * z, py + 20 * z, C.ash, z);
+    });
   }
 
   private drawSelection(g: Game, b: Building, color: string, faint = false) {

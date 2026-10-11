@@ -23,6 +23,7 @@ import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
+import { lineReports } from '../sim/lines';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
 import { embersFor } from '../data/skills';
@@ -64,6 +65,8 @@ export class Play {
   help = false;
   board = false;
   settingsOpen = false;
+  /** the Lines view (V) */
+  lines = false;
   bot: Bot | null = null;
   tutorial: Tutorial | null = null;
   profile: Profile | null;
@@ -245,7 +248,7 @@ export class Play {
         a.sfx('newenemy');
         break;
       case 'brownout': {
-        this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something.', C.violet, 8);
+        this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
         a.sfx('brownout');
         break;
       }
@@ -369,6 +372,7 @@ export class Play {
     const k = (c: string) => inp.key(c);
     if (k('KeyH') || k('F1')) this.help = !this.help;
     if (k('KeyO') && this.profile) this.settingsOpen = !this.settingsOpen;
+    if (k('KeyV')) this.lines = !this.lines;
     if (k('KeyM')) {
       this.audio.setMuted(!this.audio.muted);
       if (this.profile) {
@@ -545,6 +549,7 @@ export class Play {
     // the Shade's and Snuffer's reach only once they have come, or come next (or in the tutorial's Node step)
     const n = g.waveTimer > 0 || g.wave === 0 ? g.wave + 1 : g.wave;
     const next = waveDef(n)?.seq ?? '';
+    if (this.lines) ov.lines = lineReports(g);
     ov.danger = {
       shade: g.seenKinds.has('shade') || next.includes(ENEMIES.shade.code) || this.tutorial?.step?.slot === 'node',
       snuffer: g.seenKinds.has('snuffer') || next.includes(ENEMIES.snuffer.code),
@@ -666,6 +671,12 @@ export class Play {
         this.opts.onProfile?.(this.profile!);
         this.opts.onSettings?.();
       });
+    }
+    if (this.lines && !g.over) {
+      ui.layer = 1;
+      const lw = 236, ly = ui.h - BAR_H - TAB_H - (this.paused ? 40 : 26);
+      ui.panel(ui.w / 2 - lw / 2, ly, lw, 12, { alpha: 0.9, border: C.cyan, blocking: false });
+      ui.textC('LINES: what holds each power line back (V to close)', ui.w / 2, ly + 2, C.cyan);
     }
     if (this.paused && !g.over && !this.board && !this.help) {
       // a banner just above the bar: it blocks no clicks and sits clear of the cards and feed
@@ -883,7 +894,9 @@ export class Play {
       if (ui.button(this.paused ? 'PAUSED' : `SPEED x${this.speed}`, bx, y0 + 1, side, 11, { tip: ['Speed (F) / pause (P)'], active: this.paused })) this.cycleSpeed();
       const labs = [...g.buildings.values()].some((b) => b.def.role === 'lab');
       if (ui.button('RESEARCH [L]', bx, y0 + 13, side, 11, { active: this.board, color: labs ? C.cyan : C.bone, tip: ['Research board (L)', 'Labs turn spare power into new towers, generators and upgrades.'] })) this.board = !this.board;
-      if (ui.button('HELP [H]', bx, y0 + 25, side, 10)) this.help = !this.help;
+      const hw = Math.floor(side / 2) - 1;
+      if (ui.button('LINES', bx, y0 + 25, hw, 10, { active: this.lines, color: C.cyan, tip: ['Lines view (V)', 'Every power line outlined in its own colour, with what holds it back: no rock, too few Burners, power going to waste.'] })) this.lines = !this.lines;
+      if (ui.button('HELP', bx + side - hw, y0 + 25, hw, 10, { active: this.help, tip: ['Help (H)', 'Every key, and how power works.'] })) this.help = !this.help;
       if (g.research.done.has('pulse')) {
         const why = pulseProblem(g);
         const stored = Math.round(g.grid.stored);
@@ -1282,6 +1295,7 @@ export class Play {
       ['T', 'raise its priority one tier'],
       ['E', 'Overcharge a tower (needs a charged Jar)'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
+      ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],
       ['G', 'Reroute: a cut Node back at once (100 kJ)'],
       ['U', 'upgrade (after its research)'],

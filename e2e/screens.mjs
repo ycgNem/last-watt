@@ -132,6 +132,20 @@ const STATES = {
     for (let i = 0; i < 60 * 34; i++) { p.tick(); g.drainEvents(); }
     p.msgs = [];
   }),
+  lines: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+    window.__place(g, 'node', 21, 10);
+    window.__place(g, 'lamp', 24, 7); window.__place(g, 'lamp', 24, 13); window.__place(g, 'floodlight', 12, 13);
+    window.__place(g, 'jar', 22, 18).charge = 100;
+    // a second line with a Burner and no Extractor
+    for (const [id, x, y] of [['node', 6, 18], ['burner', 7, 20], ['lamp', 4, 15]]) try { window.__place(g, id, x, y); } catch { /* blocked */ }
+    for (let i = 0; i < 3; i++) p.tick();
+    p.lines = true;
+    p.paused = true;
+    p.msgs = [];
+  }),
   reroute: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
