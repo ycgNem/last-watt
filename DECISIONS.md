@@ -211,3 +211,14 @@ on Burners) is unseen until it lands. Taken in its order:
 - 2026-10-11: **A map's pace never tightens wave 1** (M5): wave 1 is the placement lesson, so a map can loosen it (Two Roads, 1.4) but the Switchback's 0.9 now starts at wave 2. Its FIRST STEPS layout leaked 2 in wave 1 on every seed; now 0, and a Lamp on a straight still leaks (tested).
 - 2026-10-11: **An Extractor's panel prices the Mining choice at its deposit** (M2): net kW as it is, with a Deep bit, with a Coker, from the Burners on the grid touching it, and how many of those stand in a Snuffer's reach. It counted an off-network Burner as fed; now only Burners on the grid count.
 - 2026-10-11: **The end screen reads the run wave by wave** (ROADMAP Milestone 3's production stats): a column per wave, the share of what the wall asked that it got while enemies were on the field (lime, amber under 75%, violet under 60%), a red pip per light lost; hovering a column gives the kJ made, asked, got and wasted that wave and the biggest supply loss from the ledger. Why: the loss line names one cause; the chart shows when the run turned.
+
+### Seventh review (td-critic, 2026-10-11): verifying the sixth
+
+A scoped pass. The Snuffer telegraph came in time and was accurate (forecast 28%, the real low 22%), a rebuild in the breather took wave 9 from 19 → 5 to 19 → 19, coke held, cards folded, wave 1 on the Switchback was clean. What it found, all fixed:
+
+- 2026-10-11: **The warning names its answers.** The feed said what was in red without a verb, and selling the outlined Burners lost the run (19 → 0) where moving them kept all 19. The breather line, and the tooltip's, now say: rebuild them past the red, or feed them coke; a snuffed Burner is cold 8 s, a sold one is gone. Shades: move the Nodes past the red, or a second route. The line stays 20 s, the breather's length.
+- 2026-10-11: **The strip's warning carries its number** ("!40%", violet under 60%), and the Snuffer count takes its colour.
+- 2026-10-11: **The end chart is coloured by the wall's share when the lights went** (weighted by lights; the wave's mean if none went). A wave mean washed a snuff's 8 s out: wave 9 read 81% lime where its lights went at 44%.
+- 2026-10-11: **A loss to plain shortage says so** ("your wall had 50% of the power it asked as the lights went: Burners before towers"), and the ledger counts the worst wave as well as the last quarter's.
+- 2026-10-11: **The Extractor panel prices the snuff**: while a Snuffer passes, what each way nets here (rock in reach goes out, coke doesn't); a Deep bit by the road once Snuffers are met names the way out (sell, build a Coker). Rejected: switching an Extractor's tier in place, since every other branch is chosen once.
+- 2026-10-11: **Pausing no longer unfolds every card**: pause is when a player plans in the breather and the cards covered most.

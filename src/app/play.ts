@@ -406,10 +406,15 @@ export class Play {
     const first = this.firstThreat();
     if (first?.kind === 'snuffer') {
       const at = snuffable(g);
-      this.sayOnce('threat-snuffer', 600, `Wave ${first.n} brings Snuffers. Red shows where they put Burners out: ${at.length ? `${at.length} of yours (${at.reduce((a, b) => a + (g.spec(b).output ?? 0), 0)} kW) are in it, outlined` : 'none of yours is in it'}.`, C.ember, 12);
+      // the threat and its answers together (the seventh review: selling what was outlined lost the run)
+      this.sayOnce('threat-snuffer', 600, at.length
+        ? `Wave ${first.n} brings Snuffers: ${at.length} of your Burners (${at.reduce((a, b) => a + (g.spec(b).output ?? 0), 0)} kW) stand in their reach, outlined. Rebuild them past the red, or feed them coke (a Coker on their Extractor: Mining). Don't just sell them: a snuffed Burner is cold 8 s, a sold one for good.`
+        : `Wave ${first.n} brings Snuffers: red shows where they put Burners out. None of yours is in it.`, C.ember, 20);
     } else if (first?.kind === 'shade' && g.wave > 0) {
       const at = cuttable(g);
-      this.sayOnce('threat-shade', 600, `Wave ${first.n} brings Shades. Red shows where they cut Nodes: ${at.length ? `${at.length} of yours ${at.length > 1 ? 'are' : 'is'} in it, outlined` : 'none of yours is in it'}.`, C.ice, 12);
+      this.sayOnce('threat-shade', 600, at.length
+        ? `Wave ${first.n} brings Shades: ${at.length} of your Nodes stand in their reach, outlined. Move them past the red, or give what they feed a second route.`
+        : `Wave ${first.n} brings Shades: red shows where they cut Nodes. None of yours is in it.`, C.ice, 20);
     }
     if (g.wave === 0) return;
     const bs = [...g.buildings.values()];
@@ -1015,7 +1020,9 @@ export class Play {
     const th = waveThreats(g, w.seq);
     const shareIf = (lost: number) => (pr.peakKw > 0 ? Math.min(1, Math.max(0, pr.makeKw - pr.worksKw - lost) / pr.peakKw) : 1);
     const risk = th.snuffKw > 0 && shareIf(th.snuffKw) < 0.75 ? { share: shareIf(th.snuffKw) } : null;
-    const kjW = 6 + textWidth(kjText) + (stepText ? 3 + textWidth(stepText) : 0) + (risk ? 4 + textWidth('!') : 0);
+    const riskText = risk ? `!${Math.round(risk.share * 100)}%` : '';
+    const riskColor = risk && risk.share < RULES.starvedBelow.v ? C.violet : C.amber;
+    const kjW = 6 + textWidth(kjText) + (stepText ? 3 + textWidth(stepText) : 0) + (risk ? 4 + textWidth(riskText) : 0);
     const width = textWidth(label) + 8 + groups.reduce((a, m, i) => a + groupW(m) + (per.length ? textWidth(names![i]) + 4 + (i ? 6 : 0) : 0), 0) + kjW;
     const x = ui.w - width - 4, y = HUD_H + 2;
     this.stripLeft = x;
@@ -1032,12 +1039,12 @@ export class Play {
         const c = m.get(ENEMIES[id].code);
         if (!c) continue;
         ui.icon(id, cx, y + 1);
-        cx += 17 + ui.text(`${c}`, cx + 16, y + 6, C.mist) + 4;
+        cx += 17 + ui.text(`${c}`, cx + 16, y + 6, risk && id === 'snuffer' ? riskColor : C.mist) + 4;
       }
     });
     cx += 2 + ui.text(kjText, cx + 2, y + 6, C.steel);
     if (stepText) cx += 3 + ui.text(stepText, cx + 3, y + 6, step >= 1.4 ? C.amber : C.steel);
-    if (risk) ui.text('!', cx + 4, y + 6, risk.share < RULES.starvedBelow.v ? C.violet : C.amber);
+    if (risk) ui.text(riskText, cx + 4, y + 6, riskColor);
     if (ui.hover(x, y, width, 18)) {
       const kj = pr.kj;
       const palls = counts.get(ENEMIES.pall.code) ?? 0;
@@ -1048,7 +1055,7 @@ export class Play {
         ...(palls ? [{ text: `${palls} Pall${palls > 1 ? 's' : ''}: what costs lights late. Burst (E), fire or shells.`, color: C.violet }] : []),
         ...(th.snuffers
           ? [th.burners.length
-            ? { text: `${th.snuffers} Snuffer${th.snuffers > 1 ? 's' : ''}: ${th.burners.length} of your Burners (${th.snuffKw} kW) are within ${ENEMIES.snuffer.snuffRadius} tiles of the road. If they go out, your towers all firing get ${Math.round(shareIf(th.snuffKw) * 100)}% power.`, color: shareIf(th.snuffKw) < 0.75 ? C.amber : C.mist }
+            ? { text: `${th.snuffers} Snuffer${th.snuffers > 1 ? 's' : ''}: ${th.burners.length} of your Burners (${th.snuffKw} kW) are within ${ENEMIES.snuffer.snuffRadius} tiles of the road. If they go out, your towers all firing get ${Math.round(shareIf(th.snuffKw) * 100)}% power. Rebuild them past the red, or feed them coke (a Coker).`, color: shareIf(th.snuffKw) < 0.75 ? C.amber : C.mist }
             : { text: `${th.snuffers} Snuffer${th.snuffers > 1 ? 's' : ''}: none of your Burners is in their reach (or they burn coke).`, color: C.mist }]
           : []),
         ...(th.shades ? [{ text: `${th.shades} Shade${th.shades > 1 ? 's' : ''}: ${th.nodes.length ? `${th.nodes.length} Node${th.nodes.length > 1 ? 's' : ''} within ${ENEMIES.shade.knockRadius} tiles of the road, ${th.towers.length} tower${th.towers.length === 1 ? '' : 's'} drawing through them.` : 'no Node of yours in their reach.'}`, color: th.towers.length ? C.amber : C.mist }] : []),
@@ -1217,12 +1224,15 @@ export class Play {
         out.push({ text: `Holding ${b.stock}/${d.stockCap} ${d.makesCoke ? 'coke' : 'rocks'}. Next ${Math.round(b.progress * 100)}%.` });
         out.push(feeds ? { text: feeds > 1 ? `Feeding ${feeds} Burners next to it.` : 'Feeding a Burner next to it.', color: C.amber } : { text: `No Burner touching it: its ${what} goes nowhere.`, color: C.ember });
         // the Mining choice, at this deposit (the sixth review M2): what each way would net here
+        const reach = ENEMIES.snuffer.snuffRadius ?? 0;
+        const near = fed.filter((u) => roadDist(g, u) <= reach);
+        const snuffers = g.seenKinds.has('snuffer') || [...(waveDef(g.wave + 1, g.map)?.seq ?? '')].includes(ENEMIES.snuffer.code);
         if (b.level === 1 && feeds) {
-          const here = (spec: { rockInterval?: number; workDraw?: number; makesCoke?: boolean }) => {
+          const here = (spec: { rockInterval?: number; workDraw?: number; makesCoke?: boolean }, burners = fed) => {
             // rock-equivalents a second it digs, against what the Burners touching it can burn
             const supply = ((spec.makesCoke ? RULES.cokeDensity.v : 1) / (spec.rockInterval ?? 8));
             let kw = 0, left = supply;
-            for (const u of fed) {
+            for (const u of burners) {
               const us = g.spec(u);
               const per = (us.output ?? 0) / ((us.rockHeat ?? 1) * (us.efficiency ?? 1));
               const take = Math.min(per, left);
@@ -1232,8 +1242,14 @@ export class Play {
             return Math.round(kw - (spec.workDraw ?? 0));
           };
           const deep = specOf(b.def, 2, 0), coke = specOf(b.def, 2, 1);
-          const near = fed.filter((u) => roadDist(g, u) <= (ENEMIES.snuffer.snuffRadius ?? 0)).length;
-          out.push({ text: `Here, net of its draw: ${here(d)} kW as it is; a Deep bit ${here(deep)}, a Coker ${here(coke)}${near ? `. ${near} of these Burners stand in a Snuffer's reach: only coke burns through one` : ''}.`, color: C.ash });
+          const safe = fed.filter((u) => !near.includes(u));
+          out.push({ text: `Here, net of its draw: ${here(d)} kW as it is; a Deep bit ${here(deep)}, a Coker ${here(coke)}.`, color: C.ash });
+          // while Snuffers pass, rock in reach goes out and coke does not (the seventh review)
+          if (near.length) out.push({ text: `${near.length} of these Burners stand in a Snuffer's reach. While one passes: as it is ${here(d, safe)}, a Deep bit ${here(deep, safe)}, a Coker ${here(coke)} (coke burns through a snuff).`, color: snuffers ? C.amber : C.ash });
+        } else if (b.level === 2 && !d.makesCoke && near.length && snuffers) {
+          // a Deep bit by the road: the way out is to rebuild it as a Coker (the seventh review)
+          const back = sellValue(b), cost = BUILDINGS.extractor.cost + (b.def.upgrades?.[0]?.alts?.[0]?.cost ?? 0);
+          out.push({ text: `${near.length} of its Burners stand in a Snuffer's reach and go cold while one passes. Sell it (+${back}) and build a Coker here (${cost}): coke burns through a snuff.`, color: C.amber });
         }
         break;
       }
@@ -1542,7 +1558,7 @@ export class Play {
       const full = 14 + Math.max(body.length * LINE_H, 22) + ans.length * LINE_H + 8;
       // in full while new, while the game is held, or while the mouse is on it; else its title only
       const x0 = 4, y0 = this.leftBottom + 2;
-      c.open = c.t < CARD_FULL || this.paused || this.holding || ui.hover(x0, y0, c.open ? fw : cw, c.open ? full : 14);
+      c.open = c.t < CARD_FULL || this.holding || ui.hover(x0, y0, c.open ? fw : cw, c.open ? full : 14);
       const h = c.open ? full : 14, w = c.open ? fw : cw;
       const { x, y } = this.leftCard(ui, w, h);
       // full alpha while paused, so a card never hangs half-faded over the map
@@ -1664,12 +1680,17 @@ export class Play {
    *  it cost; hovering one says what that wave made, wasted and lost power to */
   private drawWaveChart(ui: UI, g: Game, x: number, y: number, w: number, n: number) {
     const s = g.stats;
-    ui.text('WAVE BY WAVE: the wall\'s share of power, lights lost', x, y, C.ash);
+    ui.text('WAVE BY WAVE: the wall\'s power as lights went (red)', x, y, C.ash);
     const col = Math.min(18, Math.floor(w / n)), barH = 18, by = y + 17;
     const names: Record<LossCause, string> = { snuff: 'snuffed Burners', dry: 'dry Burners', cut: 'cut Nodes', siphon: 'Siphons', overcharge: 'your Overcharges', held: 'full Nodes', short: 'too little supply' };
     for (let i = 1; i <= n; i++) {
       const f = s.flowByWave[i];
-      const share = f && f.ask > 0 ? Math.min(1, f.got / f.ask) : 1;
+      const mean = f && f.ask > 0 ? Math.min(1, f.got / f.ask) : 1;
+      // the wall's share when this wave's lights went, weighted by lights; the wave's mean if none
+      // went (the seventh review: a mean washes a snuff's 8 s out, and read lime where the run died)
+      const leaks = s.leakLog.filter((l) => l.wave === i);
+      const lostW = leaks.reduce((a, l) => a + l.lights, 0);
+      const share = lostW ? leaks.reduce((a, l) => a + l.wall * l.lights, 0) / lostW : mean;
       const cx = x + (i - 1) * col;
       ui.fill(cx, by, col - 3, barH, C.ink);
       const bh = Math.max(1, Math.round(barH * share));
@@ -1681,7 +1702,7 @@ export class Play {
         const led = s.lossByWave[i] ?? {};
         const top = (Object.entries(led) as [LossCause, number][]).sort((a, b) => b[1] - a[1])[0];
         ui.tooltip([
-          { text: `Wave ${i}: the wall got ${Math.round(share * 100)}% of what it asked (${Math.round(f?.got ?? 0)} of ${Math.round(f?.ask ?? 0)} kJ)` },
+          { text: lostW ? `Wave ${i}: the wall had ${Math.round(share * 100)}% of what it asked when its lights went (${Math.round(mean * 100)}% over the wave)` : `Wave ${i}: the wall got ${Math.round(mean * 100)}% of what it asked (${Math.round(f?.got ?? 0)} of ${Math.round(f?.ask ?? 0)} kJ)` },
           { text: `Made ${Math.round(f?.made ?? 0)} kJ while the dark was on the field, wasted ${Math.round(f?.wasted ?? 0)}.` },
           { text: lost ? `Lost ${lost} light${lost > 1 ? 's' : ''} (${s.leaksByWave[i] ?? 0} got through).` : 'Lost no light.', color: lost ? C.ember : C.lime },
           ...(top && top[1] >= 1 ? [{ text: `The most power lost: ${Math.round(top[1])} kJ to ${names[top[0]]}.`, color: C.amber }] : []),

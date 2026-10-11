@@ -31,7 +31,11 @@ export function diagnose(g: Game): string {
   // lights went in (the sixth review M1: snuffed Burners were blamed on Veils and Pulse)
   const starved = tail.reduce((a, l) => a + l.wall * l.lights, 0) / sum < 0.75;
   if (starved) {
-    const waves = [...new Set(tail.map((l) => l.wave))];
+    // the waves the last quarter went in, and the worst wave by lights (the seventh review: the
+    // line quoted the last wave's 1,311 kJ while the worst had lost 3,518)
+    let worst = 1;
+    for (let i = 1; i < s.lightsByWave.length; i++) if ((s.lightsByWave[i] ?? 0) > (s.lightsByWave[worst] ?? 0)) worst = i;
+    const waves = [...new Set([...tail.map((l) => l.wave), worst])];
     const led: Partial<Record<LossCause, number>> = {};
     for (const w of waves) for (const [k, v] of Object.entries(s.lossByWave[w] ?? {})) led[k as LossCause] = (led[k as LossCause] ?? 0) + (v ?? 0);
     const all = Object.values(led).reduce((a, b) => a + (b ?? 0), 0);
@@ -43,6 +47,12 @@ export function diagnose(g: Game): string {
       if (top === 'dry') return `Your Burners ran dry: ${k} kJ of supply lost ${when}, and the wall starved. An Extractor feeds a Burner and a quarter; a Deep bit feeds two.`;
       if (top === 'cut') return `Shades cut your Nodes: towers went dark for ${k} kJ of fire ${when}. Nodes more than ${ENEMIES.shade.knockRadius} tiles from the road, or a second route to what they feed.`;
       if (top === 'held') return `Full Nodes held ${k} kJ back from the towers past them ${when}: a second route, a Jar past the Node, or a Busbar.`;
+      // plain shortage: more towers than the Burners can run (the seventh review: it fell through
+      // to "Shades got through")
+      if (top === 'short') {
+        const share = Math.round((tail.reduce((a, l) => a + l.wall * l.lights, 0) / sum) * 100);
+        return `Your wall had ${share}% of the power it asked as the lights went ${when}: more towers than your Burners can run. Burners before towers${wasteful ? ', and Jars for the peaks' : ''}.`;
+      }
       if (top === 'siphon') return `Siphons drank ${k} kJ from your lines ${when}, ahead of every tower: kill them where they drink (an Overcharge, a Brazier), or keep spare kW on the line they tap.`;
     }
   }

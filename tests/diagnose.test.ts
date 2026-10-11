@@ -20,6 +20,18 @@ describe('why a run was lost (the sixth review M1)', () => {
     expect(why).not.toMatch(/Pulse/);
   });
 
+  it('a starved wall with nothing but shortage on the ledger says so, not "Shades got through" (the seventh review)', () => {
+    const g = new Game();
+    g.stats.leakLog = [
+      { enemy: 'shade', wave: 4, lights: 2, wall: 0.45, overcharged: false },
+      { enemy: 'shade', wave: 4, lights: 2, wall: 0.5, overcharged: false },
+    ];
+    g.stats.lightsLostBy = { shade: 4 };
+    g.stats.lightsByWave[4] = 4;
+    g.stats.lossByWave[4] = { short: 511 };
+    expect(diagnose(g)).toMatch(/Your wall had 50% of the power it asked/);
+  });
+
   it('with the wall fed when the lights went, the ledger is not the cause', () => {
     const g = new Game();
     g.stats.leakLog = [{ enemy: 'pall', wave: 8, lights: 5, wall: 1, overcharged: false }];

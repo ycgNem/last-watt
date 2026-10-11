@@ -170,6 +170,21 @@ const STATES = {
     p.msgs = [];
     p.selectedId = ex.id;
   }),
+  // a Deep bit by the road once Snuffers are met: its panel names the way out (the seventh review)
+  deepbitroad: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('deepbit');
+    g.money = 300;
+    window.__place(g, 'node', 21, 11);
+    const ex = window.__place(g, 'extractor', 16, 9);
+    for (const [x, y] of [[17, 7], [14, 9]]) window.__place(g, 'burner', x, y);
+    window.__app.play.cmd({ k: 'up', b: ex.id, branch: 0 });
+    g.seenKinds.add('snuffer');
+    for (let i = 0; i < 60 * 3; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+    p.selectedId = ex.id;
+  }),
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
