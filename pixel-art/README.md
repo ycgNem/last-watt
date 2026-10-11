@@ -13,7 +13,7 @@ truth; never hand-edit its PNGs). Running it writes:
 
 ## Palette
 
-**Apollo** (AdamCYounis, 46 colors), provisional pick 2026-10-11 (see `DECISIONS.md`).
+**Apollo** (AdamCYounis, 46 colors), the owner's pick, confirmed 2026-10-11 (see `DECISIONS.md`).
 `Sprite(..., palette="apollo")` snaps every color. Hex list: `references/palettes/apollo.hex`.
 
 | Material | Ramp (dark → light) |

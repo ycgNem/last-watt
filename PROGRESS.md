@@ -80,18 +80,32 @@ Title → BEGIN. The first-steps card says what to build; Space starts wave 1. H
 - No saves (runs are ~11 min). `SAVE_VERSION` + migrations still to come.
 - No `Package for web.bat`, no jsfxr bank, no PixelLab scripts or art
   importers (code-drawn art goes straight from `build.py` to `src/assets/art/`).
-- Palette is provisional (Apollo); the owner hasn't picked. Endesga 64 is saved for a swap.
 - Construction is instant (tier 4 is empty). Embers and the skill tree: Milestone 8.
 - Art weak spots the art agents named: the Extractor reads heavy at 16 px, the Burner's top plate
   is plain, the Moth's wings-raised silhouette is a blob, the beacon icon looks a bit like a
   figure.
 
-## Next
+## Next (hand-off for the next session)
 
-1. The owner plays it and reads `DESIGN.md` §10 against what they felt.
-2. The owner's calls on what the critic left open (`IDEAS.md`, "Left open by the first
-   td-critic review"): the Floodlight as a cone, leaks draining the Hearth instead of 20 lights,
-   the cut list, the palette.
-3. A second td-critic pass after those calls, then the Milestone 2 gate.
+We are at the **Milestone 2 gate**. The owner is playtesting the live build (and a friend is) and
+will open the next session with notes and calls. Palette: settled (Apollo).
+
+1. Read the owner's notes against `DESIGN.md` §10's three questions: do players think in watts
+   mid-wave, is the money split (wall vs factory vs storage) a decision by wave 3, and do
+   powered / starved / dark read within a second.
+2. Apply the owner's calls on the open items in `IDEAS.md` ("Left open by the first td-critic
+   review"): the Floodlight as a cone; leaks draining the Hearth's kW instead of 20 lights; the
+   cut list (Beacon, Lamp tier 2 research, the empty tier 4 bar, far deposit C); the Overcharge
+   budget; late-run money; wave 1's dead air. For each number changed: the `DESIGN.md`
+   derivation, the data `why`, the pace test, then re-tune with `design/check.mts` /
+   `design/tune.mts` until the bot wins with some lights to spare.
+3. Run `td-critic` again. Then the owner marks the gate passed in `ROADMAP.md`, or the model gets
+   another pass. If the owner just says "pass the gate", record it in `ROADMAP.md` and
+   `DECISIONS.md` and start Milestone 3 (the factory half).
+4. Milestone 0 leftovers, any time: save scaffolding (`SAVE_VERSION` + migrations), `Package for
+   web.bat`, the jsfxr bank, the PixelLab scripts and art importers.
+
+Every push to `main` redeploys the live build (tests first), so push after each finished change
+the owner should see.
 
 Spent: PixelLab 0 generations (3,030 left, resets 2026-11-09).

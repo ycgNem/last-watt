@@ -37,7 +37,8 @@ not-list. The owner plays it. Either the model changes (in `DESIGN.md`, then the
 revised and reviewed again) or the gate is marked passed here with the date.
 
 **Gate status: not yet passed.** (2026-10-11: Milestones 0 and 1 were built together as a
-playable slice at the owner's request; see `PROGRESS.md`. The owner plays it next.)
+playable slice at the owner's request, revised after the first `td-critic` review, and published
+on GitHub Pages for playtesting; see `PROGRESS.md`. The owner and a friend play it next.)
 
 ## Milestone 3 — The factory half
 

@@ -29,11 +29,11 @@ Integer pixel grid, whole-factor scaling only, no rotation of pixel art.
 
 ## Palette (decide in Milestone 0 with a 6-sprite test)
 
-**2026-10-11: Apollo, provisional** (the owner asked for a playable build without being
-waited on; `DECISIONS.md`). Both candidates are saved in `references/palettes/` and as named
-palettes in pixel-art-studio; every slice sprite is a build script on `PAL` in
-`pixel-art/common.py`, so the owner's pick is a one-line change and `npm run art`. Material
-ramps in Apollo are in `pixel-art/README.md` (the art contract).
+**2026-10-11: Apollo, the owner's pick.** Chosen provisionally so art could start, then
+confirmed by the owner after playing the slice the same day (`DECISIONS.md`). It is a named
+palette in pixel-art-studio and `PAL` in `pixel-art/common.py`, so code-drawn sprites are
+palette-locked from the first pixel. Material ramps are in `pixel-art/README.md` (the art
+contract). Endesga 64 stays in `references/palettes/` but is no longer a candidate.
 
 Not Resurrect 64, so the two games don't read as one. Candidates, each tested with a Lamp, an
 Floodlight, a Moth, a Shade, a Hearth and a ground tile under the darkness buffer:
