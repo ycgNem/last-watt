@@ -52,7 +52,7 @@ wall to tier 1 while a Pall is in range, and pay for it with cold Burners later)
 | **Hearth** (station core) | free, one | the thing you defend; also the bootstrap generator and the first node | 8 kW at 20 lights, no fuel; **0.4 kW less for every light lost** (8 × lights / 20). Node radius 4 tiles. At 0 lights the run ends. |
 | **Extractor** | 30 | pulls fuel from a deposit | 1 emberrock / 8 s at full satisfaction; draws 2 kW |
 | **Burner** | 40 | burns emberrock | 20 kW output at 0.5 efficiency → 40 kW thermal → **one emberrock lasts 10 s** (400 kJ each). Holds 5. |
-| **Node** | 10 | transmission | radius 4 tiles. Can be knocked offline by Shades (10 s). |
+| **Node** | 10 | transmission | radius 4 tiles. Cut by a Shade within 3.5 tiles, for 6 s (§5, the third review). |
 | **Jar** (battery) | 60 | storage | 600 kJ; discharge ≤ 30 kW; charge ≤ 15 kW |
 | **Lab** | 50 | research | draws 10 kW while a project is active |
 
@@ -198,7 +198,7 @@ Research: one project per tower unlocks both ways, at 1.5 × its tier-2 project.
 
 | Tower | Main line | The other way |
 |---|---|---|
-| **Lamp** (50; research 1350 kJ) | **Arc**: 27 kW at 0.72 → 19.4 kJ/s, reach 3.5 | **Lantern**: 20 kW at 0.6 → 12 kJ/s, **reach 5** |
+| **Lamp** (50; research 1350 kJ) | **Arc lamp**: 27 kW at 0.72 → 19.4 kJ/s, reach 3.5 | **Lantern**: 20 kW at 0.6 → 12 kJ/s, **reach 5** |
 | **Floodlight** (200; research 1500 kJ) | **Blaze**: 54 kW at 0.864 → 46.7 kJ/s, 60° cone, catch 0.4 | **Wide**: 40 kW at 0.72 → 28.8 kJ/s, **100° cone**, catch 0.3 |
 | **Beacon** (125; research 900 kJ) | **Drag**: 9 kW, slows **73%** (exposure 2.5 × 1.5 = 3.75 → s = 1 − 1/3.75) | **Halo**: 8 kW, slows 60%, **reach 6** (a road 1.5 off slowed for 11.6 tiles, not 7.4: ×1.57) |
 | **Searchlight** (175; research 1650 kJ) | **Lance**: 68 kW at 0.864 → 58.8 kJ/s on the heaviest | **Long Eye**: 50 kW at 0.72 → 36 kJ/s, **reach 9.5** (a straight 1.5 off: 18.8 tiles of beam, not 13.7: ×1.37) |
@@ -219,9 +219,9 @@ human profile) with 7 at tier 3 and 31 → 38 s of brownout; on the station and 
 never get that far. Tier 3 is power the grid has to carry, not a free win: the bot's losses
 are Palls at the wall, which a hotter Lamp doesn't fix.
 
-**Arc or Lantern is kW against kJ.** A Lamp 1.5 tiles off the road sees a chord of 2√(r² − 1.5²):
+**Arc lamp or Lantern is kW against kJ.** A Lamp 1.5 tiles off the road sees a chord of 2√(r² − 1.5²):
 6.3 tiles at reach 3.5, 9.5 at reach 5, so a Lantern holds each enemy in its light 1.5× as long.
-Per crossing it delivers 12 × 9.5 = 114 kJ·tiles/s against the Arc's 19.4 × 6.3 = 123 (93%), and
+Per crossing it delivers 12 × 9.5 = 114 kJ·tiles/s against the Arc lamp's 19.4 × 6.3 = 123 (93%), and
 it asks 20 kW at a time instead of 27: the grid sees a lower peak. It is not cheaper in energy
 (it fires longer at a lower efficiency: 191 against 171 kJ drawn per crossing per tile/s of speed),
 so the choice is the model's own: a factory short of **kW** at the peak takes Lanterns; one with
@@ -320,7 +320,7 @@ Each one interacts with the grid in a different way, as Milestone 4 asks:
 |---|---|---|---|---|---|
 | **Flit** | 14 kJ | 2.6 t/s | 2 | none: it is a **throughput** test. A clump of eight 0.3 s apart brings 14 / 0.3 = 47 kJ/s, about eight Lamps' worth, for 2.4 s. Single beams can't keep up; cones, fire and bursts can. | 1 |
 | **Veil** | 70 kJ | 1.3 t/s | 11 | **sight**: only a tower whose share of power (smoothed over 0.5 s) is at or above **0.6**, the starved line, can find it; an Overcharged tower always can, and a Brazier's heat needs no sight. A brownout lets Veils walk through. | 2 |
-| **Siphon** | 120 kJ | 0.9 t/s | 18 | **demand**: taps the nearest building on a network within **2 tiles** of it and drinks **12 kW** (one firing Lamp) from that line, served before every tier, Overcharge included. It is demand like any other, so spare kW and a charged Jar on that line cover it and a tight line browns out; shedding doesn't help. A Siphon walking a bend at 0.9 t/s is in reach of the bend's towers for about 8 s, about 100 kJ stolen per bend, so it is a margin test: kill it fast where it drinks (Overcharge, a Brazier) or have the kW. Waves 6, 10 and 12 carry two each, in place of Moths; the bot's results held (15 / 17 lights) and its no-Jar control fell from 9 to 4. | 2 |
+| **Siphon** | 120 kJ | 0.9 t/s | 18 | **demand**: taps the nearest building on a network within **2 tiles** of it and drinks **12 kW** (one firing Lamp) from that line, served before every tier, Overcharge included. It is demand like any other, so spare kW and a charged Jar on that line cover it and a tight line browns out; shedding doesn't help. A Siphon walking a bend at 0.9 t/s is in reach of the bend's towers for about 8 s, about 100 kJ stolen per bend, so it is a margin test: kill it fast where it drinks (Overcharge, a Brazier) or have the kW. Waves 6, 9, 10, 11 and 12 carry two each, in place of Moths (9 and 11 since the third review); the bot's results held (15 / 17 lights) and its no-Jar control fell from 9 to 4. *The fourth review measured that it costs a sensible player nothing on the station and the Switchback (a grid in surplus shrugs off 12 kW), and 2 lights on Two Roads.* | 2 |
 | **Snuffer** | 160 kJ | 0.8 t/s | 24 | **generation**: puts out any Burner within **3.5 tiles**: the burning rock is lost and the Burner stays cold while it is near and 8 s after. At 3.5 tiles the north deposit's Burners beside the first straight are in reach and the south deposit's are not, so the factory has a safe side. Vanes and the Hearth can't be snuffed. | 3 |
 
 Bounty is still round(health × 0.15). **Derivative flags** (written in `DECISIONS.md`): the
@@ -386,7 +386,7 @@ never an investment you regret in the short term.
 
 **Shade teaches transmission.** Wave 3's Shades knock out nodes beside the path. A single
 chain of nodes from Hearth to the far lamps means one Shade blacks out the whole far wall for
-10 s. A second node path (ring, not chain) costs 10–20 money and is the third lesson.
+6 s (10 s in the slice; §5 since the third review). A second node path (ring, not chain) costs 10–20 money and is the third lesson.
 
 **Jar teaches burst** *(superseded 2026-10-11: Jars are buildable from wave 1 and the breather
 gives them 20 s of spare power to fill; the paragraph below is the original reasoning).* The earliest a Jar exists in play: a Lab (50) after wave 2, the
@@ -573,7 +573,7 @@ priced in kJ. Slice: **Lamp tier 2** (900 kJ).
 | Searchlight tier 2 (needs Searchlight) | 1100 | | |
 | Brazier tier 2 (needs Brazier) | 900 | | |
 | Starshell tier 2 (needs Starshell) | 1200 | Flywheel (Jar tier 2, the other way) | 700 |
-| Lamp tier 3 (needs tier 2; Arc or Lantern) | 1350 | | |
+| Lamp tier 3 (needs tier 2; Arc lamp or Lantern) | 1350 | | |
 | Floodlight tier 3 (needs tier 2; Blaze or Wide) | 1500 | | |
 | Beacon tier 3 (Drag or Halo) | 900 | | |
 | Searchlight tier 3 (Lance or Long Eye) | 1650 | | |
@@ -613,8 +613,8 @@ from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pa
   and shed doing nothing. The flat 120 kJ was "the one place the model gave energy away", and
   the 10 s cooldown pushed Overcharges onto whatever tower was ready (the bot put 30 of 73 into
   Lamps on Palls: 18 kJ of damage for 120 stored). On live power the price is the rest of the
-  wall: Overcharging a tier-2 Floodlight (108 kW) with two Jars behind it (60 kW of discharge)
-  takes 48 kW from the other towers, Veils slip past them, and now *where the watts go* is the
+  wall: Overcharging a tier-2 Floodlight (108 kW) asks 72 kW beyond its firing draw, and since the
+  third review no Jar pays for it: it comes out of spare power, then out of the other towers, Veils slip past them, and now *where the watts go* is the
   decision mid-wave (pillar 1). A Jar is no longer required, but without one an Overcharge
   starves the wall for its 4 s (tested). The bot Overcharges a Pall with a cone, fire or a shell
   once it is close (a narrow beam on a Pall wastes three quarters of the wall it takes), and
@@ -641,9 +641,10 @@ from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pa
 
 - **Reroute** (research, G; Milestone 6, second session): **100 kJ** from the Jars (the
   fullest first, any network) brings a cut Node back at once and guards it from Shades for **8
-  s**. Numbers: a cut Node darkens what hangs off it for 10 s; one far Lamp is 12 kW × 10 s =
-  120 kJ of light lost, so 100 kJ of storage is worth paying for a branch with a tower on it and
-  not for a lone Node. A Shade at 1.0 t/s spends about 5 s on the stretch of road that can cut
+  s**. Numbers: a cut Node darkens what hangs off it for 6 s (it was 10 when Reroute was priced);
+  one firing Lamp loses 12 kW × 6 s = 72 kJ of light, two lose 144, so 100 kJ of storage is
+  worth paying for a branch with two towers on it and not for a lone Lamp. *The fourth review:
+  used 0 times in a played run, and on the cut list.* A Shade at 1.0 t/s spends about 5 s on the stretch of road that can cut
   a given Node (its 2.5-tile reach either side), so 8 s covers one Shade's pass with some slack,
   not a whole wave of them. It is §8's "temporarily bridge a gap" made simple: the gap is the
   cut Node itself. Research 600 kJ, cheaper than Pulse: it saves a branch, not a wave.

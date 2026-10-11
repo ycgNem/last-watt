@@ -158,7 +158,7 @@ export class Play {
     this.audio.setHum(Math.min(1, g.grid.demand / 160), g.grid.wall.sat);
     // building while the sim stands still: show the network and the share the next tick will see
     if (g.netDirty) {
-      if (this.paused || this.holding || this.board || g.over) gridSystem(g, true);
+      if (this.paused || this.holding || this.board || this.menu || this.settingsOpen || g.over) gridSystem(g, true);
       else rebuildNetworks(g);
     }
     if (g.over && !this.recorded) this.record();
@@ -441,6 +441,9 @@ export class Play {
       else if (this.selectedId) this.selectedId = 0;
       else this.menu = !this.menu;
     }
+    // the menu and the settings hold the game: nothing reaches the map behind them (the fourth
+    // review: a Lamp was placed and Space started wave 1 behind PAUSED)
+    if (this.menu || this.settingsOpen) return;
     if (this.tutorial?.step?.next && (k('Enter') || (this.holding && k('Space')))) {
       this.tutorial.advance();
       return;
@@ -1301,25 +1304,26 @@ export class Play {
 
   private drawMessages(ui: UI) {
     ui.layer = 3;
-    let y = HUD_H + 6;
-    // centre the feed in the space the left cards and the right panels leave free
-    let left = this.leftRight ? this.leftRight + 6 : 4;
-    const right = Math.min(this.selected ? ui.w - 170 : ui.w - 4, this.stripLeft - 6);
-    if (right - left < 170) {
-      left = 4;
-      y = this.leftBottom + 4;
-    }
-    const cx = (left + right) / 2;
-    const maxW = Math.max(120, Math.min(330, right - left - 12));
-    for (const m of this.msgs.slice(-4)) {
-      const a = Math.min(1, (m.life - m.t) * 1.5);
-      ui.ctx.globalAlpha = a;
-      const lines = wrapText(m.text, maxW).length;
-      const bw = Math.min(maxW, textWidth(m.text)) + 10;
-      ui.panel(cx - bw / 2, y, bw, lines * 10 + 5, { blocking: false, alpha: 0.85, border: C.slate });
-      ui.wrap(m.text, cx - bw / 2 + 5, y + 3, maxW, m.color);
+    // bottom-left above the bar, newest lowest, two at most (the fourth review: the feed at the top
+    // centre hid the first straight, bend A and the very Siphon its hint was about)
+    const maxW = Math.max(150, Math.min(300, Math.floor(ui.w * 0.55)));
+    let bottom = ui.h - BAR_H - TAB_H - (this.paused || this.lines ? 30 : 16);
+    const g = this.game, s = ui.scale;
+    for (const m of this.msgs.slice(-2).reverse()) {
+      const ls = wrapText(m.text, maxW);
+      const h = ls.length * 10 + 5;
+      const bw = Math.min(maxW, Math.max(...ls.map((l) => textWidth(l)))) + 10;
+      const x = 4, y = bottom - h;
+      // over an enemy it fades, so what it is about stays visible
+      const over = g.enemies.some((e) => {
+        const ex = this.r.sx(e.x * TILE) / s, ey = this.r.sy(e.y * TILE) / s;
+        return ex >= x - 6 && ex <= x + bw + 6 && ey >= y - 8 && ey <= y + h + 8;
+      });
+      ui.ctx.globalAlpha = Math.min(1, (m.life - m.t) * 1.5) * (over ? 0.4 : 1);
+      ui.panel(x, y, bw, h, { blocking: false, alpha: 0.85, border: C.slate });
+      ui.wrap(m.text, x + 5, y + 3, maxW, m.color);
       ui.ctx.globalAlpha = 1;
-      y += lines * 10 + 8;
+      bottom = y - 3;
     }
   }
 
@@ -1541,12 +1545,12 @@ export class Play {
       return veilsStarved.some((l) => l.overcharged)
         ? 'Veils walked past while your wall was under 60%: your Overcharges took the power their towers needed to see them.'
         : 'Veils walked past while your wall was under 60%: more Burners, fewer towers firing at once, or Pulse less (it empties the Jars that carry the wall).';
-    if (by('pall') >= sum / 2) return 'Palls took the last of it: a Floodlight with the Pall alone in its cone, and an Overcharge, before it reaches the bend.';
+    if (by('pall') >= sum / 2) return 'Palls took the last of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
     if (by('siphon') >= sum / 3) return 'Siphons got through: kill them where they drink (an Overcharge, a Brazier), or have spare kW on the line they tap.';
     if (by('flit') >= sum / 3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
     if (by('shade') >= sum / 3) return 'Shades got through: their 90 kJ needs two towers on them, or an Overcharge as they pass.';
     const lost = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
-    if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it: a Floodlight with the Pall alone in its cone, and an Overcharge, before it reaches the bend.';
+    if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
     if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: more Burners, or Jars to carry the peaks.`;
     if (s.wastedKj > s.kjDelivered) return 'You made more power than your towers used: fewer Burners, more towers (or Jars and Labs for the spare).';
     if ((s.lightsLostBy.flit ?? 0) / lost >= 0.3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
@@ -1577,10 +1581,11 @@ export class Play {
       ['Overcharges / research', `${s.overcharges} / ${s.researched}`],
     ];
     if (this.profile) rows.push(['Embers', `+${this.embersEarned} (you have ${this.profile.embers}: SKILLS on the title)`]);
-    const why = win ? '' : this.diagnose();
+    const spare = !win && g.money >= 100 ? ` You ended with ${g.money} money unspent: between waves it is towers and Burners.` : '';
+    const why = win ? '' : this.diagnose() + spare;
     const best = this.profile?.maps[g.map.id];
     if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);
-    const w = 276;
+    const w = Math.min(ui.w - 12, Math.max(276, ...rows.map(([k, v]) => textWidth(k) + textWidth(v) + 40)));
     const whyLines = why ? wrapText(why, w - 28) : [];
     const h = 34 + rows.length * 10 + (whyLines.length ? whyLines.length * LINE_H + 6 : 0) + 26;
     const x = ui.w / 2 - w / 2, y = ui.h / 2 - h / 2;

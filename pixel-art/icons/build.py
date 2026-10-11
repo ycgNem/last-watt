@@ -1,4 +1,4 @@
-"""Last Watt UI icons: 16x16, 31 frames x 1 row, fps 0 (see pixel-art/README.md).
+"""Last Watt UI icons: 16x16, 32 frames x 1 row, fps 0 (see pixel-art/README.md).
 
 14x14 content inside a 1 px margin, 1 px #10141f outline (added outside the fill, so every
 fill stays inside x/y 2..13). Light from the upper left. Building icons echo their building
@@ -22,7 +22,9 @@ NAMES = ["lamp", "floodlight", "beacon", "node", "extractor", "burner", "jar", "
          # appended 2026-10-11 (keep the order above untouched)
          "searchlight", "brazier", "starshell", "vane", "wind", "upgrade",
          "moth", "flit", "shade", "veil", "snuffer", "pall",
-         "pause", "wave", "tutorial", "lock"]
+         "pause", "wave", "tutorial", "lock",
+         # appended 2026-10-11, the fourth review (the NEXT strip had no Siphon)
+         "siphon"]
 
 C = {
     "o": OUTLINE,
@@ -403,6 +405,24 @@ ICONS["tutorial"] = [  # a brass question mark
     "................",
     "................",
 ]
+ICONS["siphon"] = [  # the swollen violet sac (stolen power) on a slate back, head forward, tube down
+    "................",
+    "................",
+    ".........333....",
+    "........32223...",
+    "...ppp..2M2M2...",
+    "..pPPPp.12221...",
+    "..PqPPPp.1112...",
+    "..pPPPPp1...3...",
+    "..pPPPPp1....3..",
+    "...pPPp11....3..",
+    "....pp111.......",
+    "...11111111.....",
+    "...1..1..1.1....",
+    "...1..1..1.1....",
+    "................",
+    "................",
+]
 ICONS["lock"] = [  # an iron shackle on a brass padlock body, keyhole
     "................",
     "................",
@@ -687,7 +707,7 @@ for i in range(n):
     im4 = im.resize((64, 64), Image.NEAREST)
     out.paste(im4, (4 + c * 72, top4 + r * 72), im4)
 ex = 4
-for name in ("moth", "flit", "shade", "veil", "snuffer", "pall"):
+for name in ("moth", "flit", "shade", "veil", "snuffer", "pall", "siphon"):
     im = s.composite(NAMES.index(name) + 1)
     out.paste(im, (ex, low + 8), im)
     im2 = im.resize((32, 32), Image.NEAREST)

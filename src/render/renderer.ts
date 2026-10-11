@@ -618,12 +618,13 @@ export class Renderer {
     // starved line and violet below (the third review: 60-99% looked like 100% on the map)
     if ((b.def.role === 'tower' || b.def.role === 'beacon') && b.net >= 0 && !b.off && b.demand > 0 && b.sat < 0.99 && b.overcharge <= 0) {
       const bx = Math.round(p.x + p.w / 2 - 6), by = Math.round(p.y + p.h + (b.def.kind === 'mortar' ? 3 : 1));
+      // 2 px tall (the fourth review: 1 px didn't read at thumbnail size)
       ctx.fillStyle = C.ink;
-      ctx.fillRect(this.sx(bx - 1), this.sy(by - 1), 14 * z, 3 * z);
+      ctx.fillRect(this.sx(bx - 1), this.sy(by - 1), 14 * z, 4 * z);
       ctx.fillStyle = C.iron;
-      ctx.fillRect(this.sx(bx), this.sy(by), 12 * z, z);
+      ctx.fillRect(this.sx(bx), this.sy(by), 12 * z, 2 * z);
       ctx.fillStyle = b.sat < RULES.starvedBelow.v ? C.violet : C.amber;
-      ctx.fillRect(this.sx(bx), this.sy(by), Math.max(1, Math.round(12 * b.sat)) * z, z);
+      ctx.fillRect(this.sx(bx), this.sy(by), Math.max(1, Math.round(12 * b.sat)) * z, 2 * z);
     }
     // a Starshell's shell, filling: a brass bar under it
     if (b.def.kind === 'mortar' && b.net >= 0 && !b.off) {

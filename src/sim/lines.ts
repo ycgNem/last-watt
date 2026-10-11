@@ -4,6 +4,8 @@
 // can ask it.
 import type { Game } from './Game';
 import { fullDraw } from './systems/grid';
+import { lineKey } from './systems/stats';
+import { RULES } from '../data/rules';
 import type { Building } from './types';
 
 /** what holds a line back, worst first */
@@ -12,10 +14,12 @@ export type Neck = 'siphon' | 'nopower' | 'fuel' | 'short' | 'peak' | 'waste' | 
 export interface LineReport {
   net: number;
   name: string;
-  /** kW in after line losses; kW the line asks now; kW it would ask with every tower firing */
+  /** kW in after line losses; kW the line asks now; kW it would ask with every tower firing; the
+   *  most it has asked this wave */
   made: number;
   demand: number;
   peak: number;
+  busiest: number;
   /** kW the Jars on it can give, and the kJ they hold */
   jarKw: number;
   stored: number;
@@ -51,6 +55,12 @@ export function lineReports(g: Game): LineReport[] {
     // the rest of the demand (Labs, Extractors) asks what it asks now
     peak += Math.max(0, n.demand - n.wall.demand);
     const at = anchor(bs);
+    // what this wave has actually asked of it, and how low its wall went: the advice reads these,
+    // not full fire (the fourth review: "full fire wants 84 kW more" at wall 100% with 17 kW
+    // wasted pushed players to the losing end of the split; the measured peak is about half)
+    const memo = g.lineMemo.get(lineKey(n.nodes));
+    const busiest = Math.max(n.demand, memo?.peak ?? 0);
+    const low = Math.min(n.wall.demand > 0 ? n.wall.sat : 1, memo?.low ?? 1);
     const name = n.hasHearth ? 'Hearth line' : `Line ${String.fromCharCode(65 + letter++)}`;
     let neck: Neck = 'ok';
     let text: string;
@@ -67,13 +77,13 @@ export function lineReports(g: Game): LineReport[] {
       neck = 'nopower';
       text = 'No power comes in';
       fix = 'A Burner on it, or a Node to a lit line';
-    } else if (n.wall.sat < 0.99 && n.wall.demand > 0) {
+    } else if (n.wall.sat < 0.99 && n.wall.demand > 0 && low < RULES.brownoutEnds.v) {
       neck = 'short';
       text = `Short ${r(n.demand - made - n.discharge)} kW: wall at ${r(n.wall.sat * 100)}%`;
       fix = 'Another Burner (+20 kW), or fewer towers';
-    } else if (peak > made + jarKw + 0.5 && towers > 0) {
+    } else if (busiest > made + jarKw + 0.5 && towers > 0 && low < RULES.brownoutEnds.v) {
       neck = 'peak';
-      text = `Full fire wants ${r(peak - made)} kW more`;
+      text = `This wave peaked ${r(busiest - made)} kW over what it makes`;
       fix = jarKw > 0 ? 'More Burners, or more Jars' : 'A Jar to carry the peak, or a Burner';
     } else if (n.wasted > 0.5) {
       neck = 'waste';
@@ -88,7 +98,7 @@ export function lineReports(g: Game): LineReport[] {
       fix = towers > 0 ? 'Room for another tower' : 'No towers on it yet';
       if (peak > made) fix = `${r(n.stored / Math.max(1, peak - made))} s of full fire in the Jars`;
     }
-    out.push({ net: n.id, name, made, demand: n.demand, peak, jarKw, stored: n.stored, neck, text, fix, at });
+    out.push({ net: n.id, name, made, demand: n.demand, peak, busiest, jarKw, stored: n.stored, neck, text, fix, at });
   }
   return out;
 }

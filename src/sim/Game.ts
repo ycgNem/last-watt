@@ -51,6 +51,9 @@ export class Game {
   /** bumped every time the networks are rebuilt (the renderer caches wires on it) */
   netVersion = 0;
   grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
+  /** per line (keyed by its first conductor's id), this wave so far: the most it asked and the
+   *  wall's lowest share, for the Lines view (§3.2, the fourth review) */
+  lineMemo = new Map<number, { wave: number; peak: number; low: number }>();
   /** Dark Bait (§8): the branch whose towers are put out (-1: none), and the towers it put out */
   bait = -1;
   baitIds: number[] = [];

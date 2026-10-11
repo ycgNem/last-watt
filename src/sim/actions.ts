@@ -108,8 +108,8 @@ export function overchargeProblem(g: Game, b: Building): string | null {
   return null;
 }
 
-/** for 4 s the tower asks 3× its draw, served before every tier: from spare power, then the
- *  Jars (up to their discharge rate), then whatever the rest of the grid was getting (§8) */
+/** for 4 s the tower asks 3× its draw, served before every tier: from spare power, then
+ *  whatever the rest of the grid was getting; never from a Jar (§8, the third review) */
 export function overcharge(g: Game, b: Building): string | null {
   const why = overchargeProblem(g, b);
   if (why) return why;

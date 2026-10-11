@@ -29,6 +29,18 @@ describe('lines view', () => {
     expect(['waste', 'ok']).toContain(h.neck);
   });
 
+  it('full fire beyond supply is not called short while the wall held above 75% this wave (the fourth review)', () => {
+    const g = new Game();
+    factory(g);
+    put(g, 'node', 23, 10);
+    put(g, 'lamp', 24, 7); put(g, 'lamp', 24, 13); put(g, 'lamp', 22, 7);
+    settle(g, 0.5);
+    const [h] = lineReports(g);
+    // 28 kW in; three Lamps at full fire would ask 36 + 2, but nothing has fired yet
+    expect(h.peak).toBeGreaterThan(h.made);
+    expect(['short', 'peak']).not.toContain(h.neck);
+  });
+
   it('a Burner on its own line with no Extractor is a fuel problem, not a mystery', () => {
     const g = new Game();
     put(g, 'node', 6, 18);

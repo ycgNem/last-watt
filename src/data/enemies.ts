@@ -94,7 +94,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   pall: {
     id: 'pall', name: 'Pall', code: 'P', blurb: 'Slow, heavy dark. Drinks 3/4 of a narrow beam; in a Floodlight\'s cone it shadows everything behind it.',
-    answer: 'A Floodlight: a Pall alone in the cone drinks the whole beam. Overcharge it there. Lamps and Searchlights barely scratch it.',
+    answer: 'Fire and bursts: a Brazier burns it in full, a Starshell burst lands on it whole. A Floodlight works only while the Pall is alone in its cone (Moths overtake it), so early on the road; Overcharge it there. Lamps and Searchlights barely scratch it.',
     health: 400, speed: 0.6, bounty: 60, leak: 5, shadow: true, narrowBeam: 0.25,
     why: {
       health: '§5 Pall: 400 kJ', speed: '§5 Pall: 0.6 t/s', bounty: '§1 bounty = round(health × 0.15) = 60 (§6 economy)', leak: '§5 Pall: 5 lights', narrowBeam: '§5 Pall: a single beam lands 1/4 (§6: the Pall needs burst)',

@@ -43,7 +43,7 @@ export function targetingSystem(g: Game) {
         const br = s.burstRadius ?? 1;
         for (const e of inRange) {
           let n = 0;
-          for (const o of g.enemies) if (Math.hypot(o.x - e.x, o.y - e.y) <= br) n += o.def.health > 100 ? 3 : 1;
+          for (const o of g.enemies) if (Math.hypot(o.x - e.x, o.y - e.y) <= br) n += o.def.health > 100 ? RULES.starshellHeavy.v : 1;
           if (n > bestN || (n === bestN && best && g.left(e) < g.left(best))) {
             best = e;
             bestN = n;

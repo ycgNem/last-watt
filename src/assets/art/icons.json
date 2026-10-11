@@ -1,7 +1,7 @@
 {
  "w": 16,
  "h": 16,
- "frames": 31,
+ "frames": 32,
  "rows": 1,
  "fps": 0,
  "names": [
@@ -35,6 +35,7 @@
   "pause",
   "wave",
   "tutorial",
-  "lock"
+  "lock",
+  "siphon"
  ]
 }

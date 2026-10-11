@@ -37,7 +37,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   lamp3: {
     id: 'lamp3', name: 'Lamp tier 3', branch: 'light', cost: 1350, requires: 'lamp2', stacks: true,
-    blurb: 'Lamps can take a third tier, one way or the other: Arc (27 kW, brighter) or Lantern (reach 5, 20 kW).',
+    blurb: 'Lamps can take a third tier, one way or the other: Arc lamp (27 kW, brighter) or Lantern (reach 5, 20 kW).',
     why: { cost: '§7 tier 3: 1.5 × its tier-2 project (900)' },
   },
   flood3: {

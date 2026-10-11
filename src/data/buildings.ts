@@ -194,11 +194,11 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
         efficiency: '§4 tier rule: 0.5 × 1.2 = 0.6 (damage 6 × 1.8 = 10.8 kJ/s)',
       },
     }, {
-      name: 'Arc', cost: 50, research: 'lamp3', blurb: 'Arc: 27 kW firing at 0.72 → 19.4 kJ/s. Brighter, hungrier: the tier rule again.',
+      name: 'Arc lamp', cost: 50, research: 'lamp3', blurb: 'Arc lamp: 27 kW firing at 0.72 → 19.4 kJ/s. Brighter, hungrier: the tier rule again.',
       stats: { firingDraw: 27, efficiency: 0.72 },
       why: { cost: '§4 upgrade rule: 20 × 1.25 × (3 − 1) = 50', firingDraw: '§4.2 Arc: 18 × 1.5 = 27 kW', efficiency: '§4.2 Arc: 0.6 × 1.2 = 0.72 → 19.4 kJ/s' },
       alts: [{
-        name: 'Lantern', cost: 50, research: 'lamp3', blurb: 'Lantern: reach 5 instead of 3.5, at 20 kW and 0.6 → 12 kJ/s. Dimmer, but each enemy is in its light half as long again, for 7 kW less than an Arc.',
+        name: 'Lantern', cost: 50, research: 'lamp3', blurb: 'Lantern: reach 5 instead of 3.5, at 20 kW and 0.6 → 12 kJ/s. Dimmer, but each enemy is in its light half as long again, for 7 kW less than an Arc lamp.',
         stats: { firingDraw: 20, efficiency: 0.6, range: 5 },
         why: {
           cost: '§4 upgrade rule: 20 × 1.25 × (3 − 1) = 50', firingDraw: '§4.2 Lantern: 20 kW (the tier still raises demand, by a little)',

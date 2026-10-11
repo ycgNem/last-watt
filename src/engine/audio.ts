@@ -50,6 +50,13 @@ export class Audio {
     }
   }
 
+  /** a hidden tab: the sim stops, so the hum stops with it */
+  setHidden(hidden: boolean) {
+    if (!this.ctx) return;
+    if (hidden) void this.ctx.suspend();
+    else void this.ctx.resume();
+  }
+
   setVolume(v: number) {
     this.volume = v;
     if (this.master && !this.muted) this.master.gain.value = v;

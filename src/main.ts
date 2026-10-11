@@ -51,6 +51,8 @@ class App {
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('mousedown', () => this.audio.unlock());
     window.addEventListener('keydown', () => this.audio.unlock());
+    // a background tab stops the sim; the hum stops with it (the fourth review)
+    document.addEventListener('visibilitychange', () => this.audio.setHidden(document.hidden));
     this.loop = new GameLoop(() => this.tick(), (dt) => this.frame(dt));
     // a background tab doesn't race to catch up: the loop caps a frame at 0.25 s
     this.loop.start();

@@ -71,7 +71,7 @@ describe('upgrade branches', () => {
 });
 
 describe('tier 3 (§4.2)', () => {
-  it('a Lamp at tier 3 is an Arc or a Lantern', () => {
+  it('a Lamp at tier 3 is an Arc lamp or a Lantern', () => {
     const g = new Game();
     g.money = 1000;
     for (const r of ['lamp2', 'lamp3']) g.research.done.add(r);
