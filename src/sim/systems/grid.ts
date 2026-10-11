@@ -8,6 +8,10 @@ import { covers } from '../geom';
 import type { Building, Network } from '../types';
 import { allocate, buildTree } from './flow';
 
+/** tier 4, Spare: served only from what would be wasted, after the Jars have charged; a Jar never
+ *  pays for it (DESIGN.md §2.3) */
+const SPARE = 4;
+
 /** a node-like building carries power: the Hearth always, a Node unless knocked out */
 function conducts(b: Building) {
   return b.def.role === 'core' || (b.def.role === 'node' && b.offline <= 0);
@@ -295,26 +299,27 @@ export function gridSystem(g: Game, dry = false) {
     for (let i = 0; i < k; i++) first[i] += drainAt[i];
     const made = Math.max(0, n.gen - n.loss);
     // live power first, tier by tier: Overcharges (tier 0), then tier 1 in full before tier 2
-    // sees anything (§2.3, §8), each along links that carry at most their capacity (§3.3)
+    // sees anything (§2.3, §8), each along links that carry at most their capacity (§3.3); the
+    // Spare tier waits for the spill (below)
     const src = gen.slice();
     const flow = zeros();
     const s1 = allocate(t, first, src, flow);
-    const sat = dem.map((d) => allocate(t, d, src, flow));
+    const sat = dem.map((d, tt) => (tt === SPARE ? d.map(() => 0) : allocate(t, d, src, flow)));
     // then the Jars give for what live power couldn't reach, up to each one's discharge rate (§2.1);
-    // never for an Overcharge's extra: only its base draw (§8, the third review)
     // never for an Overcharge's extra, here or anything it starves: a Jar gives at most what each
     // branch would lack with every Overcharge at its base draw (§8, the third review)
     let noOc: { first: number[]; tiers: number[][] } | null = null;
     if (ocBase.some((x) => x > 0)) {
       const src0 = gen.slice(), flow0 = zeros();
-      const base = dem.map((d, tt) => (tt === 0 ? ocBase : d));
+      const base = dem.map((d, tt) => (tt === 0 ? ocBase : tt === SPARE ? d.map(() => 0) : d));
       const f0 = allocate(t, first, src0, flow0);
       noOc = { first: first.map((d, i) => d * (1 - f0[i])), tiers: base.map((d) => allocate(t, d, src0, flow0)).map((sv, tt) => base[tt].map((d, i) => d * (1 - sv[i]))) };
     }
     const avail = jarsAt.map((js) => js.reduce((a, j) => a + (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)), 0));
     const jsrc = avail.slice();
     const s1j = allocate(t, first.map((d, i) => Math.min(d * (1 - s1[i]), noOc ? noOc.first[i] : Infinity)), jsrc, flow);
-    const elig = dem.map((d, tt) => d.map((x, i) => Math.min(tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]), noOc ? noOc.tiers[tt][i] : Infinity)));
+    // and never for the Spare tier: it runs on spill alone
+    const elig = dem.map((d, tt) => d.map((x, i) => (tt === SPARE ? 0 : Math.min(tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]), noOc ? noOc.tiers[tt][i] : Infinity))));
     const satJ = elig.map((d) => allocate(t, d, jsrc, flow));
     for (let i = 0; i < k; i++) {
       const used = avail[i] - jsrc[i];
@@ -349,6 +354,9 @@ export function gridSystem(g: Game, dry = false) {
         j.flow += share;
       }
     }
+    // the Spare tier: what is still left once the Jars have charged, as far as the links carry it
+    // (§2.3, the spill tier); only then is power wasted (§2.4)
+    sat[SPARE] = allocate(t, dem[SPARE], src, flow);
     for (let i = 0; i < k; i++) n.wasted += Math.max(0, src[i]);
     const supply = made + n.discharge;
     // what each conductor's tiers got, and what each consumer gets: its conductor's share of its tier
@@ -378,7 +386,8 @@ export function gridSystem(g: Game, dry = false) {
       const i = at(b), tt = tierOf(b);
       const d = dem[tt][i];
       b.sat = b.off || g.tierOff[b.tier] ? 0 : d > 0 ? Math.min(1, got[tt][i] / d) : n.tiers[tt].sat;
-      if (b.def.role === 'tower' || b.def.role === 'beacon') {
+      // towers on Spare are a bonus on spill, not the wall a brownout is read from
+      if ((b.def.role === 'tower' || b.def.role === 'beacon') && tt !== SPARE) {
         n.wall.demand += b.demand;
         n.wall.served += b.demand * b.sat;
       }

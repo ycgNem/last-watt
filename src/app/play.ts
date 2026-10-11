@@ -408,7 +408,7 @@ export class Play {
       }
     }
     if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
-      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it for the next wave and feeds Overcharge (E); a Lab (=) turns it into research.`, C.amber, 7);
+      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it; a Lab (=) turns it into research; anything on tier 4 (Spare) runs on it alone.`, C.amber, 7);
     if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.paths[e.route].length * 0.5))
       this.sayOnce('veil', 40, 'A Veil is walking past unseen: your towers near it are below 60% power. Ease the load, Overcharge, or burn it with a Brazier.', C.violet, 7);
     if (!g.research.active && bs.some((b) => b.def.role === 'lab') && g.research.done.size < RESEARCH_ORDER.length)
@@ -925,7 +925,7 @@ export class Play {
         ui.tooltip([
           { text: `Tier ${t} (${TIER_NAMES[t]}): ${off ? 'SHED (off)' : `${Math.round(ts.served)} of ${Math.round(ts.demand)} kW served`}` },
           { text: [...counts].map(([n, c]) => `${c} ${n}${c > 1 ? 's' : ''}`).join(', ') || 'Nothing on this tier.' },
-          { text: 'Tier 1 is served in full before tier 2 sees a watt, and so on. Select a building and press T to raise it. Shift-click to shed (or restore) the whole tier.', color: C.ash },
+          { text: t === 4 ? 'Spare runs only on power that would be wasted, after the Jars have charged; a Jar never pays for it. Select a building and use its tier buttons. Shift-click to shed (or restore) the whole tier.' : 'Tier 1 is served in full before tier 2 sees a watt, and so on. Select a building and press T to raise it. Shift-click to shed (or restore) the whole tier.', color: C.ash },
         ]);
         if (ui.clicked) {
           ui.eat();
@@ -1098,6 +1098,8 @@ export class Play {
       return fed ? { text: 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
     }
     if (b.def.role === 'lab' && !g.research.active) return { text: 'IDLE: pick a project (L)', color: C.cyan };
+    // on Spare it runs on spill alone: little or none is the rule, not a fault (§2.3)
+    if (b.tier === 4 && b.overcharge <= 0 && b.sat < 0.99) return { text: `ON SPILL ${Math.round(b.sat * 100)}% (tier 4)`, color: C.ash };
     if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%${fullOnTheWay(g, b) ? ': a Node on its way is full' : ''}`, color: C.violet };
     return { text: b.def.role === 'core' ? `BURNING ${g.hearthOutput().toFixed(1)} kW` : `POWERED ${b.def.tier ? Math.round(b.sat * 100) + '%' : ''}`, color: C.gold };
   }
@@ -1241,7 +1243,8 @@ export class Play {
       ui.text('Priority tier (T)', x + 5, y, C.ash);
       y += 10;
       for (let t = 1; t <= 4; t++) {
-        if (ui.button(`${t}`, x + 5 + (t - 1) * 22, y, 20, 14, { active: b.tier === t, tip: [`Tier ${t}: ${TIER_NAMES[t]}`, 'Tier 1 is served in full before tier 2 sees a watt.'] })) this.cmd({ k: 'tier', b: b.id, t });
+        const tip = t === 4 ? 'Runs only on power that would be wasted, after the Jars have charged. A Jar never pays for it, and it is not part of the wall a brownout is read from.' : 'Tier 1 is served in full before tier 2 sees a watt.';
+        if (ui.button(`${t}`, x + 5 + (t - 1) * 22, y, 20, 14, { active: b.tier === t, tip: [`Tier ${t}: ${TIER_NAMES[t]}`, tip] })) this.cmd({ k: 'tier', b: b.id, t });
       }
       y += 20;
     }
@@ -1508,7 +1511,7 @@ export class Play {
       ['Click', 'place it / select a building'],
       ['Right-click, Esc', 'cancel / deselect'],
       ['X', 'shed (turn off) the building under the mouse'],
-      ['T / Shift+T', 'raise / lower its priority tier'],
+      ['T / Shift+T', 'raise / lower its tier (4, Spare: wasted power only)'],
       ['E', 'Overcharge a tower: 3x for 4 s, ahead of all'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
       ['V', 'Lines: each power line and what holds it back'],

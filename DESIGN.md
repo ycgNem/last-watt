@@ -22,12 +22,19 @@ looking up what another game uses. When you change a number, write the new deriv
 3. Consumers sit in **priority tiers**. Power is allocated tier by tier: tier 1 is served fully
    before tier 2 sees anything. Within a tier, every consumer gets the same
    `satisfaction = min(1, remaining supply / tier demand)`.
-   Default tiers: **1 Works (Extractors) · 2 Wall (towers, Beacons) · 3 Labs · 4 constructors**
-   (empty in the slice). The player can move any consumer or sector to another tier, or to
-   **off** (this is the shed-load verb). *Changed 2026-10-11 after the first td-critic review;
+   Default tiers: **1 Works (Extractors) · 2 Wall (towers, Beacons) · 3 Labs · 4 Spare**
+   (empty by default). The player can move any consumer or sector to another tier, or to
+   **off** (this is the shed-load verb). **Tier 4, Spare, runs on spill** (fifth session): it is
+   served only from what would otherwise be wasted, *after* the Jars have charged, and a Jar
+   never pays for it. So it is a real choice, not a lower rung: a Lab on Spare researches only on
+   surplus and never drains storage (on Labs it is served first and a Jar holds it up); a spare
+   Lamp is a free beam while the grid is in surplus and dark in a pinch. Towers on Spare are not
+   the wall a brownout is read from. Why: wasted power was a number on the HUD with two answers
+   (a Jar, a Lab), both buildings; this makes it a third answer with the tier verb the player
+   already has. Tested in `tests/grid.test.ts`. *Changed 2026-10-11 after the first td-critic review;
    it was 1 towers · 2 extractors. See the brownout spiral below.*
-4. Surplus charges batteries (up to each one's max charge rate). Surplus beyond that is
-   **wasted**, and the HUD says so in kW. Wasted power is the game's nudge toward storage and labs.
+4. Surplus charges batteries (up to each one's max charge rate), then feeds tier 4 (Spare).
+   Surplus beyond that is **wasted**, and the HUD says so in kW. Wasted power is the game's nudge toward storage and labs.
 5. **Networks**: a network is a connected set of nodes. Anything within a node's radius is on
    that node's network. Generators and consumers on different networks don't see each other.
    A node that is knocked offline splits its network; everything downstream goes dark that tick.
