@@ -6,9 +6,10 @@ What exists, what is stubbed, what is next. Updated at the end of every session.
 
 **The Milestone 2 gate is passed** (the owner played the slice and asked for the next phase;
 `DECISIONS.md`). The sessions since built the owner's asks (wave pay, a split build bar, a
-tutorial), pieces of Milestones 3–11, and ran five `td-critic` reviews, each followed by the fixes
-(`DECISIONS.md`: "Second review" to "Fifth review"). The fifth session added transmission
-capacity, the Busbar, the Coker and lesson cards, and cut the Spare tier.
+tutorial), pieces of Milestones 3–11, and ran six `td-critic` reviews, each followed by the fixes
+(`DECISIONS.md`: "Second review" to "Sixth review"). The fifth session added transmission
+capacity, the Busbar, the Coker, lesson cards, the grid-threat telegraph, the supply ledger and
+the end screen's wave-by-wave chart, and cut the Spare tier.
 
 **How to play:** double-click `Play.bat` (or `npm run dev` and open http://localhost:5173), or the
 live build (link in the repo's About box). Title → TUTORIAL (first time) or PLAY; arrows pick a
@@ -31,11 +32,18 @@ map once it is open; K skills; O settings; H in game lists every key.
     20 s breather, **wave pay**, Flit clumps, per-kind road alternation, enemies appearing a few
     tiles along the road, endless after the last wave.
   - Enemies (7): Moth, Flit, Shade (cuts Nodes within **3.5** for **6 s**), Veil (seen only above
-    60% power), Snuffer, Pall, **Siphon** (taps a line for 12 kW).
+    60% power), Snuffer (puts out Burners within 5 tiles, **not one on coke**), Pall, **Siphon**
+    (taps a line for 12 kW).
+  - Read-only models beside the tick: `lines.ts` (each line's bottleneck), `pressure.ts` (a wave's
+    kJ/s against the wall's), `threats.ts` (what a wave's Snuffers, Shades and Siphons can reach in
+    the build as it stands).
+  - Stats: a per-wave **supply ledger** while enemies are on the field (snuffed, dry, cut, Siphons,
+    Overcharge, full Nodes, short) and per-wave kJ made / asked / got / wasted.
   - Towers (6): Lamp, Floodlight, Beacon, Searchlight, Brazier, Starshell; tier 2 for all;
     **tier 3 with a branch for all six** (Arc lamp / Lantern, Blaze / Wide, Drag / Halo, Lance /
     Long Eye, Inferno / Bonfire, Nova / Barrage).
-  - Factory: Extractor (tier 2: **Deep bit or Coker**, coke is 2.5 rocks of heat), Burner, Vane,
+  - Factory: Extractor (tier 2: **Deep bit or Coker**, coke is 2.5 rocks of heat and can't be
+    snuffed; its panel prices both at its deposit), Burner, Vane,
     Jar (tier 2: **Bank or Flywheel**), Node (tier 2: **Long line or Busbar**), Lab (a research
     **queue**: shift-click on the board).
   - Verbs: shed, tiers, **Overcharge** (live power, 3× for 4 s, after the Works and ahead of the
@@ -57,28 +65,34 @@ map once it is open; K skills; O settings; H in game lists every key.
   pulsing when full; a spare route dashed); a selected building's **way home** dotted to the
   Hearth, violet through a full Node.
 - **UI** (`src/app/play.ts`): HUD with tier bars, a NEXT / THIS WAVE strip (per road on Two
-  Roads; the wave's kJ and its step over the last, amber at ×1.4; inflow against the wall and
-  the Palls in its tooltip), the split build bar (LIGHT 1–6 · POWER 7–=), placement forecast, selected panel (tiers,
+  Roads; the wave's kJ and its step over the last, amber at ×1.4, and a "!" when its Snuffers
+  could take the wall under 75%; inflow against the wall, the Palls, and what its Snuffers,
+  Shades and Siphons can reach in your build in its tooltip), the threat's reach drawn unasked in
+  the breather before its first wave, the split build bar (LIGHT 1–6 · POWER 7–=), placement forecast, selected panel (tiers,
   shed, Overcharge with its kW and yield, upgrade or a branch choice U / Y, Reroute, sell),
-  research board (L, tier 3 takes its tier-2 row, a queue), intel cards, **lesson cards** (the
-  first brownout, wasted power, Node cut and full Node of a profile), the **tutorial** (18 steps:
+  research board (L, tier 3 takes its tier-2 row, a queue), intel cards and **lesson cards** (the
+  first brownout, wasted power, Node cut and full Node of a profile; they fold to a title line after
+  4 s and open on hover), the **tutorial** (18 steps:
   the second Burner pair and a fourth Lamp after wave 2, a Jar and a Lab after wave 3), hints
   (brownout, spiral, waste, Veils, Siphons, idle Lab, an Overcharge as the cause, money unspent
   at a wave's start), the message feed (bottom left, two at most), help,
   the **Esc menu** (resume, settings, help, to the title), settings (O), the end screen (embers,
-  a diagnosis from the last quarter of the lights, worst wave by lights, PLAY AGAIN, TITLE).
+  a diagnosis from the last quarter of the lights and the supply ledger, worst wave by lights, a
+  **wave-by-wave chart** of the wall's share and the lights lost, PLAY AGAIN, TITLE).
 - **Title**: map picker (four maps, each with a whole-map preview and a line of facts), skill
   tree (K), settings (O), CONTINUE.
-- **Maps**: The Last Station; **The Switchback** (72-tile road, heavier late waves, pace 0.9);
+- **Maps**: The Last Station; **The Switchback** (72-tile road, heavier late waves smoothed so
+  wave 10 is not a ×2.3 step, pace 0.9 from wave 2);
   **The Fork** (the road forks; the light-drawn take the brighter branch, Dark Bait turns them);
   **Two Roads** (two roads meet at a junction 9.4 tiles above the Hearth; pace 1.4). A bot plan
   per map.
 - **Audio**: procedural hum and one-shots; volume and mute.
 - **Art**: 30 code-drawn sheets (Apollo), the newest the **Siphon** (art-director). PixelLab: 0
   generations spent (3,030 left, resets 2026-11-09).
-- **Tests** (`npm test`, 136): grid arithmetic and every mechanic (Overcharge on live power,
+- **Tests** (`npm test`, 142): grid arithmetic and every mechanic (Overcharge on live power,
   Flywheel, branches, tier 3, Siphon, Lines view, Pulse, Reroute, roads, the fork, the research
-  queue, **node capacity** and the Busbar, the **Coker**, wave pressure), data validation, the §6
+  queue, **node capacity** and the Busbar, the **Coker** and coke against a Snuffer, wave pressure,
+  the loss line and its ledger, the Switchback's wave 1), data validation, the §6
   pace tests, the profile migrations, commands and replay, skills, the tutorial played as a
   newcomer who builds only between waves **through wave 4** (one light lost), and the bot: the
   plan wins with 14 or more and some brownout; no verbs ends at least 4 lower; too much / too
@@ -89,8 +103,10 @@ map once it is open; K skills; O settings; H in game lists every key.
   `sbwaves.mts` (per-map wave sweeps), `tune2.mts`, `sweep2.mts`, `planview.mts`, `mapview.mts`,
   `pallwatch.mts`, `pulsecheck.mts`, `skillcheck.mts`, `perf.mts`, `wavekj.mts`, and from the
   fifth session `telegraph.mts` (wave pressure against leaks), `sparecheck.mts` and
-  `flycheck.mts` (the measurements behind the Spare cut and the Flywheel call).
-- **Harness**: `npm run screens` (47 states × 4 sizes, overlap audit), `npm run shots`,
+  `flycheck.mts` (the measurements behind the Spare cut and the Flywheel call); from the sixth
+  review `cokecheck.mts`, `reserve.mts` (money held back: does a run lose gradually?) and
+  `sbw1.mts` (the Switchback's first wave).
+- **Harness**: `npm run screens` (51 states × 4 sizes, overlap audit), `npm run shots`,
   `npm run smoke`, `npm run continue`, `npm run perf` (302 buildings, ~500 enemies at
   1920×1080: about 60 fps in headless Chrome).
 
@@ -123,6 +139,10 @@ map once it is open; K skills; O settings; H in game lists every key.
 - Two Roads' junction can still be fed from safe ground (a Node reaches 4, a Shade 3.5): no
   policy sees a cut there (`DESIGN.md` §11).
 
+- A player who sits on money early still wipes in one wave (holding 100 back from wave 3: station
+  20 20 14 10 0, Two Roads 20 20 11 7 0; `design/reserve.mts`): the money hint says so at each
+  wave's start; graded leaks were tried and broke the verbs bar (`DECISIONS.md`, sixth review).
+
 ## Next
 
-A sixth review of this build, its fixes, then the owner's calls in the report.
+A seventh (verification) review of the sixth review's fixes, then the owner's calls in the report.
