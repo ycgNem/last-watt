@@ -110,7 +110,7 @@ describe('grid (§2)', () => {
     const g = new Game();
     const beside = put(g, 'node', 10, 9); // row 9: 2.5 tiles from the path's centreline
     const off = put(g, 'node', 14, 10); // row 10: 3.5 tiles
-    g.enemies.push({ id: g.nextId++, def: ENEMIES.shade, hp: 1e9, dist: 5, x: 4, y: 6.5, slow: 0, face: 1, hit: 0, wave: 0, seen: false });
+    g.enemies.push({ id: g.nextId++, def: ENEMIES.shade, hp: 1e9, dist: 5, x: 4, y: 6.5, slow: 0, face: 1, hit: 0, wave: 0, seen: false, route: 0 });
     settle(g, 12);
     expect(g.stats.knocks).toBe(1);
     expect(beside.offline).toBeGreaterThan(0);

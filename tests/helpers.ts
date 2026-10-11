@@ -13,10 +13,10 @@ export function put(g: Game, id: BuildingId, x: number, y: number): Building {
 }
 
 /** an enemy that never moves (speed 0) parked at a distance along the path */
-export function park(g: Game, kind: EnemyId, dist: number, hp = 1e9): Enemy {
+export function park(g: Game, kind: EnemyId, dist: number, hp = 1e9, route = 0): Enemy {
   const def = { ...ENEMIES[kind], speed: 0, health: hp, knockRadius: undefined };
-  const p = g.path.at(dist);
-  const e: Enemy = { id: g.nextId++, def, hp, dist, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave: 0, seen: false };
+  const p = g.paths[route].at(dist);
+  const e: Enemy = { id: g.nextId++, def, hp, dist, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave: 0, seen: false, route };
   g.enemies.push(e);
   return e;
 }

@@ -34,7 +34,7 @@ export function targetingSystem(g: Game) {
     switch (b.def.kind) {
       case 'radial':
         b.bodies = Math.min(inRange.length, s.maxBodies ?? 1);
-        b.target = first(inRange).id;
+        b.target = first(g, inRange).id;
         break;
       case 'mortar': {
         if (b.shell < (s.shellSize ?? 0) && b.overcharge <= 0) break;
@@ -44,7 +44,7 @@ export function targetingSystem(g: Game) {
         for (const e of inRange) {
           let n = 0;
           for (const o of g.enemies) if (Math.hypot(o.x - e.x, o.y - e.y) <= br) n += o.def.health > 100 ? 3 : 1;
-          if (n > bestN || (n === bestN && best && e.dist > best.dist)) {
+          if (n > bestN || (n === bestN && best && g.left(e) < g.left(best))) {
             best = e;
             bestN = n;
           }
@@ -56,17 +56,18 @@ export function targetingSystem(g: Game) {
         if (b.def.targeting === 'heaviest') {
           // hold the lock while it lasts, else the enemy with the most health left
           const held = inRange.find((e) => e.id === prev);
-          const t = held ?? inRange.reduce((a, e) => (e.hp > a.hp || (e.hp === a.hp && e.dist > a.dist) ? e : a));
+          const t = held ?? inRange.reduce((a, e) => (e.hp > a.hp || (e.hp === a.hp && g.left(e) < g.left(a)) ? e : a));
           if (t.id !== prev) b.sweep = s.sweepTime ?? 0;
           b.target = t.id;
-        } else b.target = first(inRange).id;
+        } else b.target = first(g, inRange).id;
       }
     }
   }
 }
 
-function first(es: Enemy[]): Enemy {
+/** the enemy nearest the station: the least road left to walk */
+function first(g: Game, es: Enemy[]): Enemy {
   let best = es[0];
-  for (const e of es) if (e.dist > best.dist) best = e;
+  for (const e of es) if (g.left(e) < g.left(best)) best = e;
   return best;
 }

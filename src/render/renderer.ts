@@ -668,7 +668,7 @@ export class Renderer {
     if (!m) {
       m = new Uint8Array(g.map.w * g.map.h);
       const pts: { x: number; y: number }[] = [];
-      for (let d = 0; d <= g.path.length; d += 0.25) pts.push(g.path.at(d));
+      for (const path of g.paths) for (let d = 0; d <= path.length; d += 0.25) pts.push(path.at(d));
       for (let y = 0; y < g.map.h; y++)
         for (let x = 0; x < g.map.w; x++) {
           const rect = { x, y, w: 1, h: 1 };

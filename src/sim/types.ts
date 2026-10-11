@@ -66,6 +66,8 @@ export interface Enemy {
   hit: number;
   /** which wave it came from */
   wave: number;
+  /** which road it walks (index into Game.paths) */
+  route: number;
   /** a Veil some tower could see this tick */
   seen: boolean;
 }

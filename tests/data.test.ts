@@ -7,7 +7,9 @@ import { ENEMIES, ENEMY_BY_CODE } from '../src/data/enemies';
 import { WAVES, endlessWave } from '../src/data/waves';
 import { RESEARCH, RESEARCH_ORDER } from '../src/data/research';
 import { RULES } from '../src/data/rules';
-import { SLICE_MAP } from '../src/data/map';
+import { MAPS } from '../src/data/map';
+import { Game } from '../src/sim/Game';
+import { pointRectDist } from '../src/sim/geom';
 
 const design = readFileSync(new URL('../DESIGN.md', import.meta.url), 'utf8');
 const sections = new Set([...design.matchAll(/^## (\d+)\./gm)].map((m) => m[1]));
@@ -89,7 +91,7 @@ describe('data validation', () => {
   it('research, rules and the map have derivations; cross-references resolve', () => {
     for (const r of Object.values(RESEARCH)) checkEntry(r.id, r as unknown as Record<string, unknown>, r.why);
     for (const [k, r] of Object.entries(RULES)) checkWhy(`RULES.${k}`, r.why);
-    for (const k of ['w', 'h', 'hearth', 'path', 'deposits']) checkWhy(`map.${k}`, SLICE_MAP.why[k]);
+    for (const m of MAPS) for (const k of ['w', 'h', 'hearth', 'paths', 'deposits', 'windMean', 'pace', 'unlockWave']) checkWhy(`${m.id}.${k}`, m.why[k]);
     for (const id of RESEARCH_ORDER) expect(RESEARCH[id]).toBeTruthy();
     expect(new Set(RESEARCH_ORDER)).toEqual(new Set(Object.keys(RESEARCH)));
     for (const r of Object.values(RESEARCH)) if (r.requires) expect(RESEARCH[r.requires], `${r.id} requires unknown ${r.requires}`).toBeTruthy();
@@ -98,7 +100,20 @@ describe('data validation', () => {
       for (const u of b.upgrades ?? []) expect(RESEARCH[u.research]).toBeTruthy();
     }
     for (const id of BUILD_ORDER) expect(BUILDINGS[id]).toBeTruthy();
-    for (const tiles of SLICE_MAP.deposits)
-      for (const [x, y] of tiles) expect(x >= 0 && y >= 0 && x < SLICE_MAP.w && y < SLICE_MAP.h).toBe(true);
+    for (const m of MAPS) {
+      const g = new Game({ map: m });
+      for (const tiles of m.deposits)
+        for (const [x, y] of tiles) {
+          expect(x >= 0 && y >= 0 && x < m.w && y < m.h, `${m.id} deposit ${x},${y} off the map`).toBe(true);
+          expect(g.isPath(x, y), `${m.id} deposit ${x},${y} on a road`).toBe(false);
+        }
+      // every road ends touching the Hearth and starts off the map edge
+      for (const p of g.paths) {
+        const end = p.pts[p.pts.length - 1], start = p.pts[0];
+        expect(pointRectDist(end[0], end[1], { ...m.hearth, w: 4, h: 4 }), `${m.id} road ends away from the Hearth`).toBeLessThanOrEqual(0.15);
+        expect(start[0] < 0 || start[1] < 0 || start[0] > m.w || start[1] > m.h, `${m.id} road starts on the map`).toBe(true);
+      }
+      for (let y = m.hearth.y; y < m.hearth.y + 4; y++) for (let x = m.hearth.x; x < m.hearth.x + 4; x++) expect(g.isPath(x, y), `${m.id} road over the Hearth`).toBe(false);
+    }
   });
 });

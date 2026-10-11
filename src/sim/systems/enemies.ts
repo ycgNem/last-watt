@@ -4,12 +4,13 @@ import { DT, type Game } from '../Game';
 import { pointRectDist } from '../geom';
 
 export function enemiesSystem(g: Game) {
-  const len = g.path.length;
   let removed = false;
   for (const e of g.enemies) {
+    const path = g.paths[e.route];
+    const len = path.length;
     const speed = e.def.speed * (1 - e.slow);
     e.dist += speed * DT;
-    const p = g.path.at(e.dist);
+    const p = path.at(e.dist);
     if (p.dx !== 0) e.face = p.dx;
     e.x = p.x;
     e.y = p.y;

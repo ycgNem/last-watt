@@ -20,11 +20,15 @@ export function wavesSystem(g: Game) {
     s.next -= DT;
     while (s.next <= 0 && s.i < s.seq.length) {
       const c = s.seq[s.i];
-      spawn(g, c, s.wave);
+      const route = s.routes[c] ?? s.wave % g.paths.length;
+      spawn(g, c, s.wave, route);
       s.i++;
-      // a Flit followed by a Flit comes on its clump gap, everything else on the wave's spacing
+      // a Flit followed by a Flit comes on its clump gap (and its road), everything else on the
+      // wave's spacing, and the kind's next spawn takes the next road
       const def = ENEMY_BY_CODE[c];
-      s.next += def.packGap && s.seq[s.i] === c ? def.packGap : s.spacing;
+      const clump = !!def.packGap && s.seq[s.i] === c;
+      s.next += clump ? def.packGap! : s.spacing;
+      if (!clump) s.routes[c] = (route + 1) % g.paths.length;
     }
   }
   if (g.spawners.some((s) => s.i >= s.seq.length)) g.spawners = g.spawners.filter((s) => s.i < s.seq.length);
@@ -50,10 +54,10 @@ export function wavePay(n: number): number {
   return RULES.wavePayBase.v + RULES.wavePayPer.v * n;
 }
 
-function spawn(g: Game, code: string, wave: number) {
+function spawn(g: Game, code: string, wave: number, route: number) {
   const def = ENEMY_BY_CODE[code];
-  const p = g.path.at(0);
-  g.enemies.push({ id: g.nextId++, def, hp: def.health, dist: 0, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave, seen: false });
+  const p = g.paths[route].at(0);
+  g.enemies.push({ id: g.nextId++, def, hp: def.health, dist: 0, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave, seen: false, route });
   if (!g.seenKinds.has(def.id)) {
     g.seenKinds.add(def.id);
     g.emit({ t: 'newenemy', enemy: def.id });
@@ -76,7 +80,7 @@ export function startNextWave(g: Game) {
   g.wave++;
   g.waveStarted.add(g.wave);
   g.waveTimer = 0;
-  g.spawners.push({ wave: w.n, seq: w.seq, i: 0, next: 0, spacing: w.spacing });
+  g.spawners.push({ wave: w.n, seq: w.seq, i: 0, next: 0, spacing: w.spacing * g.map.pace, routes: {} });
   g.emit({ t: 'wave', n: w.n, note: w.note });
 }
 

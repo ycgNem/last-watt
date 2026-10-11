@@ -508,3 +508,37 @@ what it changes on the energy side.
 
 If any answer is no after the critic's review, fix the model here before building anything in
 Milestone 3 or later.
+
+## 11. Maps (Milestone 7, second session)
+
+Every map is 40 × 30 and plays the same twelve waves (§5); what changes is the road, the
+deposits, the wind and the **pace** (every wave's spacing × pace). A map opens when the player
+has reached its wave on any map: the station always, the Switchback at wave 4, Two Roads at
+wave 8 (lenient on purpose: the owner wants to see the content).
+
+| Map | Roads | Deposits | Wind | Pace | Its decision |
+|---|---|---|---|---|---|
+| **The Last Station** | one, 41 tiles, two bends facing the Hearth | two near, one far | 0.55 | 1.0 | the slice: bends vs straights (§6) |
+| **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | 1.0 | the strip is the best ground on the map (a Lamp there reaches both legs) and every Node in it is within a Shade's 2.5; a windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW, still more than a Burner's 3.2) |
+| **Two Roads** | two, 34 and 33 tiles, from the west and the east; their last legs run down either side of a **3-wide ridge** to the Hearth | one safe south, one north of the ridge, one far west | 0.55 | **1.5** | the ridge is the only ground that sees both roads (a Lamp on it sits 1.5 from one road and 2.5 from the other: 6.3 + 4.9 tiles of beam), it holds one tower per two rows, and only its lower half is inside the Hearth's reach; the rest hangs off a ridge Node that every Shade on either road can cut. Everything off the ridge covers one road. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road, so each road sees half of every kind |
+
+Why those paces. **Exposure, not inflow, sets the pace on a long road.** The Switchback was first
+set to 0.8 on the reasoning that 1.75× the road gives 1.75× the time on each enemy, so the waves
+could come denser; the bot lost by wave 5 at 0.8 and won with 15 lights at 1.0. A longer road
+adds bends (exposure) but the wall still has to handle every enemy, so the station's pace stands.
+
+**Two Roads halves the wall each enemy meets.** The first version (two roads ending at the
+Hearth from opposite sides, nothing shared) lost wave 3 at every pace from 1.0 to 2.5: a Moth on
+either road met one Lamp, where the station's Moth meets two at bends. Slowing the waves cannot
+fix that; only shared ground can. Hence the ridge. A 4-wide ridge was tried first and was wrong:
+a 2×2 tower's centre lands 1.5 from one road and 3.5 from the other, and a Lamp's 3.5 reach
+grazes a road at exactly 3.5 (zero tiles of beam). At 3 wide every ridge tower sees both. With
+the ridge the bot wins at 1.2–1.8 but always loses the wave-8 Palls (400 kJ each, 0.6 t/s): a
+Pall is limited by the burst on its own road, not by inflow, so slower waves do not help either
+(1.5 to 1.8 all end at 5 lights). Pace 1.5 is the fastest at which the bot keeps that margin.
+Two Roads is the hard map on purpose: it opens at wave 8.
+
+Per-kind alternation (not per-spawn): with one counter, a wave whose sequence puts its Palls on
+odd indices sends both down the same road, and the player learns a sequence quirk rather than
+a map. Starting each wave on the other road keeps a single Shade from always taking the west.
+

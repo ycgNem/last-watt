@@ -34,8 +34,8 @@ export class Path {
   /** tiles the path runs over, as y * w + x */
   cells = new Set<number>();
 
-  constructor(map: MapDef) {
-    this.pts = map.path;
+  constructor(map: Pick<MapDef, 'w' | 'h'>, pts: [number, number][]) {
+    this.pts = pts;
     for (let i = 1; i < this.pts.length; i++) {
       const [ax, ay] = this.pts[i - 1], [bx, by] = this.pts[i];
       const l = Math.hypot(bx - ax, by - ay);

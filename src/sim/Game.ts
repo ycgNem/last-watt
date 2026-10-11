@@ -18,7 +18,7 @@ import { statsSystem } from './systems/stats';
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
 
-export interface Spawner { wave: number; seq: string; i: number; next: number; spacing: number }
+export interface Spawner { wave: number; seq: string; i: number; next: number; spacing: number; /** the road each kind's next spawn takes, so every road sees its share of every kind */ routes: Record<string, number> }
 
 export function emptyTiers() {
   return [0, 1, 2, 3, 4].map(() => ({ demand: 0, served: 0, sat: 1 }));
@@ -26,7 +26,10 @@ export function emptyTiers() {
 
 export class Game {
   map: MapDef;
-  path: Path;
+  /** one Path per road; enemies carry the index of theirs (`route`) */
+  paths: Path[];
+  /** the cells any road runs over, as y * w + x */
+  pathCells = new Set<number>();
   /** weather seed: the wind's phase (fixed by default so tests are repeatable) */
   seed: number;
   tick = 0;
@@ -74,7 +77,8 @@ export class Game {
   constructor(opts: { map?: MapDef; seed?: number } = {}) {
     this.map = opts.map ?? SLICE_MAP;
     this.seed = opts.seed ?? 1;
-    this.path = new Path(this.map);
+    this.paths = this.map.paths.map((p) => new Path(this.map, p));
+    for (const p of this.paths) for (const c of p.cells) this.pathCells.add(c);
     this.money = RULES.startMoney.v;
     this.lights = RULES.startLights.v;
     const n = this.map.w * this.map.h;
@@ -85,6 +89,16 @@ export class Game {
     });
     const hearth = this.addBuilding(BUILDINGS.hearth, this.map.hearth.x, this.map.hearth.y);
     this.hearthId = hearth.id;
+  }
+
+  /** the first road (most maps have one) */
+  get path(): Path {
+    return this.paths[0];
+  }
+
+  /** tiles an enemy still has to walk to the Hearth (lower = nearer the station) */
+  left(e: Enemy): number {
+    return this.paths[e.route].length - e.dist;
   }
 
   get hearth(): Building {
@@ -119,7 +133,7 @@ export class Game {
   /** the wind, 0.1..1 of a Vane's rating: three slow swells that never line up the same way (§3.2) */
   wind(t = this.time): number {
     const s = this.seed;
-    const v = RULES.windMean.v + 0.28 * Math.sin((2 * Math.PI * t) / 53 + s) + 0.17 * Math.sin((2 * Math.PI * t) / 19 + s * 2.3) + 0.08 * Math.sin((2 * Math.PI * t) / 7.1 + s * 5.1);
+    const v = this.map.windMean + 0.28 * Math.sin((2 * Math.PI * t) / 53 + s) + 0.17 * Math.sin((2 * Math.PI * t) / 19 + s * 2.3) + 0.08 * Math.sin((2 * Math.PI * t) / 7.1 + s * 5.1);
     return Math.max(0.1, Math.min(1, v));
   }
 
@@ -174,7 +188,7 @@ export class Game {
   }
 
   isPath(x: number, y: number) {
-    return this.path.cells.has(y * this.map.w + x);
+    return this.pathCells.has(y * this.map.w + x);
   }
 
   isDeposit(x: number, y: number) {

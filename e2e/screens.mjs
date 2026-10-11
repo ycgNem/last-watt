@@ -97,6 +97,42 @@ const STATES = {
   }),
   lose: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'lose'; p.game.lights = 0; }),
   paused: async (page) => page.evaluate(() => { window.__app.newGame().paused = true; }),
+  titlemaps: async (page) => {
+    await page.evaluate(() => {
+      const a = window.__app;
+      a.profile.best.wave = 9;
+      a.profile.maps.station = { wave: 12, won: true, lights: 17, endless: 0 };
+      a.profile.maps.switchback = { wave: 9, won: false, lights: 0, endless: 0 };
+      a.pickMap(window.__maps[1]);
+    });
+    await page.mouse.move(4, 4);
+  },
+  switchback: async (page) => page.evaluate(() => {
+    const a = window.__app;
+    a.profile.best.wave = 12;
+    a.pickMap(window.__maps[1]);
+    const p = a.newGame();
+    const g = p.game;
+    window.__place(g, 'lamp', 12, 19); window.__place(g, 'lamp', 12, 13); window.__place(g, 'node', 16, 17);
+    g.wave = 3;
+    window.__next(g);
+    for (let i = 0; i < 60 * 20; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+  }),
+  tworoads: async (page) => page.evaluate(() => {
+    const a = window.__app;
+    a.profile.best.wave = 12;
+    a.pickMap(window.__maps[2]);
+    const p = a.newGame();
+    const g = p.game;
+    window.__place(g, 'lamp', 17, 17); window.__place(g, 'lamp', 18, 15); window.__place(g, 'lamp', 14, 17); window.__place(g, 'lamp', 21, 15);
+    g.research.done.add('starshell');
+    window.__place(g, 'node', 17, 15); window.__place(g, 'starshell', 17, 13);
+    g.wave = 4;
+    window.__next(g);
+    for (let i = 0; i < 60 * 24; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+  }),
 };
 
 function audit(recs, uw, uh) {

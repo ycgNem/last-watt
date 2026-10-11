@@ -53,8 +53,15 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
   sell), the **research board** (L), enemy hover tips, **intel cards** for each new enemy, the
   **tutorial** (11 steps, skippable, holds the game on its reading steps), help, pause, speed,
   win screen with **KEEP GOING: ENDLESS**, lose screen, best result.
-- **Profile** (`src/app/save.ts`): localStorage, `SAVE_VERSION` 1 + migrations: tutorial done,
-  enemies met, best, runs, mute.
+- **Maps** (`src/data/map.ts`, `DESIGN.md` §11, Milestone 7 in part): The Last Station; **The
+  Switchback** (a 72-tile road that doubles back, a rich strip between two legs in Shade reach,
+  wind 0.7; opens at wave 4); **Two Roads** (two roads down either side of a 3-wide ridge, the
+  only ground that sees both; pace 1.5; the hard map, opens at wave 8). Roads can be several:
+  spawns alternate per kind, targeting reads "least road left". The title screen picks the map
+  (buttons or arrow keys), shows its blurb and the best on it. A bot plan per map
+  (`planFor`), and `tests/maps.test.ts` holds each one to a win with nothing dark.
+- **Profile** (`src/app/save.ts`): localStorage, `SAVE_VERSION` 2 + migrations: tutorial done,
+  enemies met, best overall and per map, the map picked, runs, mute.
 - **Audio**: procedural hum and one-shots, plus upgrade, wave pay, new enemy, snuff, shoot, burst.
 - **Art**: 29 code-drawn sheets (Apollo): the slice's 15 plus Searchlight, Brazier, Starshell,
   Vane, tier-2 Floodlight / Searchlight / Brazier / Starshell / Beacon / Burner, Flit, Veil,
@@ -78,7 +85,7 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
 - **M4**: towers 7–10, enemies 7–10, tier 3 and branches, walls and gates.
 - **M5**: multiple-Lab scheduling UI beyond "all Labs on one project"; the rest of the tree.
 - **M6**: Pulse, Reroute, Dark Bait.
-- **M7**: more maps (one so far; the bot's plan is map-specific), map unlocks, mid-run saves.
+- **M7**: three maps exist (below); still missing: mid-run saves, per-map waves, a map preview on the picker.
 - **M8**: embers and the skill tree. **M9**: the jsfxr bank. **M10**: settings, keybinds, UI scale.
 - Milestone 0 leftovers: `Package for web.bat`, the PixelLab scripts and art importers.
 

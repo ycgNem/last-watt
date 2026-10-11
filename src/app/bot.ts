@@ -5,6 +5,7 @@
 // Palls, late Shades and crowds near the Hearth. Positions are top-left tiles on SLICE_MAP.
 import type { BuildingId } from '../data/buildings';
 import type { Game } from '../sim/Game';
+import type { Building } from '../sim/types';
 import { nextWave, overcharge, overchargeProblem, place, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
 import { BUILDINGS } from '../data/buildings';
 import { RULES } from '../data/rules';
@@ -77,6 +78,108 @@ export const BOT_PLAN: BotPlan = {
   upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
   headroom: 1.8,
 };
+
+/** The Switchback: Lamps inside the two bends by the Hearth, the strip between the long legs
+ *  reached by Nodes a Shade can cut, generation from the near deposit and the strong wind. */
+export const SWITCHBACK_PLAN: BotPlan = {
+  opening: [
+    { b: 'extractor', x: 23, y: 24 }, { b: 'burner', x: 21, y: 24 }, { b: 'node', x: 16, y: 17 },
+    { b: 'lamp', x: 12, y: 19 }, { b: 'lamp', x: 12, y: 13 },
+  ],
+  wall: [
+    { b: 'lamp', x: 12, y: 16 },
+    { b: 'lamp', x: 14, y: 19 },
+    { b: 'floodlight', x: 14, y: 14, wave: 3 },
+    { b: 'node', x: 21, y: 16 },
+    { b: 'lamp', x: 17, y: 14 },
+    { b: 'brazier', x: 14, y: 22, wave: 4 },
+    { b: 'floodlight', x: 23, y: 13 },
+    { b: 'node', x: 25, y: 16 },
+    { b: 'lamp', x: 28, y: 13 },
+    { b: 'starshell', x: 19, y: 15, wave: 5 },
+    { b: 'node', x: 16, y: 11 },
+    { b: 'searchlight', x: 14, y: 8, wave: 6 },
+    { b: 'brazier', x: 12, y: 10 },
+    { b: 'lamp', x: 20, y: 13 },
+    { b: 'beacon', x: 26, y: 13 },
+    { b: 'starshell', x: 23, y: 15 },
+    { b: 'searchlight', x: 18, y: 8 },
+    { b: 'node', x: 28, y: 15 },
+    { b: 'lamp', x: 30, y: 13 },
+  ],
+  power: [
+    [{ b: 'extractor', x: 24, y: 24 }, { b: 'burner', x: 25, y: 22 }],
+    [{ b: 'extractor', x: 23, y: 25 }, { b: 'burner', x: 21, y: 26 }],
+    [{ b: 'extractor', x: 24, y: 25 }, { b: 'burner', x: 24, y: 26 }],
+    [{ b: 'vane', x: 23, y: 18 }],
+    [{ b: 'vane', x: 18, y: 26 }],
+    [{ b: 'vane', x: 25, y: 19 }],
+    [{ b: 'vane', x: 16, y: 24 }],
+    [{ b: 'extractor', x: 25, y: 25 }],
+    [{ b: 'vane', x: 16, y: 26 }],
+    [{ b: 'vane', x: 14, y: 26 }],
+  ],
+  extras: [
+    { b: 'jar', x: 20, y: 24, wave: 3 },
+    { b: 'lab', x: 14, y: 24, wave: 3 },
+    { b: 'jar', x: 19, y: 24, wave: 5 },
+    { b: 'lab', x: 18, y: 18, wave: 6 },
+  ],
+  research: ['vane', 'brazier', 'starshell', 'lamp2', 'bellows', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  headroom: 1.8,
+};
+
+/** Two Roads: the ridge between the last legs first (its middle column sees both roads), then
+ *  each road's outside, power from the safe south deposit, the north one behind a ridge Node. */
+export const TWO_ROADS_PLAN: BotPlan = {
+  opening: [
+    { b: 'extractor', x: 18, y: 25 }, { b: 'burner', x: 16, y: 25 },
+    { b: 'lamp', x: 17, y: 17 }, { b: 'lamp', x: 18, y: 15 },
+  ],
+  wall: [
+    { b: 'lamp', x: 14, y: 17 },
+    { b: 'lamp', x: 21, y: 15 },
+    { b: 'brazier', x: 14, y: 15, wave: 3 },
+    { b: 'brazier', x: 21, y: 17 },
+    { b: 'node', x: 17, y: 15 },
+    { b: 'lamp', x: 17, y: 13 },
+    { b: 'starshell', x: 22, y: 21, wave: 5 },
+    { b: 'starshell', x: 13, y: 21 },
+    { b: 'node', x: 23, y: 16 },
+    { b: 'floodlight', x: 23, y: 13 },
+    { b: 'floodlight', x: 13, y: 13 },
+    { b: 'floodlight', x: 17, y: 11 },
+    { b: 'searchlight', x: 12, y: 17, wave: 6 },
+    { b: 'searchlight', x: 23, y: 17 },
+    { b: 'brazier', x: 21, y: 13 },
+    { b: 'beacon', x: 13, y: 19 },
+  ],
+  power: [
+    [{ b: 'extractor', x: 19, y: 25 }, { b: 'burner', x: 20, y: 25 }],
+    [{ b: 'extractor', x: 17, y: 24 }, { b: 'burner', x: 15, y: 23 }],
+    [{ b: 'extractor', x: 19, y: 24 }, { b: 'burner', x: 20, y: 23 }],
+    [{ b: 'extractor', x: 18, y: 24 }],
+    [{ b: 'vane', x: 22, y: 24 }],
+    [{ b: 'vane', x: 24, y: 22 }],
+    [{ b: 'vane', x: 13, y: 24 }],
+    [{ b: 'vane', x: 22, y: 26 }],
+  ],
+  extras: [
+    { b: 'jar', x: 19, y: 17, wave: 3 },
+    { b: 'lab', x: 15, y: 21, wave: 3 },
+    { b: 'jar', x: 19, y: 18, wave: 5 },
+    { b: 'lab', x: 22, y: 19, wave: 6 },
+  ],
+  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  headroom: 1.8,
+};
+
+/** the bot's plan for a map */
+export function planFor(mapId: string): BotPlan {
+  return mapId === 'switchback' ? SWITCHBACK_PLAN : mapId === 'tworoads' ? TWO_ROADS_PLAN : BOT_PLAN;
+}
 
 export class Bot {
   opened = 0;
@@ -178,18 +281,21 @@ export class Bot {
         if (wallStarved && !b.off) toggleOff(g, b);
         else if (b.off && (g.enemies.length === 0 || g.grid.wall.sat >= 1)) toggleOff(g, b);
       }
-    // Overcharge: a tower on a Pall, a late healthy Shade or Snuffer, or a crowd close to the Hearth
+    // Overcharge: a tower on a Pall, a late healthy Shade or Snuffer, or a crowd close to the Hearth;
+    // a cone, a Brazier or a Starshell before a narrow beam (a Pall drinks most of a beam)
+    let pick: Building | undefined;
+    const close = g.enemies.filter((e) => g.left(e) < 8).length;
     for (const b of g.buildings.values()) {
       if (b.def.role !== 'tower' || b.target < 0 || overchargeProblem(g, b)) continue;
       const t = g.enemyById(b.target);
       if (!t) continue;
-      const close = g.enemies.filter((e) => e.dist > g.path.length - 8).length;
-      const heavyLate = (t.def.id === 'shade' || t.def.id === 'snuffer' || t.def.id === 'veil') && t.dist > g.path.length - 14 && t.hp > 40;
+      const heavyLate = (t.def.id === 'shade' || t.def.id === 'snuffer' || t.def.id === 'veil') && g.left(t) < 14 && t.hp > 40;
       if (t.def.id === 'pall' || heavyLate || (close >= 3 && b.def.kind !== 'beam') || close >= 5) {
-        overcharge(g, b);
-        break;
+        if (!pick || (pick.def.kind === 'beam' && b.def.kind !== 'beam')) pick = b;
+        if (b.def.kind !== 'beam') break;
       }
     }
+    if (pick) overcharge(g, pick);
     // waves: start wave 1 once the opening is built; later waves come on the breather, or
     // sooner (callEarly) once the field is clear after a clean wave
     if (g.wave === 0) nextWave(g);

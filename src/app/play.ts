@@ -24,7 +24,8 @@ import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { Tutorial } from './tutorial';
-import type { Profile } from './save';
+import { noBest, type Profile } from './save';
+import type { MapDef } from '../data/map';
 
 interface Msg { text: string; color: string; t: number; life: number }
 interface Intel { enemy: EnemyId; t: number }
@@ -38,6 +39,8 @@ const SLOT_W = 30;
 
 export interface PlayOpts {
   tutorial?: boolean;
+  /** the map (the station when left out; the tutorial is always on the station) */
+  map?: MapDef;
   seed?: number;
   profile?: Profile;
   onProfile?: (p: Profile) => void;
@@ -72,7 +75,7 @@ export class Play {
   private stripLeft = 0;
 
   constructor(public r: Renderer, public ui: UI, public input: Input, public audio: Audio, public onRestart: () => void, public opts: PlayOpts = {}) {
-    this.game = new Game({ seed: opts.seed });
+    this.game = new Game({ seed: opts.seed, map: opts.tutorial ? undefined : opts.map });
     this.profile = opts.profile ?? null;
     const [fx, fy] = this.game.map.focus;
     r.cam.x = fx * TILE;
@@ -137,12 +140,12 @@ export class Play {
     const g = this.game;
     p.runs++;
     const reached = g.over === 'win' ? LAST_WAVE : g.wave;
-    if (g.endless) p.best.endless = Math.max(p.best.endless, g.wave);
-    if (reached > p.best.wave || (g.over === 'win' && (!p.best.won || g.lights > p.best.lights))) {
-      p.best.wave = Math.max(p.best.wave, reached);
+    for (const b of [p.best, (p.maps[g.map.id] ??= noBest())]) {
+      if (g.endless) b.endless = Math.max(b.endless, g.wave);
+      b.wave = Math.max(b.wave, reached);
       if (g.over === 'win') {
-        p.best.won = true;
-        p.best.lights = Math.max(p.best.lights, g.lights);
+        b.won = true;
+        b.lights = Math.max(b.lights, g.lights);
       }
     }
     if (this.tutorial) p.tutorialDone = true;
@@ -301,7 +304,7 @@ export class Play {
     }
     if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
       this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it for the next wave and pays for Overcharge (E); a Lab (=) turns it into research.`, C.amber, 7);
-    if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.path.length * 0.5))
+    if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.paths[e.route].length * 0.5))
       this.sayOnce('veil', 40, 'A Veil is walking past unseen: your towers near it are below 60% power. Ease the load, Overcharge, or burn it with a Brazier.', C.violet, 7);
     if (!g.research.active && bs.some((b) => b.def.role === 'lab') && g.research.done.size < RESEARCH_ORDER.length)
       this.sayOnce('labidle', 45, 'Your Lab is idle: press L and pick a project.', C.cyan, 5);
@@ -1151,7 +1154,8 @@ export class Play {
       ['Time in brownout', `${Math.round(s.brownoutSeconds)} s`],
       ['Overcharges / research', `${s.overcharges} / ${s.researched}`],
     ];
-    if (this.profile) rows.push(['Best', this.profile.best.won ? `won with ${this.profile.best.lights} lights${this.profile.best.endless ? `, endless wave ${this.profile.best.endless}` : ''}` : `wave ${this.profile.best.wave}`]);
+    const best = this.profile?.maps[g.map.id];
+    if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);
     const w = 276, h = 34 + rows.length * 10 + 26;
     const x = ui.w / 2 - w / 2, y = ui.h / 2 - h / 2;
     ui.panel(x, y, w, h, { border: win ? C.gold : C.ember, alpha: 0.96 });

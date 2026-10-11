@@ -39,7 +39,7 @@ export function towersSystem(g: Game) {
       const cx = b.x + d.size / 2, cy = b.y + d.size / 2;
       const each = (d.perEnemyDraw ?? 0) * (d.efficiency ?? 0) * power;
       if (each <= 0) continue;
-      const burning = g.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - cx, e.y - cy) <= (d.range ?? 0)).sort((a, c) => c.dist - a.dist).slice(0, Math.max(1, b.bodies));
+      const burning = g.enemies.filter((e) => e.hp > 0 && Math.hypot(e.x - cx, e.y - cy) <= (d.range ?? 0)).sort((a, c) => g.left(a) - g.left(c)).slice(0, Math.max(1, b.bodies));
       for (const e of burning) hurt(g, e, each);
       b.dps = each * burning.length;
       continue;
@@ -129,7 +129,7 @@ function mortar(g: Game, b: Building, oc: boolean) {
   if (!t) return;
   const ft = d.flightTime ?? 1;
   // lead the target: where it will be when the shell lands
-  const p = g.path.at(t.dist + t.def.speed * (1 - t.slow) * ft);
+  const p = g.paths[t.route].at(t.dist + t.def.speed * (1 - t.slow) * ft);
   const cx = b.x + d.size / 2, cy = b.y + d.size / 2;
   g.shots.push({ from: b.id, x0: cx, y0: cy, x: p.x, y: p.y, t: 0, flight: ft, energy: size * (d.efficiency ?? 0), radius: d.burstRadius ?? 1, catch: d.catch ?? 1 });
   b.shell = 0;
