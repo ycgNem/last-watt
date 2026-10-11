@@ -1,6 +1,6 @@
 // Sim state types. Everything here is plain data: no DOM, canvas, audio or timers.
 import type { BuildingDef, BuildingId } from '../data/buildings';
-import type { EnemyDef } from '../data/enemies';
+import type { EnemyDef, EnemyId } from '../data/enemies';
 
 export interface Building {
   id: number;
@@ -12,7 +12,7 @@ export interface Building {
   tier: number;
   /** shed by the player: draws nothing, does nothing (generators stop burning) */
   off: boolean;
-  /** tower tier (1 or 2) */
+  /** tier (1 or 2) */
   level: number;
   /** network id this tick, -1 = off every network (dark) */
   net: number;
@@ -20,21 +20,32 @@ export interface Building {
   demand: number;
   /** satisfaction this tick (0..1); 0 when dark or shed */
   sat: number;
+  /** satisfaction smoothed over about half a second (what a Veil's sight reads) */
+  satAvg: number;
   /** generator: kW put on the grid this tick */
   output: number;
-  /** burner: rocks held, seconds left on the burning rock */
+  /** burner: rocks held, seconds left on the burning rock, seconds it stays put out by a Snuffer */
   fuel: number;
   burnLeft: number;
+  snuffed: number;
   /** extractor: progress to the next rock (0..1), rocks waiting to hand over */
   progress: number;
   stock: number;
   /** jar: kJ stored, kW moved this tick (+ charge, − discharge) */
   charge: number;
   flow: number;
-  /** tower: enemy id targeted this tick, kJ/s delivered this tick, Overcharge seconds left */
+  /** tower: enemy id targeted this tick, kJ/s delivered this tick, Overcharge seconds left,
+   *  seconds before it can be Overcharged again */
   target: number;
   dps: number;
   overcharge: number;
+  cool: number;
+  /** searchlight: seconds left swinging onto its target */
+  sweep: number;
+  /** brazier: bodies in the fire this tick */
+  bodies: number;
+  /** starshell: kJ in the shell */
+  shell: number;
   /** node: seconds left knocked offline */
   offline: number;
 }
@@ -55,6 +66,23 @@ export interface Enemy {
   hit: number;
   /** which wave it came from */
   wave: number;
+  /** a Veil some tower could see this tick */
+  seen: boolean;
+}
+
+/** a Starshell in the air */
+export interface Shot {
+  from: number;
+  x0: number;
+  y0: number;
+  x: number;
+  y: number;
+  t: number;
+  flight: number;
+  /** kJ of light it bursts into */
+  energy: number;
+  radius: number;
+  catch: number;
 }
 
 export interface TierStat {
@@ -69,6 +97,8 @@ export interface Network {
   nodes: number[];
   members: number[];
   gen: number;
+  /** kW lost on long lines */
+  loss: number;
   demand: number;
   discharge: number;
   charged: number;
@@ -92,6 +122,8 @@ export interface GridStats {
   tiers: TierStat[];
   /** the towers and Beacons together, whatever tiers they sit on */
   wall: TierStat;
+  /** kW the whole wall would ask with every tower firing */
+  peak: number;
 }
 
 export type GameEvent =
@@ -100,12 +132,18 @@ export type GameEvent =
   | { t: 'kill'; x: number; y: number; money: number; enemy: string }
   | { t: 'leak'; x: number; y: number; lights: number; enemy: string }
   | { t: 'wave'; n: number; note?: string }
+  | { t: 'wavepay'; n: number; money: number; leaks: number }
+  | { t: 'newenemy'; enemy: EnemyId }
   | { t: 'brownout'; sat: number }
   | { t: 'recovered' }
   | { t: 'knock'; id: number; x: number; y: number }
   | { t: 'restore'; id: number }
+  | { t: 'snuff'; id: number; x: number; y: number }
   | { t: 'overcharge'; id: number; x: number; y: number }
+  | { t: 'shoot'; id: number; x: number; y: number }
+  | { t: 'burst'; x: number; y: number; r: number; hit: number }
   | { t: 'research'; id: string }
+  | { t: 'upgrade'; id: number; x: number; y: number }
   | { t: 'starve'; id: number }
   | { t: 'dry'; id: number }
   | { t: 'win' }
@@ -119,11 +157,14 @@ export interface RunStats {
   /** lights lost to each kind of enemy */
   lightsLostBy: Record<string, number>;
   moneyEarned: number;
+  wavePay: number;
   kjDelivered: number;
   wastedKj: number;
   brownoutSeconds: number;
   overcharges: number;
   knocks: number;
+  snuffs: number;
+  researched: number;
   /** first-time markers (tick numbers) for the moments that matter */
   firstBrownout: number;
   firstKnock: number;

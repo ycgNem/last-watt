@@ -1,4 +1,5 @@
-// Enemies walk the path (slowed by Beacons), Shades knock out Nodes beside it, leaks cost lights.
+// Enemies walk the path (slowed by Beacons), Shades knock out Nodes beside it, Snuffers put out
+// Burners, leaks cost lights.
 import { DT, type Game } from '../Game';
 import { pointRectDist } from '../geom';
 
@@ -23,6 +24,20 @@ export function enemiesSystem(g: Game) {
             g.emit({ t: 'knock', id: b.id, x: b.x + 0.5, y: b.y + 0.5 });
           }
           b.offline = e.def.knockTime ?? 0;
+        }
+      }
+    }
+    if (e.def.snuffRadius) {
+      for (const b of g.buildings.values()) {
+        if (b.def.role !== 'generator' || b.def.fuel !== 'rock') continue;
+        if (pointRectDist(e.x, e.y, g.rect(b)) <= e.def.snuffRadius) {
+          if (b.snuffed <= 0) {
+            g.stats.snuffs++;
+            g.emit({ t: 'snuff', id: b.id, x: b.x + 1, y: b.y + 1 });
+          }
+          // the burning rock is lost; the Burner stays cold while the Snuffer is near and 8 s after
+          b.burnLeft = 0;
+          b.snuffed = e.def.snuffTime ?? 0;
         }
       }
     }

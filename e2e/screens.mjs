@@ -22,7 +22,7 @@ const STATES = {
   buildtip: async (page, w, h) => {
     await page.evaluate(() => window.__app.newGame());
     await page.waitForTimeout(80);
-    const slot = await page.evaluate(() => { const ui = window.__app.ui; const s = ui.scale; const x0 = Math.round(ui.w / 2 - (8 * 34 + 4) / 2); return { x: (x0 + 2 + 17) * s, y: (ui.h - 20) * s }; });
+    const slot = await page.evaluate(() => { const ui = window.__app.ui; const s = ui.scale; const x0 = Math.round(ui.w / 2 - (184 * 2 + 6 + 6 + 62) / 2); return { x: (x0 + 2 + 14) * s, y: (ui.h - 20) * s }; });
     await page.mouse.move(slot.x, slot.y);
   },
   lamp: async (page) => page.evaluate(() => {
@@ -62,6 +62,39 @@ const STATES = {
     for (let i = 0; i < 120; i++) p.tick();
   }),
   win: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'win'; }),
+  tutorial: async (page) => page.evaluate(() => { const p = window.__app.newGame(false, true); p.tutorial.advance(); }),
+  tutorialhold: async (page) => page.evaluate(() => { const p = window.__app.newGame(false, true); for (let i = 0; i < 8; i++) p.tutorial.advance(); }),
+  board: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    window.__place(g, 'lab', 19, 18);
+    g.research.done.add('brazier'); g.research.done.add('lamp2');
+    g.research.active = 'starshell'; g.research.progress.starshell = 500;
+    p.board = true;
+  }),
+  intel: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    window.__place(g, 'lamp', 24, 13);
+    g.wave = 6;
+    window.__next(g);
+    for (let i = 0; i < 60 * 4; i++) p.tick();
+  }),
+  fullwall: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    for (const r of ['searchlight', 'brazier', 'starshell', 'vane', 'flood2', 'bellows', 'lamp2']) g.research.done.add(r);
+    const put = (id, x, y) => window.__place(g, id, x, y);
+    put('extractor', 16, 19); put('burner', 16, 20).fuel = 5; put('extractor', 15, 19); put('burner', 13, 18).fuel = 5;
+    put('node', 21, 10); put('lamp', 24, 7).level = 2; put('floodlight', 24, 13); put('searchlight', 22, 7); put('brazier', 24, 16);
+    put('starshell', 18, 8); put('vane', 22, 18); put('jar', 21, 18).charge = 500;
+    g.money = 400;
+    g.wave = 8;
+    window.__next(g);
+    for (let i = 0; i < 60 * 14; i++) { p.tick(); if (i < 60 * 13) g.drainEvents(); }
+    p.msgs = [];
+    p.selectedId = [...g.buildings.values()].find((b) => b.def.id === 'brazier').id;
+  }),
   lose: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'lose'; p.game.lights = 0; }),
   paused: async (page) => page.evaluate(() => { window.__app.newGame().paused = true; }),
 };

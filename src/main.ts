@@ -6,6 +6,8 @@ import { Renderer, TILE } from './render/renderer';
 import { loadArt } from './render/art';
 import { UI } from './ui/ui';
 import { Play, HUD_H, BAR_H } from './app/play';
+import { loadProfile, saveProfile, type Profile } from './app/save';
+import { LAST_WAVE } from './data/waves';
 import { Game } from './sim/Game';
 import { Bot } from './app/bot';
 import { C } from './data/palette';
@@ -23,9 +25,11 @@ class App {
   title = new Game();
   loop: GameLoop;
   uiScale = 2;
+  profile: Profile = loadProfile();
 
   constructor() {
     this.input.attach(this.canvas);
+    this.audio.setMuted(this.profile.muted);
     this.ui.sfx = (id) => this.audio.sfx(id);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -51,8 +55,11 @@ class App {
     this.r.cam.z = Math.max(1, Math.min(6, Math.floor(Math.min(w / (26 * TILE), (h - uiH) / (14 * TILE)))));
   }
 
-  newGame(withBot = false) {
-    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame());
+  newGame(withBot = false, tutorial = false) {
+    const seed = withBot ? 1 : Math.floor(Math.random() * 1000);
+    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), {
+      tutorial, seed, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p),
+    });
     if (withBot) this.play.bot = new Bot();
     this.screen = 'play';
     this.resize();
@@ -93,14 +100,23 @@ class App {
       return;
     }
     const s = Math.max(3, Math.floor(ui.w / 110));
-    ui.big('LAST WATT', ui.w / 2, Math.round(ui.h * 0.22), s, C.gold, C.rust);
-    ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ui.h * 0.22 + s * 9 + 10, C.mist);
-    ui.textC('Build a grid, keep it fed, and keep the Hearth lit for eight waves.', ui.w / 2, ui.h * 0.22 + s * 9 + 22, C.mist);
-    if (ui.button('BEGIN', ui.w / 2 - 40, ui.h * 0.62, 80, 18, { color: C.gold }) || this.input.key('Enter') || this.input.key('Space')) {
+    ui.big('LAST WATT', ui.w / 2, Math.round(ui.h * 0.2), s, C.gold, C.rust);
+    const ty = ui.h * 0.2 + s * 9 + 10;
+    ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
+    ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
+    const by = Math.round(ui.h * 0.58);
+    const first = !this.profile.tutorialDone;
+    if (ui.button(first ? 'TUTORIAL (START HERE)' : 'TUTORIAL', ui.w / 2 - 130, by, 124, 18, { color: first ? C.gold : C.bone, active: first, tip: ['Tutorial', 'A guided first run: place each piece on a marked spot and learn why watts matter. About 3 minutes, then the run carries on.'] }) || this.input.key('KeyT')) {
+      this.audio.unlock();
+      this.newGame(false, true);
+    }
+    if (ui.button('PLAY', ui.w / 2 + 6, by, 124, 18, { color: first ? C.bone : C.gold, active: !first, tip: ['Play', `${LAST_WAVE} waves on The Last Station, then endless if you like.`] }) || this.input.key('Enter') || this.input.key('Space')) {
       this.audio.unlock();
       this.newGame();
     }
-    ui.textC('Click BEGIN, or press Enter.  H shows the controls in game.', ui.w / 2, ui.h * 0.62 + 26, C.steel);
+    ui.textC('T for the tutorial, Enter to play.  H shows the controls in game.', ui.w / 2, by + 26, C.steel);
+    const b = this.profile.best;
+    if (b.wave > 0) ui.textC(b.won ? `Best: held all ${LAST_WAVE} waves with ${b.lights} lights${b.endless ? `; endless to wave ${b.endless}` : ''}.` : `Best: reached wave ${b.wave} of ${LAST_WAVE}.`, ui.w / 2, by + 40, C.amber);
     ui.end();
   }
 }

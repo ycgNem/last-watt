@@ -45,11 +45,11 @@ the Works tier now comes first by default. Each Extractor asks only 2 kW, so fee
 costs the wall almost nothing, and starving the factory becomes a deliberate burst play (move the
 wall to tier 1 while a Pall is in range, and pay for it with cold Burners later), not a trap.
 
-## 3. Buildings (slice set)
+## 3. Buildings
 
 | Building | Cost | Role | Numbers |
 |---|---|---|---|
-| **Hearth** (station core) | free, one | the thing you defend; also the bootstrap generator and the first node | 8 kW always on, no fuel. Node radius 4 tiles. Losing it ends the run. |
+| **Hearth** (station core) | free, one | the thing you defend; also the bootstrap generator and the first node | 8 kW at 20 lights, no fuel; **0.4 kW less for every light lost** (8 × lights / 20). Node radius 4 tiles. At 0 lights the run ends. |
 | **Extractor** | 30 | pulls fuel from a deposit | 1 emberrock / 8 s at full satisfaction; draws 2 kW |
 | **Burner** | 40 | burns emberrock | 20 kW output at 0.5 efficiency → 40 kW thermal → **one emberrock lasts 10 s** (400 kJ each). Holds 5. |
 | **Node** | 10 | transmission | radius 4 tiles. Can be knocked offline by Shades (10 s). |
@@ -80,12 +80,37 @@ wall to tier 1 while a Pall is in range, and pay for it with cold Burners later)
 An Extractor (1 rock / 8 s) feeds 1.25 Burners (1 rock / 10 s each), so power costs
 **3.2 money per kW**: a Burner (40) plus 0.8 of an Extractor (24) per 20 kW.
 
-## 4. Towers (slice set)
+**Why the Hearth dims (2026-10-11, second session).** The first critic review flagged 20 lights
+with bigger enemies costing more as Kingdom Rush's 20 hearts, and proposed that a leak weaken the
+grid itself (pillar 1). The lights stay as the run's life, and each one is now also 0.4 kW of the
+Hearth's output (its glow shrinks with them on screen). The coupling is deliberately mild: a
+5-light Pall leak costs 2 kW, about one idle Floodlight, so a leak stings the grid without
+starting a death spiral. Replacing lights with kW outright would have turned the §6 wave 1
+lesson B (four Lamps on 8 kW) into four Lamps on 20.
+
+### 3.2 The factory half (Milestone 3, as built)
+
+Belts are **deferred** (`DECISIONS.md`): the adjacency feed already makes the factory a spatial
+puzzle, and laying belts in a 20 s breather is a chore at tower-defense tempo. What Milestone 3
+adds instead are new ways to make, store and carry watts, each a different energy profile:
+
+| Building | Cost | Numbers | Its decision |
+|---|---|---|---|
+| **Vane** (research 600 kJ) | 50 | 15 kW × the wind, no fuel, goes anywhere on a network | The wind is three slow sine swells (periods 53, 19 and 7.1 s, amplitudes 0.28 / 0.17 / 0.08 around **0.55**, clamped to 0.1–1). Average 8.2 kW: **6.1 money per average kW**, nearly twice a Burner's 3.2, but it needs no deposit and no Extractor, and a Snuffer can't put it out. Its gusts are the Jar's job. |
+| **Bellows** (Burner tier 2, 1000 kJ) | +50 | 30 kW at efficiency 0.6 | A rock gives 400 × 0.6 = 240 kJ (was 200) and lasts 8 s (was 10), so one Extractor (8 s a rock) feeds exactly one Bellows Burner. +50% output and +20% energy per rock. |
+| **Deep bit** (Extractor tier 2, 700 kJ) | +38 | 1 rock / 5 s, draws 4 kW | 1.6 rocks per 8 s for 2 kW more: feeds a Bellows Burner and most of another. |
+| **Bank** (Jar tier 2, 800 kJ) | +75 | 1500 kJ, charge 25 kW, discharge 45 kW | Late waves are long enough that one Jar's 600 kJ runs dry mid-wave. |
+| **Long line** (Node tier 2, 500 kJ) | +13 | reach 6 tiles, **loses 1 kW** while it carries power | The first transmission loss: a longer reach pays in watts, so it is a choice, not a pure upgrade. Losses come off a network's generation before anyone sees it. |
+
+Tier costs follow §4's rule: base × 1.25. Still Milestone 3 and not built: belts and arms, the
+Refiner (coke), the tar still, node capacity, the Flywheel, production stats, blueprints.
+
+## 4. Towers
 
 | Tower | Cost | Idle | Firing | Eff. | Damage at full power | Range | Behavior |
 |---|---|---|---|---|---|---|---|
 | **Lamp** | 20 | 1 kW | 12 kW | 0.50 | 6.0 kJ/s | 3.5 | single target, nearest to station |
-| **Floodlight** | 80 | 2 kW | 24 kW | 0.60 | 14.4 kJ/s | 5.0 | lights its target (nearest to station) and spills onto up to 2 more enemies within 1.5 tiles of it; the 14.4 kJ/s splits **4 : 2 : 1** (8.2 / 4.1 / 2.1), and a share with no enemy to land on is lost |
+| **Floodlight** | 80 | 2 kW | 24 kW | 0.60 | 14.4 kJ/s | 5.0 | throws a **cone** 30° either side of its target (nearest to station); each enemy inside catches **0.4** of the beam, and three or more share all of it evenly (re-derived 2026-10-11, second session; it was a 4 : 2 : 1 spill) |
 | **Beacon** | 50 | 4 kW constant | — | — | — | 4.0 | slows enemies 40% × satisfaction |
 
 Why the Lamp fires at 12 kW (was 6 until 2026-10-11): at 3 kJ/s a Lamp needed 10 s per Moth while a
@@ -94,9 +119,15 @@ Moth in 5 s, inside its exposure at a bend but not on a straight, which is the p
 It also makes two powered Lamps (24 kW) nearly fill the starting grid (28 kW), so the third Lamp
 is the first purchase that needs a second Burner.
 
-The Floodlight's split keeps the unit rule: it never delivers more than draw × efficiency.
-Against one enemy it delivers 8.2 kJ/s from 24 kW (worse per watt than a Lamp); against a crowd,
-14.4 (better). That difference is its job.
+The Floodlight's cone keeps the unit rule: it never delivers more than draw × efficiency. A wide
+beam lands only partly on one body: against one enemy it delivers 0.4 × 14.4 = **5.8 kJ/s** from
+24 kW (worse per watt than a Lamp's 6 from 12); against two, 11.5; against three or more, all
+14.4 (better). That difference is its job. *Why a cone (the critic's call, owner-approved
+"implement what the critic criticizes"):* the 4 : 2 : 1 spill reached only 1.5 tiles past its
+target, so it almost never landed on Moths spaced 2–3 tiles apart and read as Mindustry's Arc minus
+the arc. A 30° cone 5 tiles long holds two or three spaced Moths on a straight, and the Pall's
+shadow becomes literal: everyone further from the glass than a Pall in the cone gets nothing, and
+the Pall takes their shares.
 
 **Upgrade tier rule**: each tier multiplies damage by **1.8** and firing draw by **1.5**
 (so efficiency rises by 1.2× per tier; upgrades are a slightly better use of watts, but they
@@ -104,7 +135,43 @@ Against one enemy it delivers 8.2 kJ/s from 24 kW (worse per watt than a Lamp); 
 only: 18 kW firing, 0.60 eff → 10.8 kJ/s, cost 25. Branches (wide-dim vs narrow-bright) come in
 Milestone 4 and are expressed as different (draw, efficiency, range, targets) tuples.
 
-## 5. Enemies (slice set)
+Tier 2 for every tower (second session), all from the rule: Floodlight 36 kW at 0.72 → 25.9 kJ/s
+(100); Searchlight 45 kW at 0.72 → 32.4 (88); Brazier 12 kW a body at 0.6 → 7.2 each (75);
+Starshell charges at 15 kW at 0.96 (113). The Beacon's "damage" is its slow: an enemy in range
+spends 1 / (1 − s) as long there, 1.67× at s = 0.4; tier 2 multiplies that by 1.5 → 2.5× → **s =
+0.6** at 6 kW (63). Tier 3 and the branches stay in Milestone 4's backlog.
+
+### 4.1 The wall half (Milestone 4, as built)
+
+Three towers join the slice's three, each a different (draw, efficiency, range, targeting) tuple,
+and each unlocked by research (§7) so a first run starts with the slice's three:
+
+| Tower | Cost | Draw | Eff. | Damage at full power | Range | Behavior |
+|---|---|---|---|---|---|---|
+| **Searchlight** | 70 | idle 2, firing **30** kW | 0.60 | 18 kJ/s | **7** | a narrow beam (a Pall drinks 3/4) that locks onto the enemy with the **most health left** in reach and holds it; **0.5 s** to swing onto a new target |
+| **Brazier** | 60 | idle 1 + **8 kW for each body** in range (up to 8) | 0.50 | 4 kJ/s on **each** | 2.5 | burns everything in range at once; heat needs no sight (it finds Veils) and a Pall can't drink it |
+| **Starshell** | 90 | **10 kW** while its shell charges, 0 when full | 0.80 | a 60 kJ shell bursts into 48 kJ; each enemy within 1.5 tiles catches **0.3** (four or more share it) | 2–7 | charges and holds one shell, lobs it at the thickest crowd, leading its target by its 0.8 s flight |
+
+Why these numbers:
+- *Searchlight.* At range 7 beside a straight it covers 2√(49 − 2.25) = 13.7 tiles, more than
+  twice a Lamp's 6.3: the answer to "every tower after the bends sits on a straight" (§6). Its
+  watts per kJ match the Lamp family (0.6), and its money per kJ/s is the Lamp's: 70 + 30 kW ×
+  3.2 = 166 money for 18 kJ/s = 0.108 kJ/s per money, the Lamp's 0.103 (§6). What it buys is
+  reach and targeting, paid for in a 30 kW lump a small grid can't feed. The swing delay keeps it
+  bad against Flit clumps, where a fresh target every half-second wastes it.
+- *Brazier.* Its draw scales with the bodies in its fire, so a crowd spikes demand: it is the
+  tower that most directly turns a wave into a brownout, which is the point (pillar 1). At 4 kJ/s
+  a body, a Moth crossing its ~4 tiles of path in 2.7 s takes 11 kJ; behind a Beacon (1.67×) 18;
+  a clump of eight Flits all burn at once. Heat is the light fiction's one non-beam: it is what
+  finds Veils and what a Pall can't shadow.
+- *Starshell.* It charges at 10 kW only while its shell isn't full, so it charges on spare power
+  between waves and opens every wave with a burst, a small storage consumer. At full power a shell
+  every 6 s is 8 kJ/s at full catch: weak on singles (14.4 kJ a burst), strong on clumps, and the
+  one wall answer that reaches 7 tiles over a crowd. The catch rule is the Floodlight's: area
+  light lands on what's in it.
+
+
+## 5. Enemies
 
 | Enemy | Health | Speed | Bounty | Behavior | Station damage on leak |
 |---|---|---|---|---|---|
@@ -138,10 +205,66 @@ Overcharge had no job.
 | 7 | 18 Moth, 9 Shade, 2 Pall (was 12 / 6 / 1) | 2,150 | 336 | 0.5 s (0.9) |
 | 8 | 30 Moth, 9 Shade, 3 Pall (was 20 / 6 / 2) | 2,910 | 456 | 0.4 s (0.75) |
 
+*(The table above is the slice's eight waves, kept for the record. The run now has twelve: below.)*
+
 Starting money: **120**. Wave 1 waits for the player (there is no countdown before it); from
 then on each wave starts 20 s after the field clears (the breather), or earlier when called.
 Spacing for waves 2–8 was set by the bot (§6, "What the real map and the bot said", and "After
 the first td-critic review").
+
+**The run's twelve waves (second session, 2026-10-11).** The slice's waves 1–3 and 5 stand; the
+slice's 7 and 8 become 8 and 11; each new enemy gets a wave that introduces it with an intel card
+the first time it appears. Flits come in clumps of eight, 0.3 s apart inside a clump.
+
+| Wave | Composition | Total health | Bounty | + wave pay | Spacing |
+|---|---|---|---|---|---|
+| 1 | 8 Moth | 240 | 40 | 20 | 2.25 s |
+| 2 | 12 Moth | 360 | 60 | 25 | 1.9 s |
+| 3 | 10 Moth, 2 Shade | 480 | 78 | 30 | 3.0 s |
+| 4 | 12 Moth, 3 Shade, 8 Flit (new) | 742 | 118 | 35 | 2.2 s |
+| 5 | 10 Moth, 1 Pall, 8 Flit | 812 | 126 | 40 | 1.6 s |
+| 6 | 16 Moth, 4 Shade, 16 Flit | 1,064 | 168 | 45 | 1.2 s |
+| 7 | 14 Moth, 6 Veil (new), 2 Shade | 1,020 | 164 | 50 | 1.4 s |
+| 8 | 18 Moth, 9 Shade, 2 Pall | 2,150 | 336 | 55 | 0.6 s |
+| 9 | 18 Moth, 3 Snuffer (new), 4 Veil, 16 Flit | 1,524 | 238 | 60 | 0.85 s |
+| 10 | 20 Moth, 4 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit | 2,184 | 340 | 65 | 0.65 s |
+| 11 | 30 Moth, 9 Shade, 4 Veil, 3 Pall, 16 Flit | 3,414 | 532 | 70 | 0.42 s |
+| 12 | 40 Moth, 8 Shade, 8 Veil, 4 Snuffer, 5 Pall, 24 Flit | 5,456 | 844 | 75 | 0.38 s |
+
+Total: 3,044 bounty and 570 wave pay. A run is about 17 minutes.
+
+### 5.1 The new things of the Dim (Milestone 4, as built)
+
+Each one interacts with the grid in a different way, as Milestone 4 asks:
+
+| Enemy | Health | Speed | Bounty | Grid interaction | Leak |
+|---|---|---|---|---|---|
+| **Flit** | 14 kJ | 2.6 t/s | 2 | none: it is a **throughput** test. A clump of eight 0.3 s apart brings 14 / 0.3 = 47 kJ/s, about eight Lamps' worth, for 2.4 s. Single beams can't keep up; cones, fire and bursts can. | 1 |
+| **Veil** | 70 kJ | 1.3 t/s | 11 | **sight**: only a tower whose share of power (smoothed over 0.5 s) is at or above **0.6**, the starved line, can find it; an Overcharged tower always can, and a Brazier's heat needs no sight. A brownout lets Veils walk through. | 2 |
+| **Snuffer** | 160 kJ | 0.8 t/s | 24 | **generation**: puts out any Burner within **3.5 tiles**: the burning rock is lost and the Burner stays cold while it is near and 8 s after. At 3.5 tiles the north deposit's Burners beside the first straight are in reach and the south deposit's are not, so the factory has a safe side. Vanes and the Hearth can't be snuffed. | 3 |
+
+Bounty is still round(health × 0.15). **Derivative flags** (written in `DECISIONS.md`): the
+Veil's "some towers can't see it" is Bloons' camo; here the counter is the grid's state, not a
+tower type, which is re-derived from pillar 1. The Flit is the genre's generic fast swarm. The
+Snuffer is the Shade's mechanic aimed at generators.
+
+### 5.2 Wave pay (owner's request, 2026-10-11)
+
+Clearing a wave (all of it spawned and none of it left on the field) pays **15 + 5 × the wave**,
+leaks or not: 20 for wave 1, 75 for wave 12, 570 over a run. Kills still pay bounty. *Why these
+numbers:* a powered Lamp costs about 58 money (§6), so wave pay alone buys one every two or three
+waves early and about one a wave late; it is about 16% of a run's money, enough to soften the
+compounding §6 found (a leak pays nothing, so leaks starve the next wave's wall) without making
+leaks free. It is paid leaks or not on purpose: a "clean wave" bonus would compound leaks again.
+**Derivative flag:** end-of-round income is Bloons TD's (100 + the round there); the numbers here
+come from §6's money model.
+
+### 5.3 Endless
+
+After the last wave the win screen offers **endless**: wave n brings the last wave's kJ × **1.14**^(n −
+12) in blocks of its mix, spacing 3% tighter a wave down to 0.25 s. The profile keeps the best
+endless wave. 1.14 is the slice's own rise from wave 11 to 12 spread over a few waves, so endless
+starts at the slope the run ended on.
 
 ## 6. Derived checks (these become tests, see CLAUDE.md)
 
@@ -266,6 +389,31 @@ owner: the Floodlight's 4 : 2 : 1 spill rarely lands on spaced Moths (the critic
 it as a cone), lights as 20 hit points, and how much Overcharge a run should allow (the bot
 fires about 55).
 
+**The twelve-wave run and the bot (second session, 2026-10-11).** The bot was rewritten for the
+new content (`src/app/bot.ts`): it researches down a list (Brazier, Starshell, Lamp tier 2,
+Bellows, Vane, Searchlight, then tier 2s), builds the new towers when they unlock, adds Vanes
+when the deposits are full, upgrades Burners when it is short of power, and Overcharges Palls,
+late heavies and crowds. The one dial it has is **headroom**: it buys generation when the wall's
+full-fire draw would exceed generation × headroom. A sweep over headroom showed the run's shape:
+
+| Headroom (full-fire draw ÷ generation it allows) | 1.2 | 1.4 | 1.8 | 2.2 | 2.5 | 3.0 |
+|---|---|---|---|---|---|---|
+| Result (lights left) | lose w8 | win, 9 | win, 20 | win, 10 | lose w11 | lose w8 |
+
+Too much factory (1.2) leaves the wall too small; too little (2.5+) browns out (106 s of brownout
+at 3.0) and Veils walk. The winning band is 1.4–2.2 (measured after the bot's plan was fixed to
+put every building on a network and to spend its late money on more wall). The reason it sits near 2 and not 1:
+towers along a path don't all fire at once, so the measured peak demand runs at about half the
+full-fire draw (wave 10: 143 kW asked of a 308 kW full fire), and Jars carry the spikes. **That
+is pillar 2 answered with numbers: the money split is a real decision, and both mistakes lose.**
+The tests now assert both ends (`tests/bot.test.ts`). The bot's default is 1.8 (wins with 20).
+Waves 9–12 were tightened (1.0 / 0.75 / 0.5 / 0.45 → 0.85 / 0.65 / 0.42 / 0.38 s) after the
+first sweep showed the 2.0 bot taking no leaks at all; one notch further (0.8 / 0.6 / 0.4 / 0.35)
+and every headroom loses. Without Jars the plan loses in wave 11: storage is load-bearing.
+
+Pall leaks are the swing: at 5 lights each, one Pall is a quarter of the margin, so results jump
+in steps of 5. That is acceptable for a run whose climax is Palls; the critic should judge it.
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
@@ -274,7 +422,13 @@ fires about 55).
 - a Jar charges at its 15 kW limit in a breather: two Overcharges' worth in one 20 s gap, full in two;
 - a far Lamp fed by Nodes inside a Shade's reach loses ≥ 10 s of uptime in wave 3; fed from Nodes
   out of reach, none;
-- the bot wins the whole run, and the same bot with no factory loses (`tests/bot.test.ts`).
+- the bot wins the whole run with at least 8 lights; with no factory it loses by wave 4; with too
+  much factory (headroom 1.2) and with too little (3.0) it loses; without Jars it loses
+  (`tests/bot.test.ts`);
+- the new mechanics' arithmetic (`tests/grid.test.ts`): the cone's 0.4 catch and the Pall's
+  shadow, the Brazier's per-body draw, the Searchlight's lock and swing, the Starshell's shell and
+  burst, the Veil's sight line, the Snuffer's reach, the Vane's average, Bellows, the Long line's
+  loss, wave pay, the dimming Hearth and Overcharge's cooling.
 
 If the real map's bends differ from the reference path, tune **wave 1's spacing** (2.0–2.4 s;
 at 2.5 s on the reference path the straights stop leaking too and the placement lesson is gone)
@@ -283,7 +437,28 @@ until these hold. Don't change unit stats to fit a map.
 ## 7. Research (energy)
 
 A Lab draws 10 kW while a project is active and converts it at 1:1 into progress. Projects are
-priced in kJ. Slice: **Lamp tier 2** (900 kJ). *The Jar unlock (600 kJ) was a second project
+priced in kJ. Slice: **Lamp tier 2** (900 kJ).
+
+**The tree (second session, Milestone 5 in part).** Fourteen projects in two columns:
+
+| LIGHT | kJ | POWER | kJ |
+|---|---|---|---|
+| Lamp tier 2 | 900 | Vane | 600 |
+| Searchlight | 800 | Bellows (Burner tier 2) | 1000 |
+| Brazier | 700 | Deep bit (Extractor tier 2) | 700 |
+| Starshell | 1200 | Bank (Jar tier 2) | 800 |
+| Floodlight tier 2 | 1000 | Long line (Node tier 2) | 500 |
+| Beacon tier 2 | 600 | | |
+| Searchlight tier 2 (needs Searchlight) | 1100 | | |
+| Brazier tier 2 (needs Brazier) | 900 | | |
+| Starshell tier 2 (needs Starshell) | 1200 | | |
+
+Total 12,000 kJ. One Lab at full power does 10 kJ/s, about 6,000 kJ over a 17-minute run if it
+runs most of the breathers and is shed in the worst of the waves; two Labs about 10,000. So a run
+can't have everything, and what to research is a decision; a second Lab is 50 money and 10 kW for
+twice the rate. Costs scale with what a project changes: an unlock about 80 s of one Lab, the
+strongest crowd answer (Starshell) 120 s. Every project's building or tier changes something on
+the energy side (CLAUDE.md, the data test). *The Jar unlock (600 kJ) was a second project
 until the first critic review showed the Lab → Jar line losing runs (the bot did better without
 it); Jars are now buildable from the start.*
 Research during a wave sits in tier 3, so it starves first under load unless the player moves it
@@ -298,8 +473,14 @@ satisfaction. No storage, no abilities; a Jar cut off by a Shade can't pay. Slic
 
 - **Overcharge** (flat 120 kJ from storage): one tower fires at 3× its firing draw for 4 s at
   satisfaction 1.0 regardless of the grid. On a Lamp that is 72 kJ of damage (a panic button:
-  two Moths); on a Floodlight 173 kJ, split 4 : 2 : 1 across a crowd or all of it into a Pall
-  (a real play).
+  two Moths); on a Floodlight 173 kJ, shared across a crowd or all of it into a Pall
+  (a real play). It works on every tower kind by the same rule, 3× whatever it draws: a Brazier
+  burns each body at 3×, a Starshell charges its shell at 3× (a shell every 2 s), a Searchlight
+  fires at 90 kW. **Then the glass cools for 10 s** before it can take another (second session):
+  the first review counted about 55 Overcharges a run and the critic asked whether it had become
+  the dominant verb. A 14 s cycle per tower keeps it a choice of *which* tower, not a rhythm on
+  one; a run still fires about 55, spread over the wall. An Overcharged tower also blows away a
+  Veil's cover (§5.1).
   The flat price is deliberate, and it is the one place the model gives energy away: the
   tripled draw is 144 kJ on a Lamp and 288 kJ on a Floodlight, and the gaffer pays 120 either
   way. It makes Overcharge scale with the tower, so upgrading towers also upgrades the gaffer.

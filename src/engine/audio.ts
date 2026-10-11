@@ -119,6 +119,12 @@ export class Audio {
       case 'overcharge': this.tone(180, 0.5, 'sawtooth', 0.1, 6); this.hiss(0.5, 0.08, 5000, 2); break;
       case 'research': [523, 659, 784].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.05, 1, i * 0.09)); break;
       case 'dry': this.tone(140, 0.4, 'triangle', 0.06, 0.6); break;
+      case 'upgrade': [330, 440, 660].forEach((f, i) => this.tone(f, 0.12, 'square', 0.05, 1.2, i * 0.05)); break;
+      case 'wavepay': [523, 784].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.06, 1, i * 0.08)); this.hiss(0.08, 0.04, 6000, 2, 0.1); break;
+      case 'newenemy': this.tone(98, 0.5, 'sawtooth', 0.06, 0.8); this.tone(147, 0.5, 'sawtooth', 0.04, 0.8, 0.12); break;
+      case 'snuff': this.hiss(0.5, 0.1, 500, 1); this.tone(180, 0.4, 'triangle', 0.05, 0.4); break;
+      case 'shoot': this.tone(90, 0.15, 'square', 0.07, 0.6); this.hiss(0.12, 0.06, 1200, 1); break;
+      case 'burst': this.hiss(0.35, 0.12, 2400, 0.8); this.tone(600, 0.2, 'triangle', 0.05, 2); break;
       case 'win': [392, 494, 587, 784].forEach((f, i) => this.tone(f, 0.5, 'triangle', 0.07, 1, i * 0.15)); break;
       case 'lose': [220, 185, 147, 110].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.06, 1, i * 0.2)); break;
     }

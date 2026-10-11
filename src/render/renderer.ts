@@ -8,6 +8,7 @@ import { ENEMIES } from '../data/enemies';
 import type { Game } from '../sim/Game';
 import { covers, pointRectDist } from '../sim/geom';
 import type { Building, Enemy } from '../sim/types';
+import { coneCatchers } from '../sim/systems/towers';
 import { hash2 } from '../engine/rng';
 import { drawFrame, frameIndex, SHEETS, type Variant } from './art';
 import { drawText, textWidth } from '../ui/font';
@@ -35,6 +36,8 @@ export interface Overlay {
   selected?: Building;
   /** show where power reaches (build mode) */
   coverage?: boolean;
+  /** the tutorial's suggested footprint */
+  spot?: { x: number; y: number; size: number };
 }
 
 export class Renderer {
@@ -54,6 +57,11 @@ export class Renderer {
   private wiresVersion = -1;
   /** dim the whole scene (title screen) */
   dimAll = 0;
+  /** a Vane's blade frame, advanced with the wind (render-only state) */
+  private spins = new Map<number, number>();
+  private frameDt = 0;
+  /** short-lived lights: Starshell bursts */
+  flashes: { x: number; y: number; r: number; t: number; life: number }[] = [];
 
   constructor(public canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -154,7 +162,8 @@ export class Renderer {
   }
 
   private spriteOf(b: Building): string {
-    return b.def.id === 'lamp' && b.level > 1 ? 'lamp2' : b.def.id;
+    if (b.level > 1 && SHEETS.has(`${b.def.id}2`)) return `${b.def.id}2`;
+    return b.def.id;
   }
 
   /** world-px position of a building's sprite top-left and its light anchor */
@@ -184,16 +193,25 @@ export class Renderer {
       const d = b.def;
       switch (d.role) {
         case 'core':
-          if (g.lights > 0) out.push({ x: p.lx, y: p.ly + 8, r: 7.5, i: 1, c: C.gold, flicker: true });
+          // the Hearth burns its lights: every one lost shrinks its glow (§3)
+          if (g.lights > 0) out.push({ x: p.lx, y: p.ly + 8, r: 7.5 * (0.45 + 0.55 * g.lights / RULES.startLights.v), i: 1, c: C.gold, flicker: true });
           break;
         case 'tower':
         case 'beacon': {
           if (st === 'dark') break;
-          const range = d.range ?? 3;
+          const s = g.spec(b);
+          // a Searchlight's and a Starshell's reach is too long to light: they glow small and light where they hit
+          const range = d.id === 'searchlight' ? 3 : d.id === 'starshell' ? 2.4 : s.range ?? 3;
           if (b.overcharge > 0) out.push({ x: c.x, y: c.y, r: range * 1.15, i: 1, c: C.bone, white: true });
           else {
             const on = st === 'lit' || this.stutter(b);
-            out.push({ x: c.x, y: c.y, r: range * Math.max(0.22, b.sat), i: (0.55 + 0.45 * b.sat) * (on ? 1 : 0.35), c: d.role === 'beacon' ? C.ember : d.id === 'floodlight' ? C.gold : C.amber, flicker: b.sat >= RULES.starvedBelow.v });
+            const col = d.role === 'beacon' ? C.ember : d.id === 'brazier' ? C.orange : d.id === 'floodlight' || d.id === 'searchlight' ? C.gold : C.amber;
+            out.push({ x: c.x, y: c.y, r: range * Math.max(0.22, b.sat), i: (0.55 + 0.45 * b.sat) * (on ? 1 : 0.35), c: col, flicker: b.sat >= RULES.starvedBelow.v });
+          }
+          // the Searchlight's spot on its target
+          if (d.id === 'searchlight' && b.target >= 0 && b.dps > 0) {
+            const t = g.enemyById(b.target);
+            if (t) out.push({ x: t.x * TILE, y: t.y * TILE, r: 1.2, i: 0.9, c: C.bone });
           }
           break;
         }
@@ -201,13 +219,13 @@ export class Renderer {
           if (st !== 'dark') out.push({ x: p.lx, y: p.ly, r: st === 'lit' ? 1.7 : 1.0, i: 0.7, c: C.gold });
           break;
         case 'generator':
-          if (b.output > 0) out.push({ x: p.lx, y: p.ly, r: 2.6, i: 0.85, c: C.orange, flicker: true });
+          if (b.output > 0) out.push({ x: p.lx, y: p.ly, r: d.fuel === 'wind' ? 1.2 + 1.2 * (b.output / (g.spec(b).output ?? 1)) : 2.6, i: 0.85, c: d.fuel === 'wind' ? C.gold : C.orange, flicker: d.fuel !== 'wind' });
           break;
         case 'extractor':
           if (st !== 'dark' && b.demand > 0) out.push({ x: p.lx, y: p.ly, r: 1.1 * Math.max(0.3, b.sat), i: 0.6, c: C.ember });
           break;
         case 'storage': {
-          const f = b.charge / (d.capacity ?? 1);
+          const f = b.charge / (g.spec(b).capacity ?? 1);
           if (st !== 'dark' && f > 0.02) out.push({ x: p.lx, y: p.ly, r: 0.8 + 1.6 * f, i: 0.7, c: f > 0.85 ? C.bone : C.amber });
           break;
         }
@@ -215,6 +233,12 @@ export class Renderer {
           if (st === 'lit') out.push({ x: p.lx, y: p.ly, r: 2.2, i: 0.7, c: C.cyan });
           break;
       }
+    }
+    // Starshell bursts and shells in flight light the ground they cross
+    for (const f of this.flashes) out.push({ x: f.x * TILE, y: f.y * TILE, r: f.r * (1 - f.t / f.life), i: 1, c: C.gold, white: f.t < 0.1 });
+    for (const s of g.shots) {
+      const p = this.shotPos(s);
+      out.push({ x: p.x * TILE, y: p.y * TILE, r: 1.1, i: 0.9, c: C.gold });
     }
     for (const l of out) if (l.flicker) l.r *= 1 + Math.sin(t * 9 + l.x) * 0.02 + Math.sin(t * 23 + l.y) * 0.015;
     return out;
@@ -255,6 +279,7 @@ export class Renderer {
     for (const e of es) this.drawEnemy(e, lights);
     if (ov.selected && g.buildings.has(ov.selected.id)) this.drawSelection(g, ov.selected, C.gold);
     if (ov.hover && ov.hover !== ov.selected && g.buildings.has(ov.hover.id)) this.drawSelection(g, ov.hover, C.ash, true);
+    if (ov.spot) this.drawSpot(ov.spot);
     if (ov.ghost) this.drawGhost(g, ov.ghost);
     this.drawFx();
     if (this.flash.red > 0) {
@@ -281,12 +306,18 @@ export class Renderer {
     const m = SHEETS.get(p.slug)?.meta;
     let f = 0;
     if (b.def.role === 'storage') {
-      const ch = b.charge / (b.def.capacity ?? 1);
+      const ch = b.charge / (g.spec(b).capacity ?? 1);
       f = ch < 0.02 ? 0 : ch < 0.4 ? 1 : ch < 0.85 ? 2 : 3; // STYLE.md rule 3: dark → ember → amber → white-hot
     } else if (m && m.fps > 0 && st !== 'dark') {
-      const fps = st === 'starved' ? m.fps * 0.35 : m.fps;
+      let fps = st === 'starved' ? m.fps * 0.35 : m.fps;
+      if (b.def.fuel === 'wind') fps = m.fps * g.wind();
       const working = b.def.role === 'extractor' ? b.demand > 0 : b.def.role === 'generator' ? b.output > 0 : true;
-      f = working ? Math.floor(this.time * fps + b.id * 0.37) : 0;
+      // a Vane's blades turn with the wind: its frame follows its own clock
+      if (b.def.fuel === 'wind') {
+        const spin = (this.spins.get(b.id) ?? b.id * 0.37) + fps * this.frameDt;
+        this.spins.set(b.id, spin);
+        f = Math.floor(spin);
+      } else f = working ? Math.floor(this.time * fps + b.id * 0.37) : 0;
     }
     // a soft contact shadow so buildings sit on the ground
     const ctx = this.ctx;
@@ -384,7 +415,7 @@ export class Renderer {
       for (let i = 0; i < nodes.length; i++)
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i], b = nodes[j];
-          if (covers(g.rect(a), a.def.nodeRadius!, g.rect(b)) || covers(g.rect(b), b.def.nodeRadius!, g.rect(a))) this.wires.push({ a, b });
+          if (covers(g.rect(a), g.spec(a).nodeRadius ?? 0, g.rect(b)) || covers(g.rect(b), g.spec(b).nodeRadius ?? 0, g.rect(a))) this.wires.push({ a, b });
         }
     }
     for (const { a, b } of this.wires) {
@@ -402,27 +433,94 @@ export class Renderer {
 
   private drawBeams(g: Game) {
     for (const b of g.buildings.values()) {
-      if (b.def.role !== 'tower' || b.target < 0 || b.dps <= 0) continue;
+      if (b.def.role !== 'tower' || b.target < 0) continue;
       const t = g.enemyById(b.target);
       if (!t) continue;
       const p = this.placeSprite(b);
       const oc = b.overcharge > 0;
       const starved = !oc && b.sat < RULES.starvedBelow.v;
-      const color = oc ? C.bone : starved ? C.violet : b.def.id === 'floodlight' ? C.gold : C.amber;
+      const kind = b.def.kind;
+      const color = oc ? C.bone : starved ? C.violet : kind === 'cone' || b.def.id === 'searchlight' ? C.gold : kind === 'radial' ? C.orange : C.amber;
       const a = oc ? 1 : 0.45 + 0.55 * b.sat;
       const dash = starved ? 2 : 0;
-      const targets: Enemy[] = [t];
-      if (b.def.shares) {
-        const others = g.enemies
-          .filter((e) => e !== t && Math.hypot(e.x - t.x, e.y - t.y) <= (b.def.spillRadius ?? 0))
-          .sort((e1, e2) => Math.hypot(e1.x - t.x, e1.y - t.y) - Math.hypot(e2.x - t.x, e2.y - t.y));
-        targets.push(...others.slice(0, 2));
+      const wob = 0.8 + 0.2 * Math.sin(this.time * 40 + b.id);
+      if (kind === 'mortar') continue;
+      if (kind === 'beam') {
+        if (b.sweep > 0) {
+          // swinging onto a new target: a faint aim line
+          this.pixelLine(p.lx, p.ly, t.x * TILE, t.y * TILE - 2, color, 0.25, 1, 3);
+          continue;
+        }
+        if (b.dps <= 0) continue;
+        this.pixelLine(p.lx, p.ly, t.x * TILE, t.y * TILE - 2, color, a * wob, oc || b.def.id === 'searchlight' ? 2 : 1, dash);
+        continue;
       }
-      targets.forEach((e, k) => {
-        const ex = e.x * TILE, ey = e.y * TILE - 2;
-        if (k === 0) this.pixelLine(p.lx, p.ly, ex, ey, color, a * (0.8 + 0.2 * Math.sin(this.time * 40 + b.id)), oc ? 2 : 1, dash);
-        else this.pixelLine(t.x * TILE, t.y * TILE - 2, ex, ey, color, a * (k === 1 ? 0.6 : 0.35), 1, dash);
-      });
+      if (b.dps <= 0) continue;
+      if (kind === 'cone') {
+        this.drawCone(g, b, t, color, a);
+        for (const e of coneCatchers(g, b, t)) this.pixelLine(p.lx, p.ly, e.x * TILE, e.y * TILE - 2, color, a * wob * 0.7, oc ? 2 : 1, dash);
+        continue;
+      }
+      if (kind === 'radial') {
+        // tongues of fire to every body in it
+        const cx = (b.x + b.def.size / 2) * TILE, cy = (b.y + b.def.size / 2) * TILE - 4;
+        const r = g.spec(b).range ?? 0;
+        for (const e of g.enemies) {
+          if (Math.hypot(e.x - (b.x + b.def.size / 2), e.y - (b.y + b.def.size / 2)) > r) continue;
+          this.pixelLine(cx, cy, e.x * TILE, e.y * TILE - 2, Math.floor(this.time * 12 + e.id) % 2 ? color : C.ember, a * 0.75, 1, 2);
+        }
+      }
+    }
+    this.drawShots(g);
+  }
+
+  /** a Floodlight's cone: a faint wedge of light from the glass toward its target */
+  private drawCone(g: Game, b: Building, t: Enemy, color: string, a: number) {
+    const s = g.spec(b);
+    const p = this.placeSprite(b);
+    const cx = (b.x + b.def.size / 2), cy = (b.y + b.def.size / 2);
+    const a0 = Math.atan2(t.y - cy, t.x - cx);
+    const half = ((s.halfAngle ?? 30) * Math.PI) / 180;
+    const r = (s.range ?? 0) * TILE;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.globalAlpha = 0.13 * a;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.sx(p.lx), this.sy(p.ly));
+    const steps = 10;
+    for (let i = 0; i <= steps; i++) {
+      const ang = a0 - half + (2 * half * i) / steps;
+      ctx.lineTo(this.sx(cx * TILE + Math.cos(ang) * r), this.sy(cy * TILE + Math.sin(ang) * r));
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // the cone's two edges, in whole pixels
+    for (const sgn of [-1, 1]) {
+      const ang = a0 + sgn * half;
+      this.pixelLine(p.lx, p.ly, cx * TILE + Math.cos(ang) * r, cy * TILE + Math.sin(ang) * r, color, 0.22 * a, 1, 3);
+    }
+  }
+
+  /** where a Starshell is on its arc (tiles; it climbs about 2.5 tiles at the top) */
+  shotPos(s: { x0: number; y0: number; x: number; y: number; t: number; flight: number }) {
+    const u = Math.min(1, s.t / s.flight);
+    return { x: s.x0 + (s.x - s.x0) * u, y: s.y0 + (s.y - s.y0) * u - 2.5 * 4 * u * (1 - u) };
+  }
+
+  private drawShots(g: Game) {
+    const ctx = this.ctx;
+    const z = this.cam.z;
+    for (const s of g.shots) {
+      for (let k = 3; k >= 0; k--) {
+        const p = this.shotPos({ ...s, t: Math.max(0, s.t - k * 0.04) });
+        ctx.globalAlpha = k === 0 ? 1 : 0.5 - k * 0.12;
+        ctx.fillStyle = k === 0 ? C.bone : C.gold;
+        const sz = k === 0 ? 2 : 1;
+        ctx.fillRect(this.sx(Math.round(p.x * TILE) - (sz > 1 ? 1 : 0)), this.sy(Math.round(p.y * TILE) - (sz > 1 ? 1 : 0)), sz * z, sz * z);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -447,8 +545,25 @@ export class Renderer {
     if (b.off) tag('OFF', C.ash);
     else if (b.def.role === 'node' && b.offline > 0) {
       tag(`CUT ${Math.ceil(b.offline)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
-    } else if (b.def.role === 'generator' && b.net >= 0 && b.output <= 0 && b.fuel <= 0) tag('NO FUEL', C.ember);
+    } else if (b.snuffed > 0 && b.net >= 0) tag(`SNUFFED ${Math.ceil(b.snuffed)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
+    else if (b.def.role === 'generator' && b.def.fuel === 'rock' && b.net >= 0 && b.output <= 0 && b.fuel <= 0) tag('NO FUEL', C.ember);
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
+    // a tier-2 building with no tier-2 sprite of its own wears a brass pip
+    if (b.level > 1 && !SHEETS.has(`${b.def.id}2`)) {
+      ctx.fillStyle = C.ink;
+      ctx.fillRect(this.sx(Math.round(p.x + p.w / 2) - 2), this.sy(Math.round(p.y) - 1), 4 * z, 4 * z);
+      ctx.fillStyle = C.gold;
+      ctx.fillRect(this.sx(Math.round(p.x + p.w / 2) - 1), this.sy(Math.round(p.y)), 2 * z, 2 * z);
+    }
+    // a Starshell's shell, filling: a brass bar under it
+    if (b.def.kind === 'mortar' && b.net >= 0 && !b.off) {
+      const f = b.shell / (g.spec(b).shellSize ?? 1);
+      const bx = Math.round(p.x + p.w / 2 - 6), by = Math.round(p.y + p.h + 1);
+      ctx.fillStyle = 'rgba(9,10,20,0.8)';
+      ctx.fillRect(this.sx(bx), this.sy(by), 12 * z, z);
+      ctx.fillStyle = f >= 1 ? C.bone : C.brass;
+      ctx.fillRect(this.sx(bx), this.sy(by), Math.round(12 * f) * z, z);
+    }
   }
 
   private drawEnemy(e: Enemy, lights: Light[]) {
@@ -458,17 +573,24 @@ export class Renderer {
     const wx = e.x * TILE, wy = e.y * TILE;
     const lit = this.litAt(lights, wx, wy);
     const w = m?.w ?? 12, h = m?.h ?? 12;
-    const bob = slug === 'moth' ? Math.round(Math.sin(this.time * 10 + e.id) * 1) : slug === 'shade' ? Math.round(Math.sin(this.time * 3 + e.id)) : 0;
+    const bob = slug === 'moth' ? Math.round(Math.sin(this.time * 10 + e.id) * 1)
+      : slug === 'flit' ? Math.round(Math.sin(this.time * 23 + e.id * 1.7) * 1.5)
+      : slug === 'shade' || slug === 'veil' ? Math.round(Math.sin(this.time * 3 + e.id)) : 0;
     const x = Math.round(wx - w / 2), y = Math.round(wy - h + 4 + bob);
     const f = m ? Math.floor(this.time * m.fps * (1 - e.slow * 0.6) + e.id) : 0;
     const ctx = this.ctx;
+    // a Veil no tower can find is only a shimmer (§5.1)
+    const hidden = e.def.veiled && !e.seen;
+    if (hidden) ctx.globalAlpha = 0.22 + 0.12 * Math.sin(this.time * 5 + e.id);
     // a shadow on the ground
     ctx.fillStyle = 'rgba(9,10,20,0.5)';
     ctx.fillRect(this.sx(Math.round(wx - w / 4)), this.sy(Math.round(wy + 2)), Math.round(w / 2) * z, z);
-    if (!drawFrame(ctx, slug, f, this.sx(x), this.sy(y), z, 'lit', lit ? 0 : 1, e.face < 0)) {
+    if (!drawFrame(ctx, slug, f, this.sx(x), this.sy(y), z, 'lit', lit && !hidden ? 0 : 1, e.face < 0)) {
       ctx.fillStyle = lit ? C.mist : C.dim;
       ctx.fillRect(this.sx(x), this.sy(y), w * z, h * z);
     }
+    ctx.globalAlpha = 1;
+    if (hidden) return;
     if (e.hit > 0 && lit && Math.floor(this.time * 20 + e.id) % 3 === 0) {
       ctx.globalAlpha = 0.45;
       drawFrame(ctx, slug, f, this.sx(x), this.sy(y), z, 'white', 0, e.face < 0);
@@ -500,10 +622,14 @@ export class Renderer {
       ctx.fillRect(this.sx(cx), this.sy(cy - (cy > y ? 2 : 0)), z, 3 * z);
     }
     ctx.globalAlpha = 1;
-    const r = b.def.range ?? (b.def.role === 'node' || b.def.role === 'core' ? b.def.nodeRadius : 0);
+    const sp = g.spec(b);
+    const r = sp.range ?? (b.def.role === 'node' || b.def.role === 'core' ? sp.nodeRadius : 0);
     if (r && !faint) {
-      if (b.def.role === 'node' || b.def.role === 'core') this.drawReach(g, b.def, b.x, b.y, rgba(C.gold, 0.16));
-      else this.pixelCircle((b.x + b.def.size / 2) * TILE, (b.y + b.def.size / 2) * TILE, r * TILE, color, 0.7);
+      if (b.def.role === 'node' || b.def.role === 'core') this.drawReach(g, sp, b.x, b.y, rgba(C.gold, 0.16));
+      else {
+        this.pixelCircle((b.x + b.def.size / 2) * TILE, (b.y + b.def.size / 2) * TILE, r * TILE, color, 0.7);
+        if (sp.minRange) this.pixelCircle((b.x + b.def.size / 2) * TILE, (b.y + b.def.size / 2) * TILE, sp.minRange * TILE, C.ember, 0.5);
+      }
     }
   }
 
@@ -534,12 +660,13 @@ export class Renderer {
       }
   }
 
-  private reachMask: Uint8Array | null = null;
-  /** is a Node on this tile within a Shade's reach of the path? (cached per map) */
-  shadeReach(g: Game, tx: number, ty: number): boolean {
-    if (!this.reachMask || this.reachMask.length !== g.map.w * g.map.h) {
-      const r = ENEMIES.shade.knockRadius ?? 0;
-      const m = new Uint8Array(g.map.w * g.map.h);
+  private reachMasks = new Map<string, Uint8Array>();
+  /** is a tile within `r` of the path? (what a Shade or a Snuffer reaches; cached per map and radius) */
+  pathReach(g: Game, r: number, tx: number, ty: number): boolean {
+    const key = `${g.map.name}:${r}`;
+    let m = this.reachMasks.get(key);
+    if (!m) {
+      m = new Uint8Array(g.map.w * g.map.h);
       const pts: { x: number; y: number }[] = [];
       for (let d = 0; d <= g.path.length; d += 0.25) pts.push(g.path.at(d));
       for (let y = 0; y < g.map.h; y++)
@@ -547,9 +674,9 @@ export class Renderer {
           const rect = { x, y, w: 1, h: 1 };
           if (pts.some((p) => pointRectDist(p.x, p.y, rect) <= r)) m[y * g.map.w + x] = 1;
         }
-      this.reachMask = m;
+      this.reachMasks.set(key, m);
     }
-    return this.reachMask[ty * g.map.w + tx] === 1;
+    return m[ty * g.map.w + tx] === 1;
   }
 
   /** build mode: where power reaches now (live networks only) */
@@ -561,16 +688,37 @@ export class Renderer {
     for (let ty = 0; ty < g.map.h; ty++)
       for (let tx = 0; tx < g.map.w; tx++) {
         let on = false;
-        for (const c of cond) if (pointRectDist(tx + 0.5, ty + 0.5, g.rect(c)) <= c.def.nodeRadius!) { on = true; break; }
+        for (const c of cond) if (pointRectDist(tx + 0.5, ty + 0.5, g.rect(c)) <= (g.spec(c).nodeRadius ?? 0)) { on = true; break; }
         if (on) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
       }
-    if (ov.ghost && BUILDINGS[ov.ghost.id].role === 'node') {
-      // where a passing Shade would cut a Node
-      ctx.fillStyle = rgba(C.red, 0.22);
+    const role = ov.ghost ? BUILDINGS[ov.ghost.id] : null;
+    // where a passing Shade would cut a Node, or a Snuffer put out a Burner
+    const danger = role?.role === 'node' ? ENEMIES.shade.knockRadius : role?.fuel === 'rock' ? ENEMIES.snuffer.snuffRadius : 0;
+    if (ov.ghost && danger) {
+      ctx.fillStyle = rgba(C.red, 0.2);
       for (let ty = 0; ty < g.map.h; ty++)
-        for (let tx = 0; tx < g.map.w; tx++) if (this.shadeReach(g, tx, ty)) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
-      this.drawReach(g, BUILDINGS.node, ov.ghost.x, ov.ghost.y, rgba(C.gold, 0.14));
+        for (let tx = 0; tx < g.map.w; tx++) if (this.pathReach(g, danger, tx, ty)) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
     }
+    if (ov.ghost && role?.role === 'node') this.drawReach(g, BUILDINGS.node, ov.ghost.x, ov.ghost.y, rgba(C.gold, 0.14));
+  }
+
+  /** the tutorial's suggested spot: a pulsing gold square and an arrow bobbing above it */
+  private drawSpot(sp: { x: number; y: number; size: number }) {
+    const ctx = this.ctx;
+    const z = this.cam.z;
+    const on = Math.sin(this.time * 6) > 0;
+    const x = sp.x * TILE, y = sp.y * TILE, s = sp.size * TILE;
+    ctx.fillStyle = rgba(C.gold, on ? 0.3 : 0.16);
+    ctx.fillRect(this.sx(x), this.sy(y), s * z, s * z);
+    ctx.fillStyle = on ? C.gold : C.amber;
+    ctx.fillRect(this.sx(x), this.sy(y), s * z, z);
+    ctx.fillRect(this.sx(x), this.sy(y + s - 1), s * z, z);
+    ctx.fillRect(this.sx(x), this.sy(y), z, s * z);
+    ctx.fillRect(this.sx(x + s - 1), this.sy(y), z, s * z);
+    // the arrow
+    const ax = Math.round(x + s / 2), ay = Math.round(y - 6 + Math.sin(this.time * 4) * 2);
+    for (let i = 0; i < 4; i++) ctx.fillRect(this.sx(ax - 3 + i), this.sy(ay - 4 + i), (7 - 2 * i) * z, z);
+    ctx.fillRect(this.sx(ax - 1), this.sy(ay - 8), 2 * z, 4 * z);
   }
 
   private drawGhost(g: Game, gh: NonNullable<Overlay['ghost']>) {
@@ -588,7 +736,7 @@ export class Renderer {
     // does it land on a network?
     if (def.role !== 'node') {
       const cond = [...g.buildings.values()].filter((b) => (b.def.role === 'core' || (b.def.role === 'node' && b.offline <= 0)));
-      const onNet = cond.some((c) => covers(g.rect(c), c.def.nodeRadius!, { x: gh.x, y: gh.y, w: def.size, h: def.size }));
+      const onNet = cond.some((c) => covers(g.rect(c), g.spec(c).nodeRadius ?? 0, { x: gh.x, y: gh.y, w: def.size, h: def.size }));
       if (!onNet) {
         const w = textWidth('NO POWER HERE');
         const tx = Math.round((gh.x + def.size / 2) * TILE - w / 2), ty = gh.y * TILE - 12;
@@ -632,6 +780,9 @@ export class Renderer {
 
   step(dt: number) {
     this.time += dt;
+    this.frameDt = dt;
+    for (const f of this.flashes) f.t += dt;
+    this.flashes = this.flashes.filter((f) => f.t < f.life);
     for (const f of this.fx) f.t += dt;
     this.fx = this.fx.filter((f) => f.t < f.life);
     this.flash.red = Math.max(0, this.flash.red - dt * 1.2);

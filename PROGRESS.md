@@ -2,110 +2,90 @@
 
 What exists, what is stubbed, what is next. Updated at the end of every session.
 
-## Status (2026-10-11)
+## Status (2026-10-11, second session)
 
-**A playable vertical slice exists.** Milestones 0 and 1 were built in one session at the
-owner's request; the Milestone 2 gate is **not** passed (`ROADMAP.md`). The `td-critic` agent
-reviewed it the same day and its critical and major issues were fixed (`DECISIONS.md`, "After
-the first td-critic review"); the deeper redesigns it proposed wait for the owner (`IDEAS.md`).
-The owner plays it next and decides where the game goes.
+**The Milestone 2 gate is passed** (the owner played the slice and asked for the next phase;
+`DECISIONS.md`). This session built the owner's asks (wave pay, a split build bar, a tutorial)
+and the first half of Milestones 3, 4 and 5, then balanced the twelve-wave run with the bot and
+reviewed it with `td-critic` (see the end of this file for what the critic found and what was
+done about it).
 
-**How to play:** double-click `Play.bat` (or `npm run dev` and open http://localhost:5173).
-Title → BEGIN. The first-steps card says what to build; Space starts wave 1. H shows controls.
+**How to play:** double-click `Play.bat` (or `npm run dev` and open http://localhost:5173), or the
+live build (link in the repo's About box). Title → TUTORIAL (first time) or PLAY.
 
 ## What exists
 
 - **Sim** (`src/sim/`, pure, 60 Hz, runs headless): `Game.ts` steps the systems in the fixed order
   waves → enemies → targeting → grid → towers → abilities → research → economy → stats.
-  - Grid (`systems/grid.ts`): networks from the Hearth and Nodes (coverage radius 4, links,
-    cut-outs), supply (Hearth 8 kW + lit Burners), demand per consumer, four priority tiers
-    served in order (**1 Works · 2 Wall · 3 Labs · 4 Spare**), each tier's share of power,
-    a wall-wide share for the HUD and brownout, Jar charge (≤ 15 kW from surplus) and
-    discharge (≤ 30 kW on a deficit), wasted kW, whole-tier shedding, brownout with
-    hysteresis (starts below 60%, ends above 75%).
-  - Waves: the 8 waves of `DESIGN.md` §5. Wave 1 on the player's call; after that **the
-    breather**: the next wave starts 20 s after the field is clear, Space starts it sooner, no
-    bonus. Enemies: Moth; Shade (cuts any Node within 2.5 tiles for 10 s, never the Hearth);
-    Pall (drinks every later Floodlight share, and takes only 1/4 of a Lamp's beam). Leaks cost
-    lights; 0 lights ends the run.
-  - Towers: Lamp (tier 1–2), Floodlight (4 : 2 : 1 spill), Beacon (40% × share-of-power slow);
-    damage = firing draw × efficiency × share of power.
-  - Fuel: Extractors on emberrock (one per deposit tile) hand rock to a touching Burner.
-  - Storage and burst: Jars buildable from the start; Overcharge (120 kJ from the Jars on the
-    tower's network, 3× for 4 s). Research: Lab, one project (Lamp tier 2, 900 kJ).
-  - Actions (`actions.ts`): place, sell (half back), shed, set tier, shed a tier, upgrade,
-    Overcharge, research, next wave.
-- **Data** (`src/data/`): buildings, enemies, waves, research, rules, map, palette. Every numeric
-  field has a `why` naming its `DESIGN.md` section; the validation test enforces it.
-- **Rendering** (`src/render/`): baked ground chunk, y-sorted buildings in three readability
-  states (powered / starved: tinted and stuttering / dark: tinted with one cold pixel), the
-  darkness buffer with stepped light holes sized by share of power (towers' light = their
-  range × share), node wires that go dark when cut, beams (purple and broken when starved, white
-  on Overcharge), enemies as silhouettes with eyes in the dark and lit sprites in light, kJ bars,
-  floating bounty, leak flash, Overcharge blow-out. Placing a Node shades the Shade's reach red.
-- **UI** (`src/ui/`, `src/app/play.ts`): bitmap font (from the S&S kit), immediate-mode kit that
-  records every box for the overlap audit; HUD (lights, money, supply / demand / wasted kW, Jar
-  kJ, four tier bars, Shift-click to shed one, wave block with the breather countdown or
-  "N left"), build bar with tooltips, selected-building panel (state, kW, tier buttons, shed,
-  Overcharge, upgrade, research, sell), message feed, first-steps card, help, pause, speed
-  ×1/2/3, win and lose screens with run stats (the lose screen names lights lost by enemy and
-  the worst wave), contextual hints (brownout spiral, Burner with no Extractor, wasted power →
-  Jar). T raises priority one tier. Title screen.
-- **Audio** (`src/engine/audio.ts`): procedural; a grid hum whose pitch drops as the wall starves,
-  and one-shots for place, kill, leak, wave, brownout, cut, Overcharge, research, win, lose.
-- **Art** (`pixel-art/`, `src/assets/art/`): 15 code-drawn sheets in Apollo (Hearth, Lamp ×2,
-  Floodlight, Beacon, Node, Extractor, Burner, Jar ×4 charge, Lab, Moth, Shade, Pall with lit
-  and silhouette rows, ground tiles, 15 icons). `npm run art` rebuilds all of them; the contact
-  sheet `pixel-art/contact-buildings/contact.png` shows each building powered / starved / dark.
-- **Tests** (`npm test`, 27): grid arithmetic (§2, §3, §4, §8, Works-first tiers, the Shade's
-  reach, the Pall and narrow beams), data validation (derivations, wattage column,
-  cross-references, §5 wave totals and bounties), the §6 pace tests (wave 1: A 0 / S 4 / B 7
-  leaks; wave 2: three Lamps beat two, 1 vs 7; a Jar charges at its limit in a breather; a far
-  Lamp fed from Nodes in a Shade's reach loses 16 s in wave 3, from Nodes out of reach 0 s),
-  and the full-run bot (**wins with 10 of 20 lights**, 57 Overcharges, about 11 min; no factory
-  loses in wave 3).
-- **Harness**: `npm run screens` (12 UI states × 4 sizes, overlap audit → `e2e/out/screens/report.md`),
-  `npm run shots` (title, opening, placing, first brownout, first Shade blackout, first
-  Overcharge, mid-run, win, lose, help → `e2e/out/`), `npm run smoke` (a real opening by clicks
-  and keys, then wave 1). `design/tune.mts` re-tunes wave spacing with the bot;
-  `design/check.mts` is one bot run with an optional spacing override.
-- **Deploy**: `.github/workflows/deploy.yml` (adapted from S&S) runs the tests, builds and
-  publishes to GitHub Pages on every push to `main`; the play link is in the repo's About box.
-  `README.md` has the pitch and controls for playtesters.
-- **Agents** (`.claude/agents/`): `td-critic` (replaces `indie-critic`), `art-director`,
-  `qa-screens`, `balance-auditor`.
+  - Grid (`systems/grid.ts`): networks from the Hearth and Nodes (coverage, links, cut-outs),
+    supply (the Hearth's 8 kW × lights / 20, lit Burners, Vanes), **line losses** (Long line
+    Nodes), demand per consumer (per kind: beams, the Brazier's per-body draw, the Starshell's
+    charge), four priority tiers (1 Works · 2 Wall · 3 Labs · 4 Spare), Jar charge/discharge,
+    wasted kW, a smoothed share of power per building (for Veils), the wall's full-fire peak,
+    brownout with hysteresis.
+  - Waves (`systems/waves.ts`, `data/waves.ts`): twelve waves; the 20 s breather; **wave pay**
+    (15 + 5n) when a wave is cleared; Flit clumps; endless after the last wave (×1.14 kJ a wave).
+  - Enemies: Moth, **Flit** (fast clumps), Shade (cuts Nodes within 2.5), **Veil** (only seen by
+    towers at ≥ 60% power, Overcharged towers, or a Brazier's heat), **Snuffer** (puts out Burners
+    within 3.5 for 8 s), Pall (drinks 3/4 of a narrow beam, shadows a cone).
+  - Towers: Lamp (beam), Floodlight (**30° cone**, 0.4 catch), Beacon (slow), **Searchlight**
+    (7-tile beam, locks the heaviest, 0.5 s swing), **Brazier** (radial, 8 kW per body),
+    **Starshell** (charges a 60 kJ shell, lobs it at crowds, leads its target). Tier 2 for all.
+  - Factory: Extractor (adjacency feed), Burner, **Vane** (wind 0.1–1, mean 0.55), Jar, Node, Lab;
+    tier 2 for Burner (Bellows), Extractor (Deep bit), Jar (Bank), Node (Long line).
+  - Abilities: Overcharge (120 kJ, 3× for 4 s, any tower kind) with a **10 s cooldown**.
+  - Research: fourteen projects (unlocks and tier 2s, three with prerequisites), Labs at 1:1.
+  - Actions (`actions.ts`): place, sell, shed, set tier, shed a tier, upgrade, Overcharge,
+    research, next wave, endless.
+- **Data** (`src/data/`): every numeric field has a `why` naming its `DESIGN.md` section; the
+  validation test enforces it and that every upgrade changes an energy-side stat.
+- **Rendering** (`src/render/`): readability states, the darkness buffer (the Hearth's glow
+  shrinks with its lights), tier-2 sprites (or a brass pip), the Floodlight's cone wedge,
+  Searchlight beam and spot, Brazier flame tongues, Starshell arcs and bursts (with light),
+  Veils as a shimmer when unseen, the Starshell's shell bar, SNUFFED / CUT / NO FUEL / NO POWER
+  tags, red reach overlays when placing a Node (Shades) or a Burner (Snuffers), the tutorial's
+  gold spot and arrow.
+- **UI** (`src/app/play.ts`): HUD (lights, money, supply / demand / wasted, stored kJ, tiers 1–3
+  (4 when used), the wave block), a NEXT / THIS WAVE strip with enemy icons and counts, the build
+  bar in two groups (**LIGHT 1–6 · POWER 7–=**, locks on unresearched slots), a placement
+  forecast ("you make X kW; everything firing would ask Y → towers at Z%"), the selected panel
+  (tiers, shed, Overcharge with its cooldown, upgrade with a stat diff, research board button,
+  sell), the **research board** (L), enemy hover tips, **intel cards** for each new enemy, the
+  **tutorial** (11 steps, skippable, holds the game on its reading steps), help, pause, speed,
+  win screen with **KEEP GOING: ENDLESS**, lose screen, best result.
+- **Profile** (`src/app/save.ts`): localStorage, `SAVE_VERSION` 1 + migrations: tutorial done,
+  enemies met, best, runs, mute.
+- **Audio**: procedural hum and one-shots, plus upgrade, wave pay, new enemy, snuff, shoot, burst.
+- **Art**: 29 code-drawn sheets (Apollo): the slice's 15 plus Searchlight, Brazier, Starshell,
+  Vane, tier-2 Floodlight / Searchlight / Brazier / Starshell / Beacon / Burner, Flit, Veil,
+  Snuffer, and 31 icons (new: the new buildings, wind, upgrade, six enemy heads, pause, wave,
+  tutorial, lock). PixelLab: 0 generations spent this session.
+- **Tests** (`npm test`, 41): grid arithmetic and every new mechanic, data validation (12 waves,
+  endless curve, research cross-references), the §6 pace tests (unchanged lessons: A 0 / S 4 /
+  B 7; wave 2: 1 vs 7; Jar fill; Shade downtime 16 s vs 0), and the bot: the plan wins with ≥ 8
+  lights (20 now), and no factory, too much factory (headroom 1.2), too little (3.0) and no Jars
+  all lose.
+- **Design tools** (`design/`): `check.mts` (one run), `variants.mts` (bot variants), `sweep.mts`
+  and `sweep2.mts` (headroom × spacing), `probe.mts` (per-wave power trace), `tune.mts` (old
+  per-wave tuner).
+- **Harness**: `npm run screens` (now 17 states × 4 sizes, incl. tutorial, research board, intel
+  card, a full late-game wall), `npm run shots`, `npm run smoke`; `e2e/peek.mjs` for quick looks.
 
-## Stubbed or missing
+## Stubbed or missing (by milestone)
 
-- No saves (runs are ~11 min). `SAVE_VERSION` + migrations still to come.
-- No `Package for web.bat`, no jsfxr bank, no PixelLab scripts or art
-  importers (code-drawn art goes straight from `build.py` to `src/assets/art/`).
-- Construction is instant (tier 4 is empty). Embers and the skill tree: Milestone 8.
-- Art weak spots the art agents named: the Extractor reads heavy at 16 px, the Burner's top plate
-  is plain, the Moth's wings-raised silhouette is a blob, the beacon icon looks a bit like a
-  figure.
+- **M3**: belts and arms (deferred on purpose, `DECISIONS.md`), Refiner, tar still, Flywheel,
+  node capacity, production stats / Lines view, blueprints.
+- **M4**: towers 7–10, enemies 7–10, tier 3 and branches, walls and gates.
+- **M5**: multiple-Lab scheduling UI beyond "all Labs on one project"; the rest of the tree.
+- **M6**: Pulse, Reroute, Dark Bait.
+- **M7**: more maps (one so far; the bot's plan is map-specific), map unlocks, mid-run saves.
+- **M8**: embers and the skill tree. **M9**: the jsfxr bank. **M10**: settings, keybinds, UI scale.
+- Milestone 0 leftovers: `Package for web.bat`, the PixelLab scripts and art importers.
 
-## Next (hand-off for the next session)
+## Next
 
-We are at the **Milestone 2 gate**. The owner is playtesting the live build (and a friend is) and
-will open the next session with notes and calls. Palette: settled (Apollo).
-
-1. Read the owner's notes against `DESIGN.md` §10's three questions: do players think in watts
-   mid-wave, is the money split (wall vs factory vs storage) a decision by wave 3, and do
-   powered / starved / dark read within a second.
-2. Apply the owner's calls on the open items in `IDEAS.md` ("Left open by the first td-critic
-   review"): the Floodlight as a cone; leaks draining the Hearth's kW instead of 20 lights; the
-   cut list (Beacon, Lamp tier 2 research, the empty tier 4 bar, far deposit C); the Overcharge
-   budget; late-run money; wave 1's dead air. For each number changed: the `DESIGN.md`
-   derivation, the data `why`, the pace test, then re-tune with `design/check.mts` /
-   `design/tune.mts` until the bot wins with some lights to spare.
-3. Run `td-critic` again. Then the owner marks the gate passed in `ROADMAP.md`, or the model gets
-   another pass. If the owner just says "pass the gate", record it in `ROADMAP.md` and
-   `DECISIONS.md` and start Milestone 3 (the factory half).
-4. Milestone 0 leftovers, any time: save scaffolding (`SAVE_VERSION` + migrations), `Package for
-   web.bat`, the jsfxr bank, the PixelLab scripts and art importers.
-
-Every push to `main` redeploys the live build (tests first), so push after each finished change
-the owner should see.
+See the critic section below; then, in order of value: a second map (the bot plan per map), tier
+3 branches for the towers, Pulse as the first Milestone 6 verb, then belts if the factory still
+reads shallow.
 
 Spent: PixelLab 0 generations (3,030 left, resets 2026-11-09).

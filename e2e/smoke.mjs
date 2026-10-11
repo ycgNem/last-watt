@@ -1,4 +1,4 @@
-// Smoke test with real input: title → build the wave-1 opening with keys and clicks → start
+// Smoke test with real input: title → PLAY → build the wave-1 opening with keys and clicks → start
 // wave 1 → run it at speed → check the state and that nothing threw. Usage: node e2e/smoke.mjs
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -12,8 +12,8 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(base);
 await page.waitForFunction(() => window.__app && window.__app.screen === 'title', null, { timeout: 15000 });
-// BEGIN button
-const begin = await page.evaluate(() => { const ui = window.__app.ui; return { x: (ui.w / 2) * ui.scale, y: (ui.h * 0.62 + 9) * ui.scale }; });
+// PLAY button
+const begin = await page.evaluate(() => { const ui = window.__app.ui; return { x: (ui.w / 2 + 68) * ui.scale, y: (Math.round(ui.h * 0.58) + 9) * ui.scale }; });
 await page.mouse.click(begin.x, begin.y);
 await page.waitForFunction(() => window.__app.screen === 'play');
 const tileXY = (tx, ty) => page.evaluate(([x, y]) => { const r = window.__app.r; return { x: r.sx(x * 16), y: r.sy(y * 16) }; }, [tx, ty]);
@@ -25,9 +25,9 @@ const build = async (key, tx, ty) => {
   await page.mouse.click(p.x, p.y);
   await page.waitForTimeout(60);
 };
-await build('Digit5', 16.5, 19.5); // Extractor on the deposit
-await build('Digit6', 17, 21); // Burner touching it (2x2 centred on the mouse)
-await build('Digit4', 23.5, 10.5); // Node
+await build('Digit8', 16.5, 19.5); // Extractor on the deposit
+await build('Digit9', 17, 21); // Burner touching it (2x2 centred on the mouse)
+await build('Digit7', 23.5, 10.5); // Node
 await build('Digit1', 25, 8); // Lamp inside bend A
 await build('Digit1', 25, 14); // Lamp inside bend B
 const before = await page.evaluate(() => { const g = window.__app.play.game; return { money: g.money, n: g.buildings.size, ids: [...g.buildings.values()].map((b) => `${b.def.id}@${b.x},${b.y}`) }; });

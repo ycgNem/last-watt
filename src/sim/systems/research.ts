@@ -13,6 +13,7 @@ export function researchSystem(g: Game) {
     g.research.progress[id] = RESEARCH[id].cost;
     g.research.done.add(id);
     g.research.active = null;
+    g.stats.researched++;
     g.emit({ t: 'research', id });
   }
 }

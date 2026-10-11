@@ -1,6 +1,6 @@
 // The grid, once per tick, before any consumer acts (DESIGN.md §2):
-// networks from nodes, supply, priority tiers, satisfaction, Jar charge/discharge, wasted kW.
-// Consumers read b.sat afterwards; they never compute it.
+// networks from nodes, supply, line losses, priority tiers, satisfaction, Jar charge/discharge,
+// wasted kW. Consumers read b.sat afterwards; they never compute it.
 import { RULES } from '../../data/rules';
 import { DT, emptyTiers, type Game } from '../Game';
 import { covers } from '../geom';
@@ -32,16 +32,17 @@ export function rebuildNetworks(g: Game) {
   };
   for (const b of all) parent.set(b.id, b.id);
   const cond = all.filter(conducts);
+  const reach = (b: Building) => g.spec(b).nodeRadius ?? 0;
   for (let i = 0; i < cond.length; i++)
     for (let j = i + 1; j < cond.length; j++) {
       const a = cond[i], b = cond[j];
-      if (covers(g.rect(a), a.def.nodeRadius!, g.rect(b)) || covers(g.rect(b), b.def.nodeRadius!, g.rect(a))) union(a.id, b.id);
+      if (covers(g.rect(a), reach(a), g.rect(b)) || covers(g.rect(b), reach(b), g.rect(a))) union(a.id, b.id);
     }
   const covered = new Set<number>();
   for (const b of all) {
     if (conducts(b)) continue;
     for (const c of cond) {
-      if (covers(g.rect(c), c.def.nodeRadius!, g.rect(b))) {
+      if (covers(g.rect(c), reach(c), g.rect(b))) {
         union(b.id, c.id);
         covered.add(b.id);
       }
@@ -54,7 +55,7 @@ export function rebuildNetworks(g: Game) {
     if (!index.has(r)) {
       index.set(r, nets.length);
       nets.push({
-        id: nets.length, nodes: [], members: [], gen: 0, demand: 0, discharge: 0, charged: 0, wasted: 0,
+        id: nets.length, nodes: [], members: [], gen: 0, loss: 0, demand: 0, discharge: 0, charged: 0, wasted: 0,
         stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, hasHearth: false,
       });
     }
@@ -75,11 +76,15 @@ export function rebuildNetworks(g: Game) {
 /** kW a consumer asks for this tick (0 for non-consumers, shed buildings and shed tiers) */
 export function demandOf(g: Game, b: Building): number {
   if (b.off || g.tierOff[b.tier]) return 0;
-  const d = b.def;
+  const d = g.spec(b);
   switch (d.role) {
     case 'tower':
       if (b.overcharge > 0) return 0; // Overcharge runs on storage, not the grid (§8)
-      return b.target >= 0 ? g.towerStats(b).firingDraw : d.idleDraw ?? 0;
+      switch (d.kind) {
+        case 'radial': return (d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies;
+        case 'mortar': return b.shell < (d.shellSize ?? 0) ? d.chargeDraw ?? 0 : 0;
+        default: return b.target >= 0 && b.sweep <= 0 ? d.firingDraw ?? 0 : d.idleDraw ?? 0;
+      }
     case 'beacon':
       return d.constantDraw ?? 0;
     case 'extractor':
@@ -88,6 +93,22 @@ export function demandOf(g: Game, b: Building): number {
       return g.research.active ? d.workDraw ?? 0 : 0;
     default:
       return 0;
+  }
+}
+
+/** kW a consumer would ask at its busiest (every tower firing, a Brazier with three bodies) */
+export function fullDraw(g: Game, b: Building): number {
+  if (b.off) return 0;
+  const d = g.spec(b);
+  switch (d.role) {
+    case 'tower':
+      if (d.kind === 'radial') return (d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * 3;
+      if (d.kind === 'mortar') return d.chargeDraw ?? 0;
+      return d.firingDraw ?? 0;
+    case 'beacon': return d.constantDraw ?? 0;
+    case 'extractor': return d.workDraw ?? 0;
+    case 'lab': return g.research.active ? d.workDraw ?? 0 : 0;
+    default: return 0;
   }
 }
 
@@ -110,7 +131,7 @@ export function gridSystem(g: Game) {
   }
   if (g.netDirty) rebuildNetworks(g);
 
-  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 } };
+  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
   for (const b of g.buildings.values()) {
     if (b.net < 0) {
       b.demand = 0;
@@ -122,6 +143,7 @@ export function gridSystem(g: Game) {
   for (const n of g.networks) {
     n.tiers = emptyTiers();
     n.gen = 0;
+    n.loss = 0;
     n.demand = 0;
     n.discharge = 0;
     n.charged = 0;
@@ -132,13 +154,16 @@ export function gridSystem(g: Game) {
     const consumers: Building[] = [];
     for (const id of n.members) {
       const b = g.buildings.get(id)!;
-      if (b.def.role === 'core') {
-        b.output = b.def.output ?? 0;
+      const role = b.def.role;
+      if (role === 'core') {
+        b.output = g.hearthOutput();
         n.gen += b.output;
-      } else if (b.def.role === 'generator') {
+      } else if (role === 'generator') {
         if (b.off) b.output = 0;
         n.gen += b.output;
-      } else if (b.def.role === 'storage') {
+      } else if (role === 'node') {
+        if (b.offline <= 0) n.loss += g.spec(b).lineLoss ?? 0;
+      } else if (role === 'storage') {
         jars.push(b);
         b.flow = 0;
       } else if (isConsumer(b)) {
@@ -146,16 +171,20 @@ export function gridSystem(g: Game) {
         n.tiers[b.tier].demand += b.demand;
         n.demand += b.demand;
         consumers.push(b);
+        if (b.def.role === 'tower' || b.def.role === 'beacon') total.peak += fullDraw(g, b);
       }
     }
-    let supply = n.gen;
-    if (n.gen >= n.demand) {
+    // long lines lose their kW before anyone sees it (§3.2)
+    const made = Math.max(0, n.gen - n.loss);
+    let supply = made;
+    if (made >= n.demand) {
       // surplus charges Jars up to their charge rate; the rest is wasted (§2.4)
-      let surplus = n.gen - n.demand;
+      let surplus = made - n.demand;
       for (const j of jars) {
         if (j.off) continue;
-        const room = ((j.def.capacity ?? 0) - j.charge) / DT;
-        const take = Math.max(0, Math.min(j.def.maxCharge ?? 0, room, surplus));
+        const js = g.spec(j);
+        const room = ((js.capacity ?? 0) - j.charge) / DT;
+        const take = Math.max(0, Math.min(js.maxCharge ?? 0, room, surplus));
         j.charge += take * DT;
         j.flow = take;
         surplus -= take;
@@ -164,8 +193,8 @@ export function gridSystem(g: Game) {
       n.wasted = surplus;
     } else {
       // a deficit draws on Jars, up to each one's discharge rate (§2.1)
-      const deficit = n.demand - n.gen;
-      const avail = jars.map((j) => (j.off ? 0 : Math.min(j.def.maxDischarge ?? 0, j.charge / DT)));
+      const deficit = n.demand - made;
+      const avail = jars.map((j) => (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)));
       const sum = avail.reduce((a, b) => a + b, 0);
       const dis = Math.min(deficit, sum);
       if (dis > 0)
@@ -196,9 +225,9 @@ export function gridSystem(g: Game) {
     n.wall.sat = n.wall.demand > 0 ? n.wall.served / n.wall.demand : 1;
     for (const j of jars) {
       n.stored += j.charge;
-      n.capacity += j.def.capacity ?? 0;
+      n.capacity += g.spec(j).capacity ?? 0;
     }
-    total.gen += n.gen;
+    total.gen += made;
     total.demand += n.demand;
     total.supply += supply;
     total.wasted += n.wasted;
@@ -211,6 +240,9 @@ export function gridSystem(g: Game) {
     total.wall.demand += n.wall.demand;
     total.wall.served += n.wall.served;
   }
+  // what a Veil's sight reads: satisfaction over the last half second, so it doesn't flicker
+  const k = Math.min(1, DT / 0.5);
+  for (const b of g.buildings.values()) b.satAvg += ((b.net < 0 ? 0 : b.overcharge > 0 ? 1 : b.sat) - b.satAvg) * k;
   total.wall.sat = total.wall.demand > 0 ? total.wall.served / total.wall.demand : 1;
   for (let t = 1; t <= 4; t++) {
     const ts = total.tiers[t];

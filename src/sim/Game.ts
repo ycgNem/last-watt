@@ -1,9 +1,10 @@
 // The game state and the fixed-order tick. Pure: runs headless in tests.
-import { BUILDINGS, type BuildingDef } from '../data/buildings';
+import { BUILDINGS, specOf, type BuildingDef } from '../data/buildings';
 import { SLICE_MAP, type MapDef } from '../data/map';
 import { RULES } from '../data/rules';
+import type { EnemyId } from '../data/enemies';
 import { Path, type Rect } from './geom';
-import type { Building, Enemy, GameEvent, GridStats, Network, RunStats } from './types';
+import type { Building, Enemy, GameEvent, GridStats, Network, RunStats, Shot } from './types';
 import { wavesSystem } from './systems/waves';
 import { enemiesSystem } from './systems/enemies';
 import { targetingSystem } from './systems/targeting';
@@ -26,11 +27,14 @@ export function emptyTiers() {
 export class Game {
   map: MapDef;
   path: Path;
+  /** weather seed: the wind's phase (fixed by default so tests are repeatable) */
+  seed: number;
   tick = 0;
   money: number;
   lights: number;
   buildings = new Map<number, Building>();
   enemies: Enemy[] = [];
+  shots: Shot[] = [];
   nextId = 1;
   /** map cell -> deposit index + 1 (0 = none) */
   deposit: Uint8Array;
@@ -40,28 +44,36 @@ export class Game {
   netDirty = true;
   /** bumped every time the networks are rebuilt (the renderer caches wires on it) */
   netVersion = 0;
-  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 } };
+  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
   /** whole tiers shed from the HUD (index 1..4) */
   tierOff = [false, false, false, false, false];
   /** waves started so far (0 = before wave 1) */
   wave = 0;
+  /** past the last wave, waves keep coming (chosen on the win screen) */
+  endless = false;
   /** seconds of breather left before the next wave starts on its own (0 while a wave is on the field) */
   waveTimer = 0;
   spawners: Spawner[] = [];
+  /** waves that have started, and those whose pay has been paid */
+  waveStarted = new Set<number>();
+  wavePaid = new Set<number>();
+  /** enemy kinds seen this run (for the intel card the first time) */
+  seenKinds = new Set<EnemyId>();
   research = { active: null as string | null, progress: {} as Record<string, number>, done: new Set<string>() };
   /** towers' tier-1 satisfaction has fallen below the starved line */
   brownout = false;
   brownoutClock = 0;
   events: GameEvent[] = [];
   stats: RunStats = {
-    kills: 0, leaks: 0, leaksByWave: [0, 0, 0, 0, 0, 0, 0, 0, 0], lightsLostBy: { moth: 0, shade: 0, pall: 0 }, moneyEarned: 0, kjDelivered: 0,
-    wastedKj: 0, brownoutSeconds: 0, overcharges: 0, knocks: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
+    kills: 0, leaks: 0, leaksByWave: [], lightsLostBy: {}, moneyEarned: 0, wavePay: 0, kjDelivered: 0,
+    wastedKj: 0, brownoutSeconds: 0, overcharges: 0, knocks: 0, snuffs: 0, researched: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
   };
   over: null | 'win' | 'lose' = null;
   hearthId = 0;
 
-  constructor(opts: { map?: MapDef } = {}) {
+  constructor(opts: { map?: MapDef; seed?: number } = {}) {
     this.map = opts.map ?? SLICE_MAP;
+    this.seed = opts.seed ?? 1;
     this.path = new Path(this.map);
     this.money = RULES.startMoney.v;
     this.lights = RULES.startLights.v;
@@ -104,6 +116,18 @@ export class Game {
     return this.tick / TICK_RATE;
   }
 
+  /** the wind, 0.1..1 of a Vane's rating: three slow swells that never line up the same way (§3.2) */
+  wind(t = this.time): number {
+    const s = this.seed;
+    const v = RULES.windMean.v + 0.28 * Math.sin((2 * Math.PI * t) / 53 + s) + 0.17 * Math.sin((2 * Math.PI * t) / 19 + s * 2.3) + 0.08 * Math.sin((2 * Math.PI * t) / 7.1 + s * 5.1);
+    return Math.max(0.1, Math.min(1, v));
+  }
+
+  /** the Hearth's output: 8 kW at full lights, 0.4 kW less for every light lost (§3) */
+  hearthOutput(): number {
+    return ((BUILDINGS.hearth.output ?? 0) * this.lights) / RULES.startLights.v;
+  }
+
   emit(e: GameEvent) {
     this.events.push(e);
     if (this.events.length > 600) this.events.splice(0, this.events.length - 600);
@@ -117,9 +141,9 @@ export class Game {
 
   addBuilding(def: BuildingDef, x: number, y: number): Building {
     const b: Building = {
-      id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, net: -1, demand: 0, sat: 0,
-      output: 0, fuel: 0, burnLeft: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
-      overcharge: 0, offline: 0,
+      id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, net: -1, demand: 0, sat: 0, satAvg: 1,
+      output: 0, fuel: 0, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
+      overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0,
     };
     this.buildings.set(b.id, b);
     for (let yy = y; yy < y + def.size; yy++)
@@ -161,13 +185,15 @@ export class Game {
     return this.enemies.find((e) => e.id === id);
   }
 
+  /** a building's stats at its tier (upgrades applied) */
+  spec(b: Building): BuildingDef {
+    return specOf(b.def, b.level);
+  }
+
   /** a tower's current firing draw and efficiency (tier upgrades apply) */
   towerStats(b: Building) {
-    const up = b.level > 1 ? b.def.upgrades?.[b.level - 2] : undefined;
-    return {
-      firingDraw: up?.firingDraw ?? b.def.firingDraw ?? 0,
-      efficiency: up?.efficiency ?? b.def.efficiency ?? 0,
-    };
+    const s = this.spec(b);
+    return { firingDraw: s.firingDraw ?? 0, efficiency: s.efficiency ?? 0 };
   }
 
   networkOf(b: Building): Network | undefined {

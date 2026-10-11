@@ -48,7 +48,10 @@ const DARK = (r: number, g: number, b: number): [number, number, number] => [
   Math.round(r + (0x15 - r) * 0.82), Math.round(g + (0x1d - g) * 0.82), Math.round(b + (0x28 - b) * 0.82),
 ];
 
-const BUILDING_SLUGS = new Set(['hearth', 'lamp', 'lamp2', 'floodlight', 'beacon', 'node', 'extractor', 'burner', 'jar', 'lab']);
+const BUILDING_SLUGS = new Set([
+  'hearth', 'lamp', 'lamp2', 'floodlight', 'floodlight2', 'beacon', 'beacon2', 'node', 'extractor', 'burner', 'burner2', 'jar', 'lab',
+  'searchlight', 'searchlight2', 'brazier', 'brazier2', 'starshell', 'starshell2', 'vane',
+]);
 
 export async function loadArt(): Promise<void> {
   const jobs: Promise<void>[] = [];

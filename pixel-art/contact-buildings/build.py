@@ -12,8 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from common import ART_OUT, tint_states  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
-SLUGS = ["hearth", "lamp", "lamp2", "floodlight", "beacon", "node", "extractor", "burner",
-         "jar", "lab"]
+SLUGS = ["hearth", "lamp", "lamp2", "floodlight", "floodlight2", "searchlight", "searchlight2",
+         "brazier", "brazier2", "starshell", "starshell2", "beacon", "beacon2", "node",
+         "extractor", "burner", "burner2", "vane", "jar", "lab"]
 BG = (0x15, 0x1D, 0x28, 255)
 LABEL = (0x81, 0x97, 0x96, 255)
 GAP, GROUP_GAP, PAD, LABEL_H = 2, 10, 8, 12

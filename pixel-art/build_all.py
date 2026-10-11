@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LAST = "contact"
+LAST = "contact-buildings"
 
 
 def main(argv):

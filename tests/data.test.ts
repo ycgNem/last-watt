@@ -2,9 +2,9 @@
 // section, every upgrade node has a wattage column, and every cross-reference resolves.
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { BUILDINGS, BUILD_ORDER, SELL_REFUND } from '../src/data/buildings';
+import { BUILDINGS, BUILD_ORDER, ENERGY_KEYS, SELL_REFUND } from '../src/data/buildings';
 import { ENEMIES, ENEMY_BY_CODE } from '../src/data/enemies';
-import { WAVES } from '../src/data/waves';
+import { WAVES, endlessWave } from '../src/data/waves';
 import { RESEARCH, RESEARCH_ORDER } from '../src/data/research';
 import { RULES } from '../src/data/rules';
 import { SLICE_MAP } from '../src/data/map';
@@ -38,7 +38,7 @@ describe('data validation', () => {
   it('every building stat has a derivation', () => {
     for (const b of Object.values(BUILDINGS)) {
       checkEntry(b.id, b as unknown as Record<string, unknown>, b.why);
-      for (const [i, u] of (b.upgrades ?? []).entries()) checkEntry(`${b.id}.upgrades[${i}]`, u as unknown as Record<string, unknown>, u.why);
+      for (const [i, u] of (b.upgrades ?? []).entries()) checkEntry(`${b.id}.upgrades[${i}]`, { cost: u.cost, ...u.stats }, u.why);
     }
     checkWhy('SELL_REFUND', SELL_REFUND.why);
   });
@@ -46,8 +46,8 @@ describe('data validation', () => {
   it('every upgrade node has a wattage column (an energy-side effect)', () => {
     for (const b of Object.values(BUILDINGS))
       for (const u of b.upgrades ?? []) {
-        const base = b.firingDraw ?? b.constantDraw ?? 0;
-        expect(u.firingDraw !== base || u.efficiency !== b.efficiency, `${b.id} upgrade changes nothing on the energy side`).toBe(true);
+        const energy = ENERGY_KEYS.filter((k) => u.stats[k] !== undefined && u.stats[k] !== (b as any)[k]);
+        expect(energy.length, `${b.id} upgrade changes nothing on the energy side`).toBeGreaterThan(0);
       }
   });
 
@@ -59,7 +59,7 @@ describe('data validation', () => {
   });
 
   it('waves match the composition in §5 and have derived spacing', () => {
-    expect(WAVES.length).toBe(8);
+    expect(WAVES.length).toBe(12);
     for (const w of WAVES) {
       checkEntry(`wave ${w.n}`, w as unknown as Record<string, unknown>, w.why);
       const counts: Record<string, number> = {};
@@ -69,12 +69,21 @@ describe('data validation', () => {
       }
       expect(counts).toEqual(w.composition);
     }
-    // §5 totals: health and bounty per wave
-    const health = [240, 360, 480, 810, 700, 960, 2150, 2910];
+    // §5 totals: health per wave
+    const health = [240, 360, 480, 742, 812, 1064, 1020, 2150, 1524, 2184, 3414, 5456];
     WAVES.forEach((w, i) => {
       const h = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
       expect(h, `wave ${w.n} total health`).toBe(health[i]);
     });
+  });
+
+  it('endless waves grow by the §5.3 curve', () => {
+    const last = [...WAVES[11].seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
+    const w20 = endlessWave(20);
+    const h = [...w20.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
+    expect(h / last).toBeGreaterThan(Math.pow(RULES.endlessGrowth.v, 8) * 0.8);
+    expect(h / last).toBeLessThan(Math.pow(RULES.endlessGrowth.v, 8) * 1.2);
+    expect(w20.spacing).toBeGreaterThanOrEqual(0.25);
   });
 
   it('research, rules and the map have derivations; cross-references resolve', () => {
@@ -82,6 +91,8 @@ describe('data validation', () => {
     for (const [k, r] of Object.entries(RULES)) checkWhy(`RULES.${k}`, r.why);
     for (const k of ['w', 'h', 'hearth', 'path', 'deposits']) checkWhy(`map.${k}`, SLICE_MAP.why[k]);
     for (const id of RESEARCH_ORDER) expect(RESEARCH[id]).toBeTruthy();
+    expect(new Set(RESEARCH_ORDER)).toEqual(new Set(Object.keys(RESEARCH)));
+    for (const r of Object.values(RESEARCH)) if (r.requires) expect(RESEARCH[r.requires], `${r.id} requires unknown ${r.requires}`).toBeTruthy();
     for (const b of Object.values(BUILDINGS)) {
       if (b.research) expect(RESEARCH[b.research], `${b.id} needs unknown research ${b.research}`).toBeTruthy();
       for (const u of b.upgrades ?? []) expect(RESEARCH[u.research]).toBeTruthy();

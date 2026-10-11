@@ -1,7 +1,7 @@
 {
  "w": 16,
  "h": 16,
- "frames": 15,
+ "frames": 31,
  "rows": 1,
  "fps": 0,
  "names": [
@@ -19,6 +19,22 @@
   "rock",
   "research",
   "overcharge",
-  "shed"
+  "shed",
+  "searchlight",
+  "brazier",
+  "starshell",
+  "vane",
+  "wind",
+  "upgrade",
+  "moth",
+  "flit",
+  "shade",
+  "veil",
+  "snuffer",
+  "pall",
+  "pause",
+  "wave",
+  "tutorial",
+  "lock"
  ]
 }

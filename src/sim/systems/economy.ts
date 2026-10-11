@@ -1,15 +1,16 @@
 // Fuel (§3): Extractors dig emberrock at their satisfaction and hand it to a Burner touching
-// them (the slice's stand-in for belts, DECISIONS.md); Burners burn one rock per 10 s while lit.
+// them (the stand-in for belts, DECISIONS.md); Burners burn one rock at a time while lit, unless a
+// Snuffer has put them out. Vanes turn the wind into power (§3.2).
 import { DT, type Game } from '../Game';
 import { touches } from '../geom';
 import type { Building } from '../types';
 
 export function economySystem(g: Game) {
   const burners: Building[] = [];
-  for (const b of g.buildings.values()) if (b.def.role === 'generator') burners.push(b);
+  for (const b of g.buildings.values()) if (b.def.role === 'generator' && b.def.fuel === 'rock') burners.push(b);
   for (const b of g.buildings.values()) {
     if (b.def.role !== 'extractor') continue;
-    const d = b.def;
+    const d = g.spec(b);
     if (b.net >= 0 && !b.off && b.stock < (d.stockCap ?? 1)) {
       b.progress += (b.sat * DT) / (d.rockInterval ?? 1);
       if (b.progress >= 1) {
@@ -20,7 +21,7 @@ export function economySystem(g: Game) {
     if (b.stock > 0) {
       let best: Building | null = null;
       for (const u of burners) {
-        if (u.fuel >= (u.def.fuelCap ?? 0) || !touches(g.rect(b), g.rect(u))) continue;
+        if (u.fuel >= (g.spec(u).fuelCap ?? 0) || !touches(g.rect(b), g.rect(u))) continue;
         if (!best || u.fuel < best.fuel) best = u;
       }
       if (best) {
@@ -30,15 +31,16 @@ export function economySystem(g: Game) {
     }
   }
   for (const u of burners) {
-    const d = u.def;
+    const d = g.spec(u);
     const was = u.output > 0;
-    if (u.off || u.net < 0) {
+    if (u.snuffed > 0) u.snuffed = Math.max(0, u.snuffed - DT);
+    if (u.off || u.net < 0 || u.snuffed > 0) {
       u.output = 0;
       continue;
     }
     if (u.burnLeft <= 0 && u.fuel > 0) {
       u.fuel--;
-      // one rock: 400 kJ of heat × 0.5 efficiency at 20 kW = 10 s (§3)
+      // one rock: 400 kJ of heat × efficiency at the output = 10 s at tier 1, 8 s with bellows (§3)
       u.burnLeft += ((d.rockHeat ?? 0) * (d.efficiency ?? 0)) / (d.output ?? 1);
     }
     if (u.burnLeft > 0) {
@@ -49,5 +51,10 @@ export function economySystem(g: Game) {
       u.output = 0;
       if (was) g.emit({ t: 'dry', id: u.id });
     }
+  }
+  const wind = g.wind();
+  for (const b of g.buildings.values()) {
+    if (b.def.role !== 'generator' || b.def.fuel !== 'wind') continue;
+    b.output = b.off || b.net < 0 ? 0 : (g.spec(b).output ?? 0) * wind;
   }
 }

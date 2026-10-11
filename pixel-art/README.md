@@ -24,7 +24,7 @@ truth; never hand-edit its PNGs). Running it writes:
 | Ember / warm glass | `#752438` `#a53030` `#cf573c` `#da863e` `#de9e41` `#e8c170` `#ebede9` (white-hot) |
 | Brick / stone | `#341c27` `#4d2b32` `#7a4841` `#ad7757` |
 | Cool glass (Lab only) | `#253a5e` `#3c5e8b` `#4f8fba` `#73bed3` `#a4dddb` |
-| The Dim (enemies) | `#090a14` `#1e1d39` `#402751` `#7a367b` `#577277` `#819796` `#c7cfcc` (pale) |
+| The Dim (enemies) | `#090a14` `#1e1d39` `#402751` `#7a367b` `#577277` `#819796` `#c7cfcc` (pale); the Flit's dusk blue `#172038` `#253a5e` `#3c5e8b`; the Snuffer's soot-brown `#241527` `#341c27` `#4d2b32` |
 | Ground | `#151d28` `#19332d` `#202e37` `#25562e` `#394a50` |
 | Path (ash) | `#394a50` `#577277` `#4d2b32` `#7a4841` |
 | Emberrock | `#241527` `#341c27` `#602c2c` + glints `#cf573c` `#da863e` |
@@ -66,11 +66,24 @@ A 2×2 tower is 32 wide: its base fills the bottom 32×32 of the canvas, the top
 | `shade` | 20×20 | 4 × 2 | — | row 0 lit, row 1 silhouette |
 | `pall` | 32×32 | 4 × 2 | — | row 0 lit, row 1 silhouette |
 | `tiles` | 16×16 | 10 × 1 | — | ground ×4, path ×2, emberrock ×2, decor ×2 (decor transparent) |
-| `icons` | 16×16 | 15 × 1 | — | lamp, floodlight, beacon, node, extractor, burner, jar, lab, kw, money, light, rock, research, overcharge, shed |
+| `floodlight2` | 32×48 | 2 × 1 | 2×2 | tier-2 Floodlight: taller head, 3×3 lenses, brass bezel, hood brim |
+| `searchlight` | 32×48 | 2 × 1 | 2×2 | long-range narrow beam: drum lamp at 3/4 on a fork, tall thin mast |
+| `searchlight2` | 32×48 | 2 × 1 | 2×2 | tier-2 Searchlight: bigger brass-banded drum, vent chimney, tripod struts |
+| `brazier` | 32×48 | 4 × 1 | 2×2 | open iron fire-basket on a low plinth, radial heat; frames = flame cycle |
+| `brazier2` | 32×48 | 4 × 1 | 2×2 | tier-2 Brazier: bigger basket on a stone column, brass rim, prongs |
+| `starshell` | 32×48 | 2 × 1 | 2×2 | stubby brass mortar on a turntable, glowing shell in the muzzle |
+| `starshell2` | 32×48 | 2 × 1 | 2×2 | tier-2 Starshell: longer barrel, glowing charge coils, spare-shell rack |
+| `beacon2` | 32×48 | 2 × 1 | 2×2 | tier-2 Beacon: bigger dome on a railed gallery, yardarm with two marker lamps |
+| `burner2` | 32×40 | 2 × 1 | 2×2 | tier-2 Burner: concertina bellows, spark-arrester chimney hat, brass bands |
+| `vane` | 32×48 | 4 × 1 | 2×2 | wind generator: 4 sails on an A-frame lattice mast; frames = sails turning |
+| `flit` | 12×12 | 2 × 2 | — | row 0 lit, row 1 silhouette (dark dart, one pale eye); fast 2-frame whip |
+| `veil` | 20×24 | 4 × 2 | — | row 0 lit, row 1 silhouette (dark drape, two pale pinprick eyes); 4-frame ripple, reads at 50% alpha |
+| `snuffer` | 24×24 | 4 × 2 | — | row 0 lit, row 1 silhouette (bell rim line, pale eyes); 4-frame plodding walk |
+| `icons` | 16×16 | 31 × 1 | — | lamp, floodlight, beacon, node, extractor, burner, jar, lab, kw, money, light, rock, research, overcharge, shed, searchlight, brazier, starshell, vane, wind, upgrade, moth, flit, shade, veil, snuffer, pall, pause, wave, tutorial, lock |
 
 ## Readability states (STYLE.md rule 1), as the game draws them
 
-The game makes these from the 1× art at load time; the contact sheet (`pixel-art/contact/`)
+The game makes these from the 1× art at load time; the contact sheet (`pixel-art/contact-buildings/`)
 previews them with the same maths:
 
 - **powered**: the sprite as drawn.

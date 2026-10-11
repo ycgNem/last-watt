@@ -129,7 +129,7 @@ const SCENES = {
   },
   async win(page) {
     await page.evaluate(() => window.__app.newGame(true));
-    await run(page, 900);
+    await run(page, 1150);
     await shot(page, 'win');
   },
   async lose(page) {

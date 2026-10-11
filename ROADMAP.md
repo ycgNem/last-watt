@@ -36,9 +36,17 @@ first Overcharge are in `e2e/out/` and have been looked at.
 not-list. The owner plays it. Either the model changes (in `DESIGN.md`, then the slice is
 revised and reviewed again) or the gate is marked passed here with the date.
 
-**Gate status: not yet passed.** (2026-10-11: Milestones 0 and 1 were built together as a
-playable slice at the owner's request, revised after the first `td-critic` review, and published
-on GitHub Pages for playtesting; see `PROGRESS.md`. The owner and a friend play it next.)
+**Gate status: PASSED 2026-10-11, on the owner's word** after playing the slice ("its cool so
+far"; asked for the next phase and the milestones). See `DECISIONS.md`, second session.
+(Earlier the same day: Milestones 0 and 1 were built together as a playable slice at the owner's
+request, revised after the first `td-critic` review, and published on GitHub Pages.)
+
+**Since the gate (second session, 2026-10-11), in part:** Milestone 3 without belts (the Vane,
+Burner / Extractor / Jar / Node tier 2, the first line loss); Milestone 4's first half (Searchlight,
+Brazier, Starshell; Flit, Veil, Snuffer; tier 2 for every tower; the Floodlight re-derived as a
+cone); Milestone 5's board (fourteen projects); Milestone 7's endless mode (one map still);
+Milestone 10's tutorial and intel cards, brought forward at the owner's request. Each
+milestone's remaining items are listed under it in `PROGRESS.md`.
 
 ## Milestone 3 — The factory half
 

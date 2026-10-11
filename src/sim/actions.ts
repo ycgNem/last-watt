@@ -2,8 +2,9 @@
 import { BUILDINGS, SELL_REFUND, type BuildingId } from '../data/buildings';
 import { RESEARCH } from '../data/research';
 import { RULES } from '../data/rules';
+import { LAST_WAVE } from '../data/waves';
 import type { Game } from './Game';
-import { startNextWave } from './systems/waves';
+import { goEndless, startNextWave } from './systems/waves';
 import type { Building } from './types';
 
 export function placeProblem(g: Game, id: BuildingId, x: number, y: number, free = false): string | null {
@@ -69,7 +70,7 @@ export function toggleTier(g: Game, tier: number) {
 
 export function upgradeProblem(g: Game, b: Building): string | null {
   const up = b.def.upgrades?.[b.level - 1];
-  if (!up) return 'No further tier';
+  if (!up) return b.def.upgrades?.length ? 'Fully upgraded' : 'No upgrades';
   if (!g.research.done.has(up.research)) return `Research ${RESEARCH[up.research].name} first (Lab)`;
   if (g.money < up.cost) return `Need ${up.cost} money`;
   return null;
@@ -81,6 +82,8 @@ export function upgrade(g: Game, b: Building): string | null {
   const up = b.def.upgrades![b.level - 1];
   g.money -= up.cost;
   b.level++;
+  g.netDirty = true; // a Long line reaches further
+  g.emit({ t: 'upgrade', id: b.id, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });
   return null;
 }
 
@@ -91,8 +94,9 @@ export function storedFor(g: Game, b: Building): number {
 }
 
 export function overchargeProblem(g: Game, b: Building): string | null {
-  if (b.def.role !== 'tower') return 'Only Lamps and Floodlights overcharge';
+  if (b.def.role !== 'tower') return 'Only towers overcharge';
   if (b.overcharge > 0) return 'Already overcharged';
+  if (b.cool > 0) return `The glass is cooling: ${Math.ceil(b.cool)} s`;
   if (b.net < 0) return 'Not on a network';
   const n = g.networkOf(b)!;
   if (n.capacity <= 0) return 'Needs a Jar on this network';
@@ -109,7 +113,7 @@ function jarCharge(g: Game, b: Building): number {
   return sum;
 }
 
-/** 120 kJ straight from the Jars: the tower fires at 3× its firing draw for 4 s (§8) */
+/** 120 kJ straight from the Jars: the tower runs at 3× its draw for 4 s at full power (§8) */
 export function overcharge(g: Game, b: Building): string | null {
   const why = overchargeProblem(g, b);
   if (why) return why;
@@ -123,23 +127,40 @@ export function overcharge(g: Game, b: Building): string | null {
     if (need <= 0) break;
   }
   b.overcharge = RULES.overchargeTime.v;
+  b.cool = RULES.overchargeTime.v + RULES.overchargeCool.v;
   g.stats.overcharges++;
   if (g.stats.firstOvercharge < 0) g.stats.firstOvercharge = g.tick;
   g.emit({ t: 'overcharge', id: b.id, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });
   return null;
 }
 
-export function startResearch(g: Game, id: string): string | null {
-  if (!RESEARCH[id]) return 'No such project';
+export function researchProblem(g: Game, id: string): string | null {
+  const r = RESEARCH[id];
+  if (!r) return 'No such project';
   if (g.research.done.has(id)) return 'Already researched';
+  if (r.requires && !g.research.done.has(r.requires)) return `Needs ${RESEARCH[r.requires].name} first`;
+  return null;
+}
+
+/** pick (or stop) the project the Labs work on */
+export function startResearch(g: Game, id: string): string | null {
+  const why = researchProblem(g, id);
+  if (why) return why;
   g.research.active = g.research.active === id ? null : id;
   return null;
 }
 
-/** start wave 1, or call the next wave early for the bonus (§5) */
+/** start wave 1, or call the next wave early (§5) */
 export function nextWave(g: Game): string | null {
   if (g.over) return 'The run is over';
-  if (g.wave >= 8) return 'That was the last wave';
+  if (!g.endless && g.wave >= LAST_WAVE) return 'That was the last wave';
   startNextWave(g);
+  return null;
+}
+
+/** keep going past the last wave */
+export function endless(g: Game): string | null {
+  if (g.over !== 'win') return 'Only after the last wave';
+  goEndless(g);
   return null;
 }
