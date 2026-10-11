@@ -666,6 +666,23 @@ Jars stay under 20" went: the rule it guarded (a Jar never pays for an Overcharg
 tested in the grid (`tests/grid.test.ts`). Every map's "no verbs at least 4 below the human
 profile" holds with room: 20 / 10 / 13 / 12 lights apart.
 
+**After the fifth review** (Nodes at 60 kW, the Busbar for 120 over 2.5 tiles, Overcharge after
+the Works, the Jar budget in tier order, Spare cut, FULL only when it holds a branch back; the bot
+takes a Busbar only on a Node it has seen full and only where it strands nothing):
+
+| Map | Plan (verbs) | No verbs at all | Human profile | Plan + 2 Jars |
+|---|---|---|---|---|
+| The Last Station | 20 | 0 (loses wave 12) | 20 | 20 |
+| The Switchback | 17 | 0 (loses wave 10) | 12 | 0 (loses wave 11) |
+| The Fork | 13 | 5 | 17 | 13 |
+| Two Roads | 11 | 0 (loses wave 12) | 11 | 16 |
+
+The late game now browns out where it didn't: 66–96 s a wave under 75% in waves 10–12 on the
+Switchback, 41–67 s on Two Roads and the Fork. The Switchback's wave 10 is a cliff (4,716 kJ,
+2.3× its wave 9): the plan with two Jars bought at wave 3 (120 money off its wall) loses there, as
+does no verbs, and the telegraph shows it amber before it comes. The Fork's plan loses 7 lights
+to wave 5's one Pall (the human profile, Overcharging only cones on Palls, loses 3).
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
