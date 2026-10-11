@@ -17,7 +17,7 @@ import { covers, touches } from '../sim/geom';
 import { coneCatchers } from '../sim/systems/towers';
 import { windShade } from '../sim/systems/economy';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
-import { wavePay, roadsOf } from '../sim/systems/waves';
+import { spacingOf, wavePay, roadsOf } from '../sim/systems/waves';
 import type { Building, GameEvent } from '../sim/types';
 import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
@@ -25,7 +25,7 @@ import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
-import { lineReports } from '../sim/lines';
+import { fullOnTheWay, lineReports } from '../sim/lines';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -308,7 +308,7 @@ export class Play {
       case 'snuff':
         r.burst(e.x, e.y, 16, C.ash, 1.5, 0.8, 'puff');
         a.sfx('snuff');
-        this.sayOnce('snuff', 40, 'A Snuffer put out a Burner: its burning rock is lost and it stays cold 8 s. Burners 4+ tiles from the path are safe (red shows the reach when you place one).', C.ember, 9);
+        this.sayOnce('snuff', 40, 'A Snuffer put out a Burner: its burning rock is lost and it stays cold 8 s. Burners more than 5 tiles from the path are safe (red shows the reach when you place one).', C.ember, 9);
         break;
       case 'restore':
         break;
@@ -979,7 +979,7 @@ export class Play {
       const kj = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
       const roadLine = (m: Map<string, number>, i: number) => `${names![i] === 'W' ? 'West' : names![i] === 'E' ? 'East' : names![i]} road: ${kinds.filter((id) => m.has(ENEMIES[id].code)).map((id) => `${m.get(ENEMIES[id].code)} ${ENEMIES[id].name}${m.get(ENEMIES[id].code)! > 1 ? 's' : ''}`).join(', ')}`;
       ui.tooltip([
-        { text: `Wave ${n}: ${kj} kJ of dark, one every ${(w.spacing * g.map.pace).toFixed(2)} s` },
+        { text: `Wave ${n}: ${kj} kJ of dark, one every ${spacingOf(g, w).toFixed(2)} s` },
         ...per.map((m, i) => ({ text: roadLine(m, i), color: C.gold })),
         ...kinds.map((id) => ({ text: `${ENEMIES[id].name} (${ENEMIES[id].health} kJ): ${ENEMIES[id].blurb}`, color: C.mist })),
         { text: `Clearing it pays ${wavePay(n)}.`, color: C.gold },
@@ -1095,7 +1095,7 @@ export class Play {
       return fed ? { text: 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
     }
     if (b.def.role === 'lab' && !g.research.active) return { text: 'IDLE: pick a project (L)', color: C.cyan };
-    if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%`, color: C.violet };
+    if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%${fullOnTheWay(g, b) ? ': a Node on its way is full' : ''}`, color: C.violet };
     return { text: b.def.role === 'core' ? `BURNING ${g.hearthOutput().toFixed(1)} kW` : `POWERED ${b.def.tier ? Math.round(b.sat * 100) + '%' : ''}`, color: C.gold };
   }
 
@@ -1154,6 +1154,13 @@ export class Play {
       }
       case 'node':
         out.push({ text: `Carries power ${d.nodeRadius} tiles${d.lineLoss ? `, losing ${d.lineLoss} kW on the line` : ''}.` }, { text: `A Shade passing within ${ENEMIES.shade.knockRadius} tiles cuts it for ${ENEMIES.shade.knockTime} s.` });
+        if (b.net >= 0 && b.id !== g.hearthId) {
+          const cap = d.carryKw ?? 0;
+          const kw = Math.round(Math.abs(b.carry));
+          out.push(b.full
+            ? { text: `FULL: carries all ${cap} kW it can${b.carry < 0 ? ' home from the Burners past it' : ' to what is past it'}. A second route, a Jar past it, or a Heavy line.`, color: C.violet }
+            : { text: `Carries ${kw} of ${cap} kW${b.carry < 0 ? ' home' : ''}.`, color: kw > cap * 0.75 ? C.gold : C.ash });
+        }
         break;
       case 'storage':
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });

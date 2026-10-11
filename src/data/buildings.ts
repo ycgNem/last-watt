@@ -38,6 +38,8 @@ export interface Stats {
   nodeRadius?: number;
   /** node: kW lost on the line while it carries power */
   lineLoss?: number;
+  /** a Node: kW its link carries at most, either way (§3.3) */
+  carryKw?: number;
   /** extractor: seconds per rock at full satisfaction; rocks it holds */
   rockInterval?: number;
   stockCap?: number;
@@ -144,14 +146,19 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   },
   node: {
     id: 'node', name: 'Node', role: 'node', group: 'power', size: 1, cost: 10,
-    blurb: 'Carries power to anything within 4 tiles. A Shade passing within 3.5 tiles cuts it for 6 s.',
-    nodeRadius: 4,
+    blurb: 'Carries power to anything within 4 tiles, at most 40 kW through it. Past that, a second route, a Jar or a Burner on the far side. A Shade passing within 3.5 tiles cuts it for 6 s.',
+    nodeRadius: 4, carryKw: 40,
     upgrades: [{
-      cost: 13, research: 'longline', blurb: 'Long line: reaches 6 tiles, but the line loses 1 kW while it carries power.',
+      name: 'Long line', cost: 13, research: 'longline', blurb: 'Long line: reaches 6 tiles, but the line loses 1 kW while it carries power. Still 40 kW through it.',
       stats: { nodeRadius: 6, lineLoss: 1 },
       why: { cost: '§4 upgrade rule: 10 × 1.25 = 12.5 → 13', nodeRadius: '§3.2 long line: 4 → 6 tiles', lineLoss: '§3.2 long line: 1 kW lost per long Node' },
+      alts: [{
+        name: 'Heavy line', cost: 13, research: 'longline', blurb: 'Heavy line: carries 80 kW instead of 40, over the same 4 tiles.',
+        stats: { carryKw: 80 },
+        why: { cost: '§4 upgrade rule: 10 × 1.25 = 12.5 → 13', carryKw: '§3.3 heavy line: 40 → 80 kW, a bend at full fire on tier 2 (two tier-2 Floodlights firing ask 72; the other way to take the tier: reach against weight)' },
+      }],
     }],
-    why: { size: '§3 Node; STYLE.md (1x1 post)', cost: '§3 Node: 10', nodeRadius: '§3 Node: radius 4 tiles' },
+    why: { size: '§3 Node; STYLE.md (1x1 post)', cost: '§3 Node: 10', nodeRadius: '§3 Node: radius 4 tiles', carryKw: '§3.3 transmission: 40 kW through a Node, the output of two Burners' },
   },
   jar: {
     id: 'jar', name: 'Jar', role: 'storage', group: 'power', size: 1, cost: 60,
@@ -165,8 +172,8 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
         name: 'Flywheel', cost: 75, research: 'flywheel', blurb: 'Flywheel: only 300 kJ, but charges at 60 kW and gives back 90 kW. It spins down: 2% of its charge a second.',
         stats: { capacity: 300, maxCharge: 60, maxDischarge: 90, spinDown: 0.02 },
         why: {
-          cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 Flywheel: 300 kJ, one tier-2 Floodlight Overcharge (72 kW × 4 s = 288 kJ)',
-          maxCharge: '§3.2 Flywheel: charges at 60 kW, full in 5 s of surplus', maxDischarge: '§3.2 Flywheel: gives 90 kW, a tier-2 Floodlight Overcharge (+72 kW) alone',
+          cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 Flywheel: 300 kJ, a pack passing a full Node (40-60 kW short for 5-7 s; re-derived in the fourth review)',
+          maxCharge: '§3.2 Flywheel: charges at 60 kW, full in 5 s of surplus', maxDischarge: '§3.2 Flywheel: gives 90 kW, all a branch past a full Node lacks at its peak (a Jar gives 30)',
           spinDown: '§3.2 Flywheel: loses 2% of its charge a second (half gone in 35 s): a wave tool, not a bank',
         },
       }],
@@ -363,7 +370,7 @@ export const SELL_REFUND = { v: 0.5, why: '§3 selling: half back, so a placemen
 /** stat keys that count as the energy side of an upgrade (CLAUDE.md: every node has a wattage column) */
 export const ENERGY_KEYS: (keyof Stats)[] = [
   'output', 'idleDraw', 'firingDraw', 'constantDraw', 'workDraw', 'perEnemyDraw', 'chargeDraw', 'efficiency',
-  'lineLoss', 'capacity', 'maxCharge', 'maxDischarge', 'spinDown',
+  'lineLoss', 'carryKw', 'capacity', 'maxCharge', 'maxDischarge', 'spinDown',
 ];
 
 /** the upgrade that takes a building from `level` to `level + 1` on its branch (0 = the main line) */

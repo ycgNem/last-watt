@@ -34,6 +34,9 @@ export interface BotPlan {
   human?: boolean;
   /** no verbs at all: no Overcharge, no Pulse, no shedding (the third review's zero-verb control) */
   noVerbs?: boolean;
+  /** which way to take a building's tier where it has a choice (0 the main line; Nodes take the
+   *  Heavy line, 1) */
+  branches?: Partial<Record<BuildingId, number>>;
   /** raise this many towers (the first built from the wall list) to tier 1, and nothing else
    *  beyond what the plan does: the "one T press" player */
   raise?: number;
@@ -92,8 +95,9 @@ export const BOT_PLAN: BotPlan = {
     { b: 'jar', x: 23, y: 18, wave: 5 },
     { b: 'lab', x: 19, y: 20, wave: 6 },
   ],
-  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  branches: { node: 1 },
   headroom: 1.8,
 };
 
@@ -124,18 +128,23 @@ export const SWITCHBACK_PLAN: BotPlan = {
     { b: 'searchlight', x: 18, y: 8 },
     { b: 'node', x: 28, y: 15 },
     { b: 'lamp', x: 30, y: 13 },
+    // late: the money the plan used to leave (2,500), on the fourth leg and the far bend
+    { b: 'lamp', x: 14, y: 16 },
+    { b: 'searchlight', x: 16, y: 18 },
+    { b: 'starshell', x: 26, y: 17 },
+    { b: 'floodlight', x: 29, y: 16 },
+    { b: 'lamp', x: 17, y: 16 },
   ],
+  // Vanes 7+ tiles apart (the fourth review's wind shadow: a clump of six made one Vane's worth)
   power: [
     [{ b: 'extractor', x: 24, y: 24 }, { b: 'burner', x: 25, y: 22 }],
     [{ b: 'extractor', x: 23, y: 25 }, { b: 'burner', x: 21, y: 26 }],
     [{ b: 'extractor', x: 24, y: 25 }, { b: 'burner', x: 24, y: 26 }],
     [{ b: 'vane', x: 23, y: 18 }],
-    [{ b: 'vane', x: 18, y: 26 }],
-    [{ b: 'vane', x: 25, y: 19 }],
-    [{ b: 'vane', x: 16, y: 24 }],
-    [{ b: 'extractor', x: 25, y: 25 }],
-    [{ b: 'vane', x: 16, y: 26 }],
     [{ b: 'vane', x: 14, y: 26 }],
+    [{ b: 'node', x: 25, y: 21 }, { b: 'vane', x: 28, y: 24 }],
+    [{ b: 'extractor', x: 25, y: 25 }],
+    [{ b: 'node', x: 28, y: 19 }, { b: 'vane', x: 32, y: 17 }],
   ],
   extras: [
     { b: 'jar', x: 20, y: 24, wave: 3 },
@@ -143,8 +152,9 @@ export const SWITCHBACK_PLAN: BotPlan = {
     { b: 'jar', x: 19, y: 24, wave: 5 },
     { b: 'lab', x: 18, y: 18, wave: 6 },
   ],
-  research: ['vane', 'brazier', 'starshell', 'lamp2', 'bellows', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  research: ['vane', 'longline', 'brazier', 'starshell', 'lamp2', 'bellows', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  branches: { node: 1 },
   headroom: 1.8,
 };
 
@@ -190,8 +200,9 @@ export const TWO_ROADS_PLAN: BotPlan = {
     { b: 'jar', x: 21, y: 20, wave: 5 },
     { b: 'lab', x: 13, y: 21, wave: 6 },
   ],
-  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  branches: { node: 1 },
   headroom: 1.8,
 };
 
@@ -239,8 +250,9 @@ export const FORK_PLAN: BotPlan = {
     { b: 'jar', x: 22, y: 23, wave: 5 },
     { b: 'lab', x: 18, y: 26, wave: 6 },
   ],
-  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  branches: { node: 1 },
   headroom: 1.8,
 };
 
@@ -256,6 +268,8 @@ export class Bot {
   extraI = 0;
   shedLab = true;
   log: string[] = [];
+  /** Nodes it has seen carry all they can (§3.3): a player sees the violet link and the FULL tag */
+  private sawFull = new Set<number>();
 
   constructor(public plan: BotPlan = BOT_PLAN, public callEarly = false) {}
 
@@ -296,6 +310,20 @@ export class Bot {
     const p = this.plan;
     while (this.opened < p.opening.length && this.build(g, p.opening[this.opened])) this.opened++;
     if (this.opened < p.opening.length) return;
+    // a full Node: a Heavy line on it before anything else, once the research allows it (it costs
+    // 13, and everything past it starves until it has it)
+    for (const b of g.buildings.values()) if (b.def.role === 'node' && b.full) this.sawFull.add(b.id);
+    for (const id of this.sawFull) {
+      const b = g.buildings.get(id);
+      if (!b || b.level > 1) {
+        this.sawFull.delete(id);
+        continue;
+      }
+      if (!upgradeProblem(g, b, 1)) {
+        upgrade(g, b, 1);
+        this.sawFull.delete(id);
+      }
+    }
     for (let guard = 0; guard < 8; guard++) {
       const w = p.wall[this.wallI];
       const wReady = w && g.wave >= (w.wave ?? 0) && (!BUILDINGS[w.b].research || g.research.done.has(BUILDINGS[w.b].research!));
@@ -405,9 +433,13 @@ export class Bot {
   /** upgrade the first building of the listed kinds the research allows; true if it did */
   private tryUpgrade(g: Game, kinds: BuildingId[]): boolean {
     for (const k of kinds) {
-      const b = [...g.buildings.values()].find((x) => x.def.id === k && !upgradeProblem(g, x));
+      const branch = this.plan.branches?.[k] ?? 0;
+      const can = [...g.buildings.values()].filter((x) => x.def.id === k && !upgradeProblem(g, x, branch));
+      // Nodes: the busiest first (a full one most of all, §3.3)
+      if (k === 'node') can.sort((a, c) => Math.abs(c.carry) - Math.abs(a.carry));
+      const b = can[0];
       if (b) {
-        upgrade(g, b);
+        upgrade(g, b, branch);
         return true;
       }
     }

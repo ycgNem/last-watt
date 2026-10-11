@@ -9,7 +9,20 @@ import { RULES } from '../data/rules';
 import type { Building } from './types';
 
 /** what holds a line back, worst first */
-export type Neck = 'siphon' | 'nopower' | 'fuel' | 'short' | 'peak' | 'waste' | 'loss' | 'ok';
+export type Neck = 'siphon' | 'nopower' | 'fuel' | 'full' | 'short' | 'peak' | 'waste' | 'loss' | 'ok';
+
+/** the full Node between a building and its line's root, if there is one (§3.3) */
+export function fullOnTheWay(g: Game, b: Building): Building | null {
+  const n = g.networks[b.net];
+  if (!n?.tree || !n.at) return null;
+  let i = n.at.get(b.id) ?? 0;
+  while (i > 0) {
+    const c = g.buildings.get(n.tree.ids[i]);
+    if (c?.full) return c;
+    i = n.tree.parent[i];
+  }
+  return null;
+}
 
 export interface LineReport {
   net: number;
@@ -77,6 +90,14 @@ export function lineReports(g: Game): LineReport[] {
       neck = 'nopower';
       text = 'No power comes in';
       fix = 'A Burner on it, or a Node to a lit line';
+    } else if (bs.some((b) => (b.def.role === 'tower' || b.def.role === 'beacon') && b.sat < 0.99 && fullOnTheWay(g, b))) {
+      // a full Node holds a branch back while the line itself has power (§3.3)
+      const held = bs.filter((b) => (b.def.role === 'tower' || b.def.role === 'beacon') && b.sat < 0.99 && fullOnTheWay(g, b));
+      const worst = Math.min(...held.map((b) => b.sat));
+      const node = fullOnTheWay(g, held[0])!;
+      neck = 'full';
+      text = `A Node is full (${r(Math.abs(node.carry))} kW): towers past it at ${r(worst * 100)}%`;
+      fix = 'A second route, a Jar past it, or a Heavy line';
     } else if (n.wall.sat < 0.99 && n.wall.demand > 0 && low < RULES.brownoutEnds.v) {
       neck = 'short';
       text = `Short ${r(n.demand - made - n.discharge)} kW: wall at ${r(n.wall.sat * 100)}%`;

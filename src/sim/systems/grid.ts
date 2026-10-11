@@ -6,6 +6,7 @@ import { SKILL_RULES } from '../../data/skills';
 import { DT, emptyTiers, type Game } from '../Game';
 import { covers } from '../geom';
 import type { Building, Network } from '../types';
+import { allocate, buildTree } from './flow';
 
 /** a node-like building carries power: the Hearth always, a Node unless knocked out */
 function conducts(b: Building) {
@@ -34,18 +35,25 @@ export function rebuildNetworks(g: Game) {
   for (const b of all) parent.set(b.id, b.id);
   const cond = all.filter(conducts);
   const reach = (b: Building) => g.spec(b).nodeRadius ?? 0;
+  const links: [Building, Building][] = [];
   for (let i = 0; i < cond.length; i++)
     for (let j = i + 1; j < cond.length; j++) {
       const a = cond[i], b = cond[j];
-      if (covers(g.rect(a), reach(a), g.rect(b)) || covers(g.rect(b), reach(b), g.rect(a))) union(a.id, b.id);
+      if (covers(g.rect(a), reach(a), g.rect(b)) || covers(g.rect(b), reach(b), g.rect(a))) {
+        union(a.id, b.id);
+        links.push([a, b]);
+      }
     }
   const covered = new Set<number>();
+  const coveredBy = new Map<number, Building[]>();
   for (const b of all) {
     if (conducts(b)) continue;
     for (const c of cond) {
       if (covers(g.rect(c), reach(c), g.rect(b))) {
         union(b.id, c.id);
         covered.add(b.id);
+        if (!coveredBy.has(b.id)) coveredBy.set(b.id, []);
+        coveredBy.get(b.id)!.push(c);
       }
     }
   }
@@ -68,6 +76,64 @@ export function rebuildNetworks(g: Game) {
     const on = conducts(b) || covered.has(b.id);
     b.net = on ? index.get(find(b.id)) ?? -1 : -1;
     if (b.net >= 0) nets[b.net].members.push(b.id);
+    b.carry = 0;
+    b.full = false;
+  }
+  // each network's conductors as a tree from its root (the Hearth, else the conductor feeding the
+  // most generators), and the conductor each member draws through: the one nearest the root that
+  // covers it, then the nearest (§3.3)
+  for (const n of nets) {
+    const ids = n.nodes;
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    const adj: number[][] = ids.map(() => []);
+    for (const [a, b] of links) {
+      const i = pos.get(a.id), j = pos.get(b.id);
+      if (i === undefined || j === undefined) continue;
+      adj[i].push(j);
+      adj[j].push(i);
+    }
+    let root = ids.findIndex((id) => g.buildings.get(id)!.def.role === 'core');
+    if (root < 0) {
+      let most = -1;
+      ids.forEach((id, i) => {
+        const c = g.buildings.get(id)!;
+        const feeds = n.members.filter((m) => g.buildings.get(m)!.def.role === 'generator' && coveredBy.get(m)?.includes(c)).length;
+        if (feeds > most) {
+          most = feeds;
+          root = i;
+        }
+      });
+    }
+    const tree = buildTree(ids, adj, Math.max(0, root), (i) => {
+      const c = g.buildings.get(ids[i])!;
+      return c.def.role === 'core' ? Infinity : g.spec(c).carryKw ?? Infinity;
+    });
+    const depth = new Array<number>(tree.ids.length).fill(0);
+    for (let i = 1; i < tree.ids.length; i++) depth[i] = depth[tree.parent[i]] + 1;
+    const ti = new Map(tree.ids.map((id, i) => [id, i]));
+    const at = new Map<number, number>();
+    for (const id of n.members) {
+      if (ti.has(id)) {
+        at.set(id, ti.get(id)!);
+        continue;
+      }
+      const b = g.buildings.get(id)!;
+      const bx = b.x + b.def.size / 2, by = b.y + b.def.size / 2;
+      let best = 0, bestKey = Infinity;
+      for (const c of coveredBy.get(id) ?? []) {
+        const i = ti.get(c.id);
+        if (i === undefined) continue;
+        const d = Math.hypot(c.x + c.def.size / 2 - bx, c.y + c.def.size / 2 - by);
+        const key = depth[i] * 1000 + d;
+        if (key < bestKey) {
+          bestKey = key;
+          best = i;
+        }
+      }
+      at.set(id, best);
+    }
+    n.tree = tree;
+    n.at = at;
   }
   g.networks = nets;
   g.netDirty = false;
@@ -156,16 +222,16 @@ export function gridSystem(g: Game, dry = false) {
       if (b.def.role === 'generator') b.output = 0;
     }
   }
-  // Siphons ask their kW of the line they tap, before any consumer (§5.1)
+  // Siphons ask their kW of the building they tap, before any consumer (§5.1)
   const drains = new Map<number, number>();
   for (const e of g.enemies) {
     if (!e.tap || !e.def.drainKw) continue;
     const b = g.buildings.get(e.tap);
-    if (b && b.net >= 0) drains.set(b.net, (drains.get(b.net) ?? 0) + e.def.drainKw);
+    if (b && b.net >= 0) drains.set(b.id, (drains.get(b.id) ?? 0) + e.def.drainKw);
   }
   let stolen = 0;
   for (const n of g.networks) {
-    n.drain = drains.get(n.id) ?? 0;
+    n.drain = 0;
     n.stolen = 0;
     n.tiers = emptyTiers();
     n.gen = 0;
@@ -176,91 +242,149 @@ export function gridSystem(g: Game, dry = false) {
     n.wasted = 0;
     n.stored = 0;
     n.capacity = 0;
-    const jars: Building[] = [];
+    const t = n.tree!;
+    const k = t.ids.length;
+    const at = (b: Building) => n.at!.get(b.id) ?? 0;
+    const zeros = () => new Array<number>(k).fill(0);
+    // per conductor: power made, what is served before every tier (line loss and Siphons), each
+    // tier's demand, the part of an Overcharge a Jar may pay for (its base draw, §8), the Jars
+    const gen = zeros(), first = zeros(), drainAt = zeros(), ocBase = zeros();
+    const dem = [0, 1, 2, 3, 4].map(zeros);
+    const jarsAt: Building[][] = t.ids.map(() => []);
     const consumers: Building[] = [];
-    // kW the Overcharges on this line ask beyond what their towers would ask anyway
-    let ocExtra = 0;
     for (const id of n.members) {
       const b = g.buildings.get(id)!;
       const role = b.def.role;
+      const i = at(b);
+      const dk = drains.get(b.id);
+      if (dk) {
+        drainAt[i] += dk;
+        n.drain += dk;
+      }
       if (role === 'core') {
         b.output = g.hearthOutput();
         n.gen += b.output;
+        gen[i] += b.output;
       } else if (role === 'generator') {
         if (b.off) b.output = 0;
         n.gen += b.output;
+        gen[i] += b.output;
       } else if (role === 'node') {
-        if (b.offline <= 0) n.loss += g.spec(b).lineLoss ?? 0;
+        // long lines lose their kW before anyone sees it (§3.2), where the line is
+        if (b.offline <= 0) {
+          const l = g.spec(b).lineLoss ?? 0;
+          n.loss += l;
+          first[i] += l;
+        }
       } else if (role === 'storage') {
-        jars.push(b);
+        jarsAt[i].push(b);
         b.flow = 0;
       } else if (isConsumer(b)) {
         b.demand = demandOf(g, b);
-        n.tiers[tierOf(b)].demand += b.demand;
+        const tt = tierOf(b);
+        n.tiers[tt].demand += b.demand;
         n.demand += b.demand;
-        if (b.overcharge > 0) ocExtra += b.demand - b.demand / ocMult(g);
+        dem[tt][i] += b.demand;
+        if (b.overcharge > 0) ocBase[i] += b.demand / ocMult(g);
         consumers.push(b);
         if (b.def.role === 'tower' || b.def.role === 'beacon') total.peak += fullDraw(g, b);
       }
     }
     // a Siphon's drink is demand like any other, so Jars give for it, but it is served first
     n.demand += n.drain;
-    // long lines lose their kW before anyone sees it (§3.2)
+    for (let i = 0; i < k; i++) first[i] += drainAt[i];
     const made = Math.max(0, n.gen - n.loss);
-    let supply = made;
-    if (made >= n.demand) {
-      // surplus charges Jars up to their charge rate; the rest is wasted (§2.4)
-      let surplus = made - n.demand;
-      for (const j of jars) {
-        if (j.off) continue;
-        const js = g.spec(j);
-        const room = ((js.capacity ?? 0) - j.charge) / DT;
-        const rate = (js.maxCharge ?? 0) * (g.skills.has('wideMouth') ? SKILL_RULES.wideMouth.v : 1);
-        const take = Math.max(0, Math.min(rate, room, surplus));
-        if (!dry) j.charge += take * DT;
-        j.flow = take;
-        surplus -= take;
-        n.charged += take;
-      }
-      n.wasted = surplus;
-    } else {
-      // a deficit draws on Jars, up to each one's discharge rate (§2.1); but an Overcharge's extra
-      // never comes out of a Jar: it is taken from spare power, then from the rest of the wall (§8)
-      const deficit = Math.max(0, n.demand - ocExtra - made);
-      const avail = jars.map((j) => (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)));
-      const sum = avail.reduce((a, b) => a + b, 0);
-      const dis = Math.min(deficit, sum);
-      if (dis > 0)
-        jars.forEach((j, i) => {
-          const share = (dis * avail[i]) / sum;
-          if (!dry) j.charge = Math.max(0, j.charge - share * DT);
-          j.flow = -share;
-        });
-      n.discharge = dis;
-      supply += dis;
+    // live power first, tier by tier: Overcharges (tier 0), then tier 1 in full before tier 2
+    // sees anything (§2.3, §8), each along links that carry at most their capacity (§3.3)
+    const src = gen.slice();
+    const flow = zeros();
+    const s1 = allocate(t, first, src, flow);
+    const sat = dem.map((d) => allocate(t, d, src, flow));
+    // then the Jars give for what live power couldn't reach, up to each one's discharge rate (§2.1);
+    // never for an Overcharge's extra: only its base draw (§8, the third review)
+    // never for an Overcharge's extra, here or anything it starves: a Jar gives at most what each
+    // branch would lack with every Overcharge at its base draw (§8, the third review)
+    let noOc: { first: number[]; tiers: number[][] } | null = null;
+    if (ocBase.some((x) => x > 0)) {
+      const src0 = gen.slice(), flow0 = zeros();
+      const base = dem.map((d, tt) => (tt === 0 ? ocBase : d));
+      const f0 = allocate(t, first, src0, flow0);
+      noOc = { first: first.map((d, i) => d * (1 - f0[i])), tiers: base.map((d) => allocate(t, d, src0, flow0)).map((sv, tt) => base[tt].map((d, i) => d * (1 - sv[i]))) };
     }
-    // tier by tier: Overcharges (tier 0) first, then tier 1 is served fully before tier 2 sees
-    // anything (§2.3, §8)
-    let rem = supply;
-    n.stolen = Math.min(rem, n.drain);
-    rem -= n.stolen;
+    const avail = jarsAt.map((js) => js.reduce((a, j) => a + (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)), 0));
+    const jsrc = avail.slice();
+    const s1j = allocate(t, first.map((d, i) => Math.min(d * (1 - s1[i]), noOc ? noOc.first[i] : Infinity)), jsrc, flow);
+    const elig = dem.map((d, tt) => d.map((x, i) => Math.min(tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]), noOc ? noOc.tiers[tt][i] : Infinity)));
+    const satJ = elig.map((d) => allocate(t, d, jsrc, flow));
+    for (let i = 0; i < k; i++) {
+      const used = avail[i] - jsrc[i];
+      if (used <= 0) continue;
+      n.discharge += used;
+      for (const j of jarsAt[i]) {
+        if (j.off) continue;
+        const a = Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT);
+        const share = avail[i] > 0 ? (used * a) / avail[i] : 0;
+        if (!dry) j.charge = Math.max(0, j.charge - share * DT);
+        j.flow = -share;
+      }
+    }
+    // what is left charges Jars up to their charge rates, as far as the links carry it; the rest
+    // is wasted (§2.4)
+    const rateOf = (j: Building) => {
+      const js = g.spec(j);
+      const room = ((js.capacity ?? 0) - j.charge) / DT;
+      return j.off ? 0 : Math.max(0, Math.min((js.maxCharge ?? 0) * (g.skills.has('wideMouth') ? SKILL_RULES.wideMouth.v : 1), room));
+    };
+    const want = jarsAt.map((js) => js.reduce((a, j) => a + rateOf(j), 0));
+    const sc = allocate(t, want, src, flow);
+    for (let i = 0; i < k; i++) {
+      const take = want[i] * sc[i];
+      if (take <= 0) continue;
+      n.charged += take;
+      for (const j of jarsAt[i]) {
+        const r = rateOf(j);
+        const share = want[i] > 0 ? (take * r) / want[i] : 0;
+        if (share <= 0) continue;
+        if (!dry) j.charge += share * DT;
+        j.flow += share;
+      }
+    }
+    for (let i = 0; i < k; i++) n.wasted += Math.max(0, src[i]);
+    const supply = made + n.discharge;
+    // what each conductor's tiers got, and what each consumer gets: its conductor's share of its tier
+    const got = dem.map((d, tt) => d.map((x, i) => x * sat[tt][i] + elig[tt][i] * satJ[tt][i]));
+    for (let tt = 0; tt <= 4; tt++) {
+      const ts = n.tiers[tt];
+      ts.served = got[tt].reduce((a, b) => a + b, 0);
+      ts.sat = ts.demand > 0 ? Math.min(1, ts.served / ts.demand) : 1;
+    }
+    for (let i = 0; i < k; i++) {
+      const un = first[i] * (1 - s1[i]);
+      const jarPart = Math.min(un, noOc ? noOc.first[i] : Infinity) * s1j[i];
+      const share = first[i] > 0 ? (first[i] * s1[i] + jarPart) / first[i] : 1;
+      n.stolen += drainAt[i] * share;
+    }
     stolen += n.stolen;
-    for (let t = 0; t <= 4; t++) {
-      const ts = n.tiers[t];
-      ts.sat = ts.demand > 0 ? Math.min(1, rem / ts.demand) : 1;
-      ts.served = ts.sat * ts.demand;
-      rem = Math.max(0, rem - ts.served);
+    // each Node's load: what its link carried this tick (+ into the branch past it)
+    for (let i = 0; i < k; i++) {
+      const c = g.buildings.get(t.ids[i]);
+      if (c) {
+        c.carry = flow[i];
+        c.full = i > 0 && Math.abs(flow[i]) >= t.cap[i] - 0.5;
+      }
     }
     n.wall = { demand: 0, served: 0, sat: 1 };
     for (const b of consumers) {
-      b.sat = b.off || g.tierOff[b.tier] ? 0 : n.tiers[tierOf(b)].sat;
+      const i = at(b), tt = tierOf(b);
+      const d = dem[tt][i];
+      b.sat = b.off || g.tierOff[b.tier] ? 0 : d > 0 ? Math.min(1, got[tt][i] / d) : n.tiers[tt].sat;
       if (b.def.role === 'tower' || b.def.role === 'beacon') {
         n.wall.demand += b.demand;
         n.wall.served += b.demand * b.sat;
       }
     }
     n.wall.sat = n.wall.demand > 0 ? n.wall.served / n.wall.demand : 1;
-    for (const j of jars) {
+    for (const j of jarsAt.flat()) {
       const spin = g.spec(j).spinDown ?? 0;
       if (spin > 0 && j.charge > 0) {
         // a Flywheel spins down: its friction is power wasted (§3.2)

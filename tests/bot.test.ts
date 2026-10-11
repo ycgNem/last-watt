@@ -8,13 +8,14 @@ import { Bot, BOT_PLAN, playRun } from '../src/app/bot';
 
 const leaks = (g: Game) => Array.from({ length: g.wave }, (_, i) => g.stats.leaksByWave[i + 1] ?? 0).join(' ');
 
-describe('full run (bot)', () => {
-  const planned = (() => {
-    const bot = new Bot();
-    return { bot, g: playRun(new Game(), bot) };
-  })();
+const planned = (() => {
+  const bot = new Bot();
+  return { bot, g: playRun(new Game(), bot) };
+})();
 
-  it('the planned build wins all 12 waves, and not untouched (10–16 lights)', () => {
+describe('full run (bot)', () => {
+
+  it('the planned build wins all 12 waves, with the grid under pressure on the way', () => {
     const { bot, g } = planned;
     const s = g.stats;
     console.log(
@@ -24,8 +25,9 @@ describe('full run (bot)', () => {
     );
     if (bot.log.length) console.log(bot.log.join('\n'));
     expect(g.over).toBe('win');
-    expect(g.lights).toBeGreaterThanOrEqual(10);
-    expect(g.lights).toBeLessThanOrEqual(16);
+    // the first map stays forgiving: since the fourth review smoothed wave 8 an expert plan can hold
+    // all 20 (§11); what it must not do is hold them without using the grid (the verbs tests below)
+    expect(g.lights).toBeGreaterThanOrEqual(14);
     // the grid is under pressure at some point (the second review: 0 s of brownout after wave 3)
     expect(s.brownoutSeconds).toBeGreaterThan(10);
   });
@@ -64,14 +66,11 @@ describe('the verbs (the third review: §10 Q1)', () => {
   it('the same plan with no verbs at all (no Overcharge, Pulse or shedding) ends at least 4 lights worse', () => {
     const g = playRun(new Game(), new Bot({ ...BOT_PLAN, noVerbs: true }));
     console.log(`no verbs: ${g.over} at wave ${g.wave}, ${g.lights} lights, leaks ${leaks(g)}`);
-    expect(g.lights).toBeLessThanOrEqual(16 - 4);
+    expect(g.lights).toBeLessThanOrEqual(planned.g.lights - 4);
   });
-
-  it('two extra Jars do not make Overcharge free: the plan with them does not hold all 20 lights', () => {
-    const g = playRun(new Game(), new Bot({ ...BOT_PLAN, extras: [...BOT_PLAN.extras, { b: 'jar', x: 22, y: 19, wave: 3 }, { b: 'jar', x: 23, y: 19, wave: 3 }] }));
-    console.log(`+2 Jars: ${g.over} at wave ${g.wave}, ${g.lights} lights`);
-    expect(g.lights).toBeLessThan(20);
-  });
+  // two extra Jars never make Overcharge free: a Jar never pays for an Overcharge's extra
+  // (grid.test, §8). The run-level guard ("+2 Jars do not hold all 20") went with the fourth
+  // review's smoother wave 8, when the plan itself began to hold all 20.
 });
 
 describe('the bot plan itself', () => {

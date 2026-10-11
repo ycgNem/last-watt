@@ -73,7 +73,7 @@ export const SLICE_MAP: MapDef = {
     hearth: '§6: the Hearth sits where both bends face it, so layout A costs one Node (§6 wave 1 budget)',
     paths: '§6 slice map: 41 tiles, two bends (east 27.5 / south 9 / west 4.5), bends within reach of the Hearth',
     deposits: '§3 / §6 supply ceiling: two near deposits of 5 tiles and one far of 6, one Extractor per tile',
-    windMean: '§3.2 wind: 0.55 on the station map', pace: '§6: the waves were tuned on this map', unlockWave: '§11: always open', spawnAt: '§6: enemies appear 6 tiles in (the third review: 15 s of walking before contact every wave)',
+    windMean: '§3.2 wind: 0.55 on the station map', pace: '§6: the waves were tuned on this map (the first map stays forgiving: §11 the fourth review)', unlockWave: '§11: always open', spawnAt: '§6: enemies appear 6 tiles in (the third review: 15 s of walking before contact every wave)',
   },
 };
 
@@ -130,19 +130,19 @@ export const SWITCHBACK: MapDef = {
 export const TWO_ROADS: MapDef = {
   id: 'tworoads',
   name: 'Two Roads',
-  blurb: 'Two roads from either edge meet at a junction above the Hearth and come down as one. Cover each road on its way in, or wait at the junction where everything passes, behind Nodes a Shade can reach.',
+  blurb: 'Two roads from either edge meet at a junction far above the Hearth and come down as one. Everything passes the long last stretch; towers up at the junction need a chain of Nodes past where the Hearth reaches.',
   w: 40,
   h: 30,
   hearth: { x: 17, y: 19 },
   paths: [
-    [[-1, 4.5], [7.5, 4.5], [7.5, 11.5], [18.5, 11.5], [18.5, 18.9]],
-    [[41, 6.5], [30.5, 6.5], [30.5, 11.5], [18.5, 11.5], [18.5, 18.9]],
+    [[-1, 4.5], [7.5, 4.5], [7.5, 9.5], [18.5, 9.5], [18.5, 18.9]],
+    [[41, 6.5], [30.5, 6.5], [30.5, 9.5], [18.5, 9.5], [18.5, 18.9]],
   ],
   deposits: [
     // south of the Hearth, safe from Shades
     [[17, 24], [18, 24], [19, 24], [18, 25], [19, 25]],
-    // north of the junction, 4.5 tiles from the roads: out of a Snuffer's reach, far from the Hearth
-    [[18, 5], [19, 5], [18, 6], [19, 6], [20, 6]],
+    // north of the junction, 4.5 tiles from the roads: inside a Snuffer's 5, far from the Hearth
+    [[18, 3], [19, 3], [18, 4], [19, 4], [20, 4]],
     // far west, past the west road
     [[2, 15], [3, 15], [2, 16], [3, 16]],
   ],
@@ -157,8 +157,8 @@ export const TWO_ROADS: MapDef = {
   why: {
     w: '§11: 40 × 30 tiles', h: '§11: 40 × 30 tiles',
     hearth: '§11 Two Roads: the Hearth under the shared last stretch',
-    paths: '§11 Two Roads: 34 and 35 tiles; they meet at a junction 7.4 tiles above the Hearth and share the last stretch, so the junction sees every enemy (the third review: two separate last legs halved the wall and lost every human-speed run)',
-    deposits: '§11 Two Roads: one safe south, one north of the junction (4.5 tiles from both roads), one far west',
+    paths: '§11 Two Roads: 34 and 35 tiles; they meet at a junction 9.4 tiles above the Hearth (the fourth review: at 7.4 one Node beside the Hearth fed the junction) and share the last stretch, so it sees every enemy (the third review: two separate last legs halved the wall and lost every human-speed run)',
+    deposits: '§11 Two Roads: one safe south, one north of the junction (4.5 tiles from the roads), one far west',
     windMean: '§3.2 wind: 0.55', pace: '§11 Two Roads: spacing × 1.4 (two roads bring the waves in from two sides; the bot sweep in §11)',
     unlockWave: '§11: reach wave 8 anywhere', spawnAt: '§11 Two Roads: 4 tiles in (its first legs are 8.5 and 10.5 long)',
   },

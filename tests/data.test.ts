@@ -75,7 +75,7 @@ describe('data validation', () => {
       expect(counts).toEqual(w.composition);
     }
     // §5 totals: health per wave
-    const health = [240, 360, 536, 742, 812, 1124, 1020, 2600, 2036, 2754, 4194, 6138];
+    const health = [240, 360, 536, 742, 812, 1124, 1020, 1610, 2036, 2754, 4194, 6138];
     WAVES.forEach((w, i) => {
       const h = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
       expect(h, `wave ${w.n} total health`).toBe(health[i]);

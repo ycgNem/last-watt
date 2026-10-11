@@ -19,8 +19,8 @@ export const RULES = {
   starshellHeavy: { v: 3, why: '§4.1 Starshell aim: a body over 100 kJ counts as three in its crowd count (a burst spends its whole share on it, where a 30 kJ Moth often dies with most of its share unspent)' },
   veilSight: { v: 0.6, why: '§5.1 Veil: seen only by a tower above the starved line (0.6)' },
   brownoutEnds: { v: 0.75, why: '§2 brownout ends when the wall is back above 0.75 for 2 s (hysteresis so it does not flap)' },
-  windShadow: { v: 0.4, why: '§3.2 wind shadow: each other Vane within reach takes 40% of the wind it would catch (a deep wake)' },
-  windShadowRadius: { v: 4, why: '§3.2 wind shadow: 4 tiles, about two rotor diameters' },
+  windShadow: { v: 0.3, why: '§3.2 wind shadow: each other Vane within reach takes 30% of the wind it would catch (the fourth review: 40% within 4 was a spacing tax, not a ceiling)' },
+  windShadowRadius: { v: 7, why: '§3.2 wind shadow: 7 tiles, a wake three or four rotors long' },
   windMean: { v: 0.55, why: '§3.2 wind: averages 0.55 of a Vane\'s rating' },
   endlessGrowth: { v: 1.14, why: '§5.3 endless: each wave past the last brings 14% more kJ' },
 } satisfies Record<string, Rule>;

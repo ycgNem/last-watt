@@ -74,12 +74,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   snuffer: {
-    id: 'snuffer', name: 'Snuffer', code: 'N', blurb: 'Puts out any Burner within 3.5 tiles: its burning rock is lost and it stays cold for 8 s.',
+    id: 'snuffer', name: 'Snuffer', code: 'N', blurb: 'Puts out any Burner within 5 tiles: its burning rock is lost and it stays cold for 8 s.',
     answer: 'Keep Burners back from the path, or have Jars to carry the gap.',
-    health: 160, speed: 0.8, bounty: 24, leak: 3, snuffRadius: 3.5, snuffTime: 8,
+    health: 160, speed: 0.8, bounty: 24, leak: 3, snuffRadius: 5, snuffTime: 8,
     why: {
       health: '§5.1 Snuffer: 160 kJ', speed: '§5.1 Snuffer: 0.8 t/s', bounty: '§1 bounty = round(160 × 0.15) = 24', leak: '§5.1 Snuffer: 3 lights',
-      snuffRadius: '§5.1 Snuffer: Burners within 3.5 tiles (the north deposit is in reach, the south is not)', snuffTime: '§5.1 Snuffer: cold for 8 s',
+      snuffRadius: '§5.1 Snuffer: Burners within 5 tiles (the fourth review: at 3.5 it changed nothing; at 6 the human profile lost)', snuffTime: '§5.1 Snuffer: cold for 8 s',
     },
   },
   siphon: {

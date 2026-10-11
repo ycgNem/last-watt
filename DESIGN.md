@@ -31,7 +31,8 @@ looking up what another game uses. When you change a number, write the new deriv
 5. **Networks**: a network is a connected set of nodes. Anything within a node's radius is on
    that node's network. Generators and consumers on different networks don't see each other.
    A node that is knocked offline splits its network; everything downstream goes dark that tick.
-   (Line capacity and losses are a Milestone 3 tier, not in the slice.)
+   Each Node carries at most 40 kW, either way (§3.3, since the fourth review); line loss is the
+   Long line's (§3.2).
 
 Everything scales with satisfaction: tower fire rate, beacon slow strength, extractor speed,
 research speed, construction speed. There is no state where "not enough power" blocks an action;
@@ -52,7 +53,7 @@ wall to tier 1 while a Pall is in range, and pay for it with cold Burners later)
 | **Hearth** (station core) | free, one | the thing you defend; also the bootstrap generator and the first node | 8 kW at 20 lights, no fuel; **0.4 kW less for every light lost** (8 × lights / 20). Node radius 4 tiles. At 0 lights the run ends. |
 | **Extractor** | 30 | pulls fuel from a deposit | 1 emberrock / 8 s at full satisfaction; draws 2 kW |
 | **Burner** | 40 | burns emberrock | 20 kW output at 0.5 efficiency → 40 kW thermal → **one emberrock lasts 10 s** (400 kJ each). Holds 5. |
-| **Node** | 10 | transmission | radius 4 tiles. Cut by a Shade within 3.5 tiles, for 6 s (§5, the third review). |
+| **Node** | 10 | transmission | radius 4 tiles; **carries at most 40 kW** through it, either way (§3.3). Cut by a Shade within 3.5 tiles, for 6 s (§5, the third review). |
 | **Jar** (battery) | 60 | storage | 600 kJ; discharge ≤ 30 kW; charge ≤ 15 kW |
 | **Lab** | 50 | research | draws 10 kW while a project is active |
 
@@ -96,17 +97,82 @@ adds instead are new ways to make, store and carry watts, each a different energ
 
 | Building | Cost | Numbers | Its decision |
 |---|---|---|---|
-| **Vane** (research 600 kJ) | 50 | 15 kW × the wind, no fuel, goes anywhere on a network | The wind is three slow sine swells (periods 53, 19 and 7.1 s, amplitudes 0.28 / 0.17 / 0.08 around **0.55**, clamped to 0.1–1). Average 8.2 kW: **6.1 money per average kW**, nearly twice a Burner's 3.2, but it needs no deposit and no Extractor, and a Snuffer can't put it out. Its gusts are the Jar's job. **Wind shadow** (the third review): each other Vane within **4 tiles** (centre to centre, about two rotor diameters) takes **40%** of its wind, so two side by side make 1.6 Vanes' worth and three in a clump 1.08. Money no longer buys unlimited wind: generation is bounded by room on the network, which the map sets. |
+| **Vane** (research 600 kJ) | 50 | 15 kW × the wind, no fuel, goes anywhere on a network | The wind is three slow sine swells (periods 53, 19 and 7.1 s, amplitudes 0.28 / 0.17 / 0.08 around **0.55**, clamped to 0.1–1). Average 8.2 kW: **6.1 money per average kW**, nearly twice a Burner's 3.2, but it needs no deposit and no Extractor, and a Snuffer can't put it out. Its gusts are the Jar's job. **Wind shadow** (the third review, eased by the fourth): each other Vane within **7 tiles** (centre to centre, a wake three or four rotors long) takes **30%** of its wind, multiplied: two in each other's wake make 1.4 Vanes' worth, three 1.47, four 1.37, so a clump stops paying at three. The third review's 40% within 4 tiles was a spacing tax, not a ceiling (the fourth review: Vanes five apart paid in full, so the shadow only taxed a player who packed them). Money no longer buys unlimited wind: generation is bounded by room on the map, spread out. |
 | **Bellows** (Burner tier 2, 1000 kJ) | +50 | 30 kW at efficiency 0.6 | A rock gives 400 × 0.6 = 240 kJ (was 200) and lasts 8 s (was 10), so one Extractor (8 s a rock) feeds exactly one Bellows Burner. +50% output and +20% energy per rock. |
 | **Deep bit** (Extractor tier 2, 700 kJ) | +38 | 1 rock / 5 s, draws 4 kW | 1.6 rocks per 8 s for 2 kW more: feeds a Bellows Burner and most of another. |
 | **Bank** (Jar tier 2, 800 kJ) | +75 | 1500 kJ, charge 25 kW, discharge 45 kW | Late waves are long enough that one Jar's 600 kJ runs dry mid-wave. |
-| **Flywheel** (Jar tier 2 *instead of* Bank, 700 kJ) | +75 | 300 kJ, charge 60 kW, discharge 90 kW, **spins down 2% of its charge a second** | The other way to take a Jar's tier, chosen once (the first upgrade branch). A tier-2 Floodlight Overcharged asks 36 × 3 = 108 kW, 72 kW over its firing draw, for 4 s: 288 kJ. A Jar gives 30 kW (a Bank 45), so it takes two or three of them to carry that; one Flywheel gives 90 and holds 300 kJ, exactly one such Overcharge. It refills in 5 s of surplus at 60 kW where a Jar takes 20 s for the same 300 kJ. The spin-down (half gone in ln 2 / 0.02 ≈ 35 s; 6 kW of friction when full, shown as wasted) is what keeps it from being a better Bank: it is a wave tool, filled by the surplus between packs and spent on the next Overcharge, not a store for the breather. Bank or Flywheel is a real choice: a long wave wants depth, an Overcharge-heavy wall wants rate. |
-| **Long line** (Node tier 2, 500 kJ) | +13 | reach 6 tiles, **loses 1 kW** while it carries power | The first transmission loss: a longer reach pays in watts, so it is a choice, not a pure upgrade. Losses come off a network's generation before anyone sees it. |
+| **Flywheel** (Jar tier 2 *instead of* Bank, 700 kJ) | +75 | 300 kJ, charge 60 kW, discharge 90 kW, **spins down 2% of its charge a second** | The other way to take a Jar's tier, chosen once (the first upgrade branch). *Re-derived in the fourth review (M5): its first derivation was one tier-2 Floodlight Overcharge (72 kW × 4 s = 288 kJ), void since the third review ruled that a Jar never pays for an Overcharge's extra.* Its job now is **the peak past a full Node** (§3.3): a branch behind a 40 kW link that fires at 80–100 kW while a pack passes and idles at 10–15 between packs. A Jar there gives 30 of the 40–60 kW short (the branch at 70–85%), a Bank 45, a Flywheel all of it up to 90. Between packs the link's spare 25–30 kW refills its 300 kJ in 10–12 s, where a Jar past the same link needs 20 s for half its 600. The spin-down (half gone in ln 2 / 0.02 ≈ 35 s; 6 kW of friction when full, shown as wasted) keeps it from being a better Bank: it is a wave tool past a narrow link, not a store for the breather. Bank or Flywheel: a long wave on open ground wants depth, a crowded branch behind one Node wants rate (`tests/capacity.test.ts`). |
+| **Long line** (Node tier 2, 500 kJ) | +13 | reach 6 tiles, **loses 1 kW** while it carries power; still 40 kW through it | The first transmission loss: a longer reach pays in watts, so it is a choice, not a pure upgrade. Losses come off a network's generation before anyone sees it. |
+| **Heavy line** (Node tier 2 *instead of* Long line, same research) | +13 | carries **80 kW** (was 40), same 4-tile reach | The other way to take a Node's tier (the fourth review, with §3.3): reach against weight. 80 kW is a bend at full fire on tier 2: two tier-2 Floodlights firing ask 2 × 36 = 72, or a Floodlight and two tier-2 Lamps 36 + 2 × 18 = 72. |
 
 Tier costs follow §4's rule: base × 1.25. Still Milestone 3 and not built: belts and arms, the
-Refiner (coke), the tar still, node capacity, blueprints. The Lines view (V) is the production
-read-out: each network's kW in, its full-fire draw, and its worst bottleneck in this order: a
-Burner with no rock, no power in, a starved wall, a peak the Jars can't carry, waste, line loss.
+Refiner (coke), the tar still, blueprints. The Lines view (V) is the production read-out: each
+network's kW in, its full-fire draw, and its worst bottleneck in this order: a Siphon on it, no
+power in, a Burner with no rock, **a full Node** (§3.3), a starved wall, a peak the Jars can't
+carry, waste, line loss. "Short" and "peak" are said only when the wall actually fell under 75%
+during this wave (the fourth review M4: full fire against generation advised the losing end of
+the split, since a wall's measured peak is about half its full fire).
+
+### 3.3 Transmission (the fourth review's C1, Milestone 3)
+
+**The problem it answers.** Until the fourth review a network was a bag: anything in reach of any
+Node shared everything made anywhere on it, so a Node was a 10-money tile of reach and nothing
+more. Where the power went was never a question, only whether there was enough of it, and the
+critic measured that money stopped being scarce by wave 6 on every map: the factory's only limit
+was deposit room.
+
+**The rule.** Each network is a tree of its conductors grown from its root: the Hearth, or on a
+network without one the conductor beside the most generators. Two conductors are linked when
+either covers the other; the tree takes the shortest way (breadth first, ties to the older
+building). Every other building draws through one conductor: of those that cover it, the one
+nearest the root, then the nearest. **A Node's link to its parent carries at most 40 kW in either
+direction**: into the branch past it (consumers out there) or out of it (Burners out there sending
+power home). The Hearth's own reach has no limit.
+
+**Sharing.** Power is still shared tier by tier (§2.3), and inside a tier every conductor's
+consumers still get the same share, *unless a link on their way is full*: then the branch past
+that link gets what fits through it, and the rest of the network carries on without it (max-min
+fair: the share rises evenly until a link fills, the branch past it stops there, the rest keep
+rising). The order of the tick is: line loss and Siphons first; live power to tiers 0–4; then
+Jars, each giving for what live power could not reach (a Jar past a full Node carries its branch
+over the limit; a Jar on the near side cannot help, since its power would have to come through
+the same link); never for an Overcharge's extra (the third review); then what is left charges
+Jars as far as the links carry it; the rest is wasted.
+
+**Why 40 kW.** Two Burners' output (2 × 20), so a Node is a line for a pair, and the station's
+opening (the Hearth's 8 kW, then one or two Burners beside it) never meets the limit. A link
+first fills where a bend's worth of towers hangs off one Node: three firing Lamps ask 36 kW and
+fit; four ask 48, and so does a Floodlight (24 firing, 36 at tier 2) with two Lamps. The player
+sees the link turn violet in waves 4–6, about when the second Burner pair comes and the first
+Floodlight goes in. 30 kW would fill at the tutorial's three-Lamp bend in wave 2, before the
+player has the research or the money for an answer.
+
+**The answers, each a different decision.** A **second route** (another Node from the Hearth or
+another line: the branch splits and each half draws through its own link); a **Jar past the
+Node** (it fills from the link's spare between packs and gives at the peak; the Flywheel does this
+best, §3.2); **Burners on the far side** (power made past a link needs no link, but what they make
+beyond the branch's own draw can only go home 40 kW at a time); a **Heavy line** (80 kW, at the
+Long line's research: reach or weight, not both). A Shade that cuts one route of two sends the
+whole branch through the other, so a cut can fill a link that was fine a second earlier.
+
+**On screen.** A working link is drawn amber, gold above 75% of its limit, and violet pulsing when
+full, with a FULL tag naming its kW; a spare link (a second route the tree doesn't use) is a
+dashed slate line. Hovering a Node says what it carries. A starved tower past a full Node says so,
+and so does the Lines view.
+
+**What it did** (`design/verbs.mts`, `tests/capacity.test.ts`). The Switchback's plan fell from 17
+lights to 6 with capacity and a bot that never upgraded a Node: the four towers on its fourth leg
+hung off one Node, which was full 12–48 s a wave from wave 4 on. Once the bot puts a Heavy line on
+every Node it has seen full (as a player sees the violet link and the FULL tag), it is back to 17,
+with a full link 2–12 s a wave until the last two waves. The station, the Fork and Two Roads hold
+their results; the station's Hearth-side wall never fills a link. A Shade cut of one route of two
+was found to matter in play: on the Switchback a Shade cuts the Node that splits the fourth leg's
+load, and the other Node fills.
+
+**Derivative flag** (`DECISIONS.md`): per-line wattage limits are Oxygen Not Included's wires
+(1 kW, 2 kW, the heavi-watt wire). Re-derived here from pillar 1 (energy is a live flow, and
+*where* it goes is a decision): nothing burns out, a full link just shares what fits, and the
+answers are routes and storage, not a wire tier to buy everywhere. Kept.
 
 ## 4. Towers
 
@@ -292,11 +358,11 @@ the first time it appears. Flits come in clumps of eight, 0.3 s apart inside a c
 | 1 | 8 Moth | 240 | 40 | 20 | 2.25 s |
 | 2 | 12 Moth | 360 | 60 | 25 | 1.9 s |
 | 3 | 10 Moth, 2 Shade, 4 Flit (new) | 536 | 86 | 30 | **2.4 s** |
-| 4 | 12 Moth, 3 Shade, 8 Flit | 742 | 118 | 35 | 2.2 s |
+| 4 | 12 Moth, 3 Shade, 8 Flit (in two clumps of four) | 742 | 118 | 35 | 2.2 s |
 | 5 | 10 Moth, 1 Pall, 8 Flit | 812 | 126 | 40 | 1.6 s |
 | 6 | 10 Moth, 4 Shade, 16 Flit, 2 Siphon (new) | 1,124 | 174 | 45 | 1.2 s |
 | 7 | 14 Moth, 6 Veil (new), 2 Shade | 1,020 | 164 | 50 | 1.4 s |
-| 8 | 24 Moth, 12 Shade, 2 Pall | 2,600 | 408 | 55 | 0.6 s |
+| 8 | 12 Moth, 5 Shade, 2 Pall | 1,610 | 250 | 55 | 0.8 s |
 | 9 | 18 Moth, 4 Snuffer (new), 4 Veil, 24 Flit, 2 Siphon | 2,036 | 316 | 60 | 0.85 s |
 | 10 | 22 Moth, 7 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit, 2 Siphon | 2,754 | 428 | 65 | 0.65 s |
 | 11 | 36 Moth, 13 Shade, 4 Veil, 3 Pall, 16 Flit, 2 Siphon | 4,194 | 654 | 70 | 0.42 s |
@@ -321,7 +387,7 @@ Each one interacts with the grid in a different way, as Milestone 4 asks:
 | **Flit** | 14 kJ | 2.6 t/s | 2 | none: it is a **throughput** test. A clump of eight 0.3 s apart brings 14 / 0.3 = 47 kJ/s, about eight Lamps' worth, for 2.4 s. Single beams can't keep up; cones, fire and bursts can. | 1 |
 | **Veil** | 70 kJ | 1.3 t/s | 11 | **sight**: only a tower whose share of power (smoothed over 0.5 s) is at or above **0.6**, the starved line, can find it; an Overcharged tower always can, and a Brazier's heat needs no sight. A brownout lets Veils walk through. | 2 |
 | **Siphon** | 120 kJ | 0.9 t/s | 18 | **demand**: taps the nearest building on a network within **2 tiles** of it and drinks **12 kW** (one firing Lamp) from that line, served before every tier, Overcharge included. It is demand like any other, so spare kW and a charged Jar on that line cover it and a tight line browns out; shedding doesn't help. A Siphon walking a bend at 0.9 t/s is in reach of the bend's towers for about 8 s, about 100 kJ stolen per bend, so it is a margin test: kill it fast where it drinks (Overcharge, a Brazier) or have the kW. Waves 6, 9, 10, 11 and 12 carry two each, in place of Moths (9 and 11 since the third review); the bot's results held (15 / 17 lights) and its no-Jar control fell from 9 to 4. *The fourth review measured that it costs a sensible player nothing on the station and the Switchback (a grid in surplus shrugs off 12 kW), and 2 lights on Two Roads.* | 2 |
-| **Snuffer** | 160 kJ | 0.8 t/s | 24 | **generation**: puts out any Burner within **3.5 tiles**: the burning rock is lost and the Burner stays cold while it is near and 8 s after. At 3.5 tiles the north deposit's Burners beside the first straight are in reach and the south deposit's are not, so the factory has a safe side. Vanes and the Hearth can't be snuffed. | 3 |
+| **Snuffer** | 160 kJ | 0.8 t/s | 24 | **generation**: puts out any Burner within **5 tiles**: the burning rock is lost and the Burner stays cold while it is near and 8 s after. The station's south deposit is out of reach, so the factory has a safe side; Burners on the rich ground of the Switchback, the Fork and Two Roads are in it. Vanes and the Hearth can't be snuffed. *The fourth review: at 3.5 the bot's results were the same with Snuffers or without (every plan's Burners sat 4.5 tiles back); at 5 the rich ground costs something; at 6 the human profile lost the Fork.* | 3 |
 
 Bounty is still round(health × 0.15). **Derivative flags** (written in `DECISIONS.md`): the
 Veil's "some towers can't see it" is Bloons' camo; here the counter is the grid's state, not a
@@ -534,6 +600,23 @@ but a Pall is a bad trade, which is the decision working. The enemies' shorter w
 plan absorbs it. Tests: the plan wins with 10–16 lights and some brownout; the human profile wins
 every map with 6 or more and no verbs ends at least 4 below it; two extra Jars stay under 20.
 
+**After the fourth review** (node capacity §3.3 with the Heavy line, wave 8 at 1,610 kJ, wave 4's
+Flits in two clumps, the Snuffer at 5 tiles, the wind shadow at 30% within 7, Two Roads' junction
+at 9.4; the bot puts a Heavy line on any Node it has seen full):
+
+| Map | Plan (verbs) | No verbs at all | Human profile | Plan + 2 Jars |
+|---|---|---|---|---|
+| The Last Station | 20 | 0 (loses wave 12) | 20 | 20 |
+| The Switchback | 17 | 7 | 17 | 17 |
+| The Fork | 19 | 5 | 18 | 19 |
+| Two Roads | 16 | 0 (loses wave 12) | 12 | 16 |
+
+The station is now flawless for the plan (§11, the fourth review: tighter paces do not change
+that, the verbs do), so its test asks for 14 or more and some brownout, and the run-level "+2
+Jars stay under 20" went: the rule it guarded (a Jar never pays for an Overcharge's extra) is
+tested in the grid (`tests/grid.test.ts`). Every map's "no verbs at least 4 below the human
+profile" holds with room: 20 / 10 / 13 / 12 lights apart.
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
@@ -542,10 +625,12 @@ every map with 6 or more and no verbs ends at least 4 below it; two extra Jars s
 - a Jar charges at its 15 kW limit in a breather: a Pulse's 300 kJ in one 20 s gap, full in two;
 - a far Lamp fed by Nodes inside a Shade's reach loses ≥ 10 s of uptime in wave 3; fed from Nodes
   4.5 tiles back, out of a Shade's 3.5, none;
-- the bot wins the whole run with 10–16 lights and some brownout; a slower "human" profile wins
-  with 6 or more; with no factory it loses by wave 4; with too much factory (headroom 1.2) and
-  with too little (3.0) it keeps at most half the plan's lights; without Jars, at least 5 fewer
-  (`tests/bot.test.ts`);
+- the bot wins the whole run with 14 or more lights and some brownout; a slower "human" profile
+  wins with 6 or more; with no factory it loses by wave 4; with too much factory (headroom 1.2) and
+  with too little (3.0) it keeps at most half the plan's lights; without Jars, at least 5 fewer;
+  with no verbs, at least 4 fewer (`tests/bot.test.ts`);
+- a Node carries 40 kW and a Heavy line 80; a second route, a Jar or a Flywheel past a full Node
+  carry the branch over it, each by its own discharge rate (`tests/capacity.test.ts`);
 - the new mechanics' arithmetic (`tests/grid.test.ts`): the cone's 0.4 catch and the Pall's
   shadow, the Brazier's per-body draw, the Searchlight's lock and swing, the Starshell's shell and
   burst, the Veil's sight line, the Snuffer's reach, the Vane's average, Bellows, the Long line's
@@ -711,7 +796,7 @@ wave 6, Two Roads at wave 8 (lenient on purpose: the owner wants to see the cont
 | **The Last Station** | one, 41 tiles, two bends facing the Hearth | two near, one far | 0.55 | 1.0 | the slice: bends vs straights (§6) |
 | **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | **0.9** | the strip between the legs is rich ground, and every Node in it is within a Shade's reach; only a Floodlight, a Searchlight or a Starshell placed in it reaches both legs (a Lamp at the middle sits 3.5 from each: 2√(3.5² − 3.5²) = 0 tiles of beam; the first version of this row said a Lamp reaches both, and was wrong). A windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW). Its late waves are heavier (two more Palls in wave 8, waves 10–12 half again with more Palls): the long road kills by exposure, so without them no verb mattered |
 | **The Fork** | one road in from the west that **forks** after 8.5 tiles: the **Loop** (54 tiles round the north) or the **Cut** (12 tiles straight on); they meet above the Hearth and come down 6.4 tiles together (69 or 27 in all) | one safe south-west, one rich *inside* the Loop (a Snuffer on its top leg reaches it), one far east | 0.55 | 1.0 | **which way the enemies go is the player's light.** At the fork the light-drawn (Moths, Flits, Siphons) take the branch with more lit towers on it, the Veil the one with fewer; everything else keeps the road the spawner gave it. Light the Loop's last leg and the Moths walk 54 tiles past it; light the Cut and they take 12. Dark Bait (§8) turns them mid-wave |
-| **Two Roads** | two, 34 and 35 tiles, from the west and the east; they **meet at a junction** 7.4 tiles above the Hearth and come down as one | one safe south, one north of the junction (4.5 tiles from both roads), one far west | 0.55 | **1.4** | cover each road on its way in, or wait at the junction and on the shared stretch, where every enemy passes: the stretch is on the Hearth's own power, the junction hangs off Nodes a Shade can reach. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road |
+| **Two Roads** | two, 34 and 35 tiles, from the west and the east; they **meet at a junction** 9.4 tiles above the Hearth and come down as one | one safe south, one north of the junction (4.5 tiles from the roads, inside a Snuffer's 5), one far west | 0.55 | **1.4** | cover each road on its way in, or wait on the long shared stretch, where every enemy passes. The lower stretch is on the Hearth's own power; towers up at the junction need a chain of Nodes, each a 40 kW link (§3.3). Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road |
 
 Why those paces. **Exposure, not inflow, sets the pace on a long road.** The Switchback was first
 set to 0.8 on the reasoning that 1.75× the road gives 1.75× the time on each enemy, so the waves
@@ -764,4 +849,21 @@ road, so no Shade cuts them: on this map the Shade's threat is the walk, not the
 Per-kind alternation (not per-spawn): with one counter, a wave whose sequence puts its Palls on
 odd indices sends both down the same road, and the player learns a sequence quirk rather than
 a map. Starting each wave on the other road keeps a single Shade from always taking the west.
+
+**The fourth review (maps).** *Two Roads (M3):* the map's stated decision did not exist: Nodes 4.5
+tiles back from the stretch fed the junction towers, and no policy ever saw a cut. The junction
+moved 2 tiles up, to 9.4 above the Hearth, with both roads' first legs shortened to match (34 and
+35 tiles still), and the north deposit 2 tiles up with it. Honest result: a Node's reach (4) is
+longer than a Shade's (3.5), so a careful player can still feed the junction from safe ground (the
+inner corners of the T sit 4 tiles from both arms), and the bot's plan sees no cuts. What the move
+did change: the shared stretch is 2 tiles longer, so holding it is stronger (plan 7 → 16 lights,
+human profile a loss → 12), and the junction is now a chain of links from the Hearth, so
+capacity (§3.3) is what limits a wall up there. The blurb now says that, not "Nodes a Shade can
+reach". *The station:* since wave 8 was smoothed (2,600 → 1,610 kJ) the reference plan and the
+human profile both hold all 20 lights; no verbs still loses wave 12. Tighter paces were tried
+(0.95 to 0.75 from wave 4: the plan still held 18–20; 0.95 on every wave cost the tutorial 6 lights
+in wave 2), so the station's late game is decided by the verbs, not by spacing, and the first map
+stays forgiving: the expert difficulty is the other three. Results (`design/verbs.mts`, after
+§3.3): station 20 / no verbs loses / human 20; Switchback 17 / 7 / 17; the Fork 19 / 5 / 18;
+Two Roads 16 / loses / 12.
 

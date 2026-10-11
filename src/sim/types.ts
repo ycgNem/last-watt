@@ -1,3 +1,4 @@
+import type { FlowTree } from './systems/flow';
 // Sim state types. Everything here is plain data: no DOM, canvas, audio or timers.
 import type { BuildingDef, BuildingId } from '../data/buildings';
 import type { EnemyDef, EnemyId } from '../data/enemies';
@@ -46,6 +47,10 @@ export interface Building {
   guard: number;
   overcharge: number;
   cool: number;
+  /** a conductor: kW its link carried this tick (+ into the branch past it), and whether that is
+   *  all the link carries (§3.3) */
+  carry: number;
+  full: boolean;
   /** searchlight: seconds left swinging onto its target */
   sweep: number;
   /** brazier: bodies in the fire this tick */
@@ -124,6 +129,9 @@ export interface Network {
   /** kW Siphons ask of it this tick, and kW they got (§5.1) */
   drain: number;
   stolen: number;
+  /** its conductors as a tree from the root, and the conductor each member draws through (§3.3) */
+  tree?: FlowTree;
+  at?: Map<number, number>;
 }
 
 export interface GridStats {

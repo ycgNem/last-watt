@@ -47,7 +47,7 @@ export interface Overlay {
 
 /** a colour per power line in the Lines view, and a colour per bottleneck */
 const LINE_COLORS = [C.gold, C.cyan, C.lime, C.orange, C.ice, C.tan];
-const NECK_COLORS: Record<Neck, string> = { siphon: C.violet, nopower: C.violet, fuel: C.ember, short: C.ember, peak: C.amber, waste: C.sky, loss: C.amber, ok: C.lime };
+const NECK_COLORS: Record<Neck, string> = { siphon: C.violet, nopower: C.violet, fuel: C.ember, full: C.violet, short: C.ember, peak: C.amber, waste: C.sky, loss: C.amber, ok: C.lime };
 
 export class Renderer {
   ctx: CanvasRenderingContext2D;
@@ -423,6 +423,9 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
+  private treeVersion = -1;
+  private treeLinks = new Map<string, number>();
+
   private drawWires(g: Game) {
     if (this.wiresVersion !== g.netVersion) {
       this.wiresVersion = g.netVersion;
@@ -434,16 +437,36 @@ export class Renderer {
           if (covers(g.rect(a), g.spec(a).nodeRadius ?? 0, g.rect(b)) || covers(g.rect(b), g.spec(b).nodeRadius ?? 0, g.rect(a))) this.wires.push({ a, b });
         }
     }
+    // which links carry power (a conductor draws through one neighbour, nearer the root, §3.3):
+    // the child end of each, so its load can colour the wire
+    if (this.treeVersion !== g.netVersion) {
+      this.treeVersion = g.netVersion;
+      this.treeLinks = new Map();
+      for (const n of g.networks) {
+        if (!n.tree) continue;
+        for (let i = 1; i < n.tree.ids.length; i++) {
+          const c = n.tree.ids[i], p = n.tree.ids[n.tree.parent[i]];
+          this.treeLinks.set(c < p ? `${c}-${p}` : `${p}-${c}`, c);
+        }
+      }
+    }
     for (const { a, b } of this.wires) {
       if (!g.buildings.has(a.id) || !g.buildings.has(b.id)) continue;
       const pa = this.placeSprite(a), pb = this.placeSprite(b);
       const ax = a.def.role === 'core' ? pa.lx : pa.lx, ay = a.def.role === 'core' ? pa.y + 20 : pa.ly + 1;
       const bx = pb.lx, by = b.def.role === 'core' ? pb.y + 20 : pb.ly + 1;
       const live = a.offline <= 0 && b.offline <= 0 && a.net >= 0 && a.net === b.net && (g.networks[a.net]?.gen ?? 0) > 0;
-      if (live) {
-        const sat = g.networks[a.net].wall.sat;
-        this.pixelLine(ax, ay, bx, by, sat < RULES.starvedBelow.v ? C.violet : C.amber, 0.55 + 0.25 * Math.sin(this.time * 3 + a.id));
-      } else this.pixelLine(ax, ay, bx, by, C.slate, 0.9); // a cut line goes dark along its whole length (STYLE.md rule 2)
+      const child = this.treeLinks.get(a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`);
+      if (!live) this.pixelLine(ax, ay, bx, by, C.slate, 0.9); // a cut line goes dark along its whole length (STYLE.md rule 2)
+      else if (child === undefined) this.pixelLine(ax, ay, bx, by, C.slate, 0.45, 1, 2); // a spare route: it carries if the other is cut
+      else {
+        // a working link: amber, gold when busy, violet and pulsing when it carries all it can
+        const c = g.buildings.get(child)!;
+        const cap = g.spec(c).carryKw ?? Infinity;
+        const load = Math.abs(c.carry) / cap;
+        if (c.full) this.pixelLine(ax, ay, bx, by, C.violet, 0.6 + 0.4 * Math.sin(this.time * 8 + a.id), 2);
+        else this.pixelLine(ax, ay, bx, by, load > 0.75 ? C.gold : C.amber, 0.55 + 0.25 * Math.sin(this.time * 3 + a.id));
+      }
     }
   }
 
@@ -587,6 +610,7 @@ export class Renderer {
       else tag('NO FUEL', C.ember);
     }
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
+    else if (b.def.role === 'node' && b.full) tag(`FULL ${Math.round(Math.abs(b.carry))} KW`, Math.floor(this.time * 4) % 2 === 0 ? C.violet : C.mist);
     else if ((b.def.role === 'tower' || b.def.role === 'beacon') && (g.networks[b.net]?.gen ?? 0) <= 0 && (g.networks[b.net]?.stored ?? 0) <= 0) tag('NO SUPPLY', C.violet);
     // a Flywheel wears a wheel that spins with its charge
     if (b.def.role === 'storage' && b.branch > 0) {

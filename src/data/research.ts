@@ -127,7 +127,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   longline: {
     id: 'longline', name: 'Long line', branch: 'power', cost: 500,
-    blurb: 'Nodes can be upgraded: reach 6 tiles, losing 1 kW on the line.',
+    blurb: 'Nodes can be upgraded: a Long line reaches 6 tiles (losing 1 kW), a Heavy line carries 80 kW.',
     why: { cost: '§7 Node tier 2: 500 kJ' },
   },
 };

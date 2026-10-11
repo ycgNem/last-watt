@@ -92,6 +92,11 @@ export function waveBounty(n: number, map?: MapDef): number {
   return sum;
 }
 
+/** seconds between a wave's enemies on this map: the table's spacing × the map's pace (§11) */
+export function spacingOf(g: Game, w: { n: number; spacing: number }): number {
+  return w.spacing * g.map.pace;
+}
+
 /** start the next wave now (Space, or the breather running out) */
 export function startNextWave(g: Game) {
   if (g.over || (!g.endless && g.wave >= LAST_WAVE)) return;
@@ -99,7 +104,7 @@ export function startNextWave(g: Game) {
   g.wave++;
   g.waveStarted.add(g.wave);
   g.waveTimer = 0;
-  g.spawners.push({ wave: w.n, seq: w.seq, i: 0, next: 0, spacing: w.spacing * g.map.pace, routes: {} });
+  g.spawners.push({ wave: w.n, seq: w.seq, i: 0, next: 0, spacing: spacingOf(g, w), routes: {} });
   g.emit({ t: 'wave', n: w.n, note: w.note });
 }
 
