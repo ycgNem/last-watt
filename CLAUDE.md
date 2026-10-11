@@ -1,9 +1,9 @@
 # CLAUDE.md — Last Watt
 
 You are building **Last Watt**, a pixel-art tower defense where energy is a live flow. Read
-`PLAN.md` (what and why), `DESIGN.md` (every number and its derivation), `ROADMAP.md` (what to
-build now), `STYLE.md` (how it looks) and `PROGRESS.md` (what exists) at the start of every
-session, in that order. `DECISIONS.md` holds every design decision with its reason; add to it,
+`HANDOFF.md` (where the last session stopped) first, then `PLAN.md` (what and why), `DESIGN.md`
+(every number and its derivation), `ROADMAP.md` (what to build now), `STYLE.md` (how it looks) and
+`PROGRESS.md` (what exists) at the start of every session, in that order. `DECISIONS.md` holds every design decision with its reason; add to it,
 never silently contradict it.
 
 ## Stack (decided, don't relitigate)

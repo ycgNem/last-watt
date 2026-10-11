@@ -1,5 +1,8 @@
 # Start here
 
+> This is the bootstrap guide from before Milestone 0, kept for the record. To pick the project
+> up now, read `HANDOFF.md`.
+
 ## Before the first Claude Code session (10 minutes, by hand)
 
 1. ~~Decide the name.~~ Done 2026-10-11: **Last Watt** (was "Candlepower"). Quick search found

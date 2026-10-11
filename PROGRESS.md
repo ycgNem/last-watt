@@ -6,8 +6,8 @@ What exists, what is stubbed, what is next. Updated at the end of every session.
 
 **The Milestone 2 gate is passed** (the owner played the slice and asked for the next phase;
 `DECISIONS.md`). The sessions since built the owner's asks (wave pay, a split build bar, a
-tutorial), pieces of Milestones 3–11, and ran six `td-critic` reviews, each followed by the fixes
-(`DECISIONS.md`: "Second review" to "Sixth review"). The fifth session added transmission
+tutorial), pieces of Milestones 3–11, and ran seven `td-critic` reviews, each followed by the fixes
+(`DECISIONS.md`: "Second review" to "Seventh review"; the seventh only verified the sixth's). The fifth session added transmission
 capacity, the Busbar, the Coker, lesson cards, the grid-threat telegraph, the supply ledger and
 the end screen's wave-by-wave chart, and cut the Spare tier.
 
@@ -43,7 +43,8 @@ map once it is open; K skills; O settings; H in game lists every key.
     **tier 3 with a branch for all six** (Arc lamp / Lantern, Blaze / Wide, Drag / Halo, Lance /
     Long Eye, Inferno / Bonfire, Nova / Barrage).
   - Factory: Extractor (tier 2: **Deep bit or Coker**, coke is 2.5 rocks of heat and can't be
-    snuffed; its panel prices both at its deposit), Burner, Vane,
+    snuffed; its panel prices both at its deposit, and what each nets while a Snuffer passes;
+    a Deep bit by the road names the way out: sell it, build a Coker), Burner, Vane,
     Jar (tier 2: **Bank or Flywheel**), Node (tier 2: **Long line or Busbar**), Lab (a research
     **queue**: shift-click on the board).
   - Verbs: shed, tiers, **Overcharge** (live power, 3× for 4 s, after the Works and ahead of the
@@ -78,7 +79,8 @@ map once it is open; K skills; O settings; H in game lists every key.
   at a wave's start), the message feed (bottom left, two at most), help,
   the **Esc menu** (resume, settings, help, to the title), settings (O), the end screen (embers,
   a diagnosis from the last quarter of the lights and the supply ledger, worst wave by lights, a
-  **wave-by-wave chart** of the wall's share and the lights lost, PLAY AGAIN, TITLE).
+  **wave-by-wave chart**, each wave coloured by the wall's share of power when its lights went,
+  with the lights lost, PLAY AGAIN, TITLE).
 - **Title**: map picker (four maps, each with a whole-map preview and a line of facts), skill
   tree (K), settings (O), CONTINUE.
 - **Maps**: The Last Station; **The Switchback** (72-tile road, heavier late waves smoothed so
@@ -89,7 +91,7 @@ map once it is open; K skills; O settings; H in game lists every key.
 - **Audio**: procedural hum and one-shots; volume and mute.
 - **Art**: 30 code-drawn sheets (Apollo), the newest the **Siphon** (art-director). PixelLab: 0
   generations spent (3,030 left, resets 2026-11-09).
-- **Tests** (`npm test`, 142): grid arithmetic and every mechanic (Overcharge on live power,
+- **Tests** (`npm test`, 143): grid arithmetic and every mechanic (Overcharge on live power,
   Flywheel, branches, tier 3, Siphon, Lines view, Pulse, Reroute, roads, the fork, the research
   queue, **node capacity** and the Busbar, the **Coker** and coke against a Snuffer, wave pressure,
   the loss line and its ledger, the Switchback's wave 1), data validation, the §6
@@ -145,4 +147,28 @@ map once it is open; K skills; O settings; H in game lists every key.
 
 ## Next
 
-A seventh (verification) review of the sixth review's fixes, then the owner's calls in the report.
+The seventh review (a verification of the sixth's fixes) is done and its findings fixed
+(`DECISIONS.md`, "Seventh review"). `HANDOFF.md` is the short version of this file for a fresh
+session.
+
+**Waiting on the owner** (each with the recommendation given):
+
+1. **The Flywheel**: it loses to the Bank wherever it replaces one (`design/flycheck.mts`).
+   Recommended: cut it, or give it a job no Jar does; keeping it as is teaches nothing.
+2. **The content freeze**: no new enemies, towers or buildings until the owner has played the
+   current build. Recommended: keep it; spend the next round on sound (the jsfxr bank, needs
+   someone who can listen) and art (PixelLab, `STYLE.md`). The Magpie stays parked on the
+   `magpie-wip` branch.
+3. **The late-game money glut** (bot plans end with 1,000–2,000 unspent off the station).
+   Recommended: leave it until the owner has played a late run; it measures the plans as much
+   as the game.
+4. **The first map stays forgiving** (the station is flawless for the plan and the human profile;
+   the other three maps are the hard ones). Recommended: keep it.
+
+**Suggested next work**, if the owner says go on without answering:
+
+- Sound: the procedural layer exists; the jsfxr bank and a mix pass need ears.
+- Art: replace the code-drawn placeholders through the art-director (PixelLab budget in
+  `START-HERE.md` and `STYLE.md`).
+- Milestone leftovers: per-Lab projects (M5), rebindable keys (M10), the itch page (M11).
+- Re-run `td-critic` on whatever the owner plays and reports.
