@@ -1500,7 +1500,7 @@ export class Play {
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],
       ['G', 'Reroute: a cut Node back at once (100 kJ)'],
-      ['B', 'Dark Bait (The Fork): turn the Moths the other way'],
+      ['B', 'Dark Bait (The Fork): turn the Moths away'],
       ['U / Y', 'upgrade (Y: the other way, at a choice)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],
@@ -1510,7 +1510,7 @@ export class Play {
       ['Shift-click', 'a tier bar (top): shed the whole tier'],
       ['F / P / M', 'speed / pause / mute'],
     ];
-    const w = 300, h = 28 + lines.length * 10 + 46;
+    const w = 312, h = 28 + lines.length * 10 + 46;
     const x = ui.w / 2 - w / 2, y = Math.max(HUD_H + 2, ui.h / 2 - h / 2 - 10);
     ui.panel(x, y, w, h, { border: C.steel });
     ui.textC('HOW TO KEEP THE LIGHTS ON', ui.w / 2, y + 5, C.gold);
