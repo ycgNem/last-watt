@@ -1329,7 +1329,7 @@ export class Play {
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],
       ['G', 'Reroute: a cut Node back at once (100 kJ)'],
-      ['U', 'upgrade (after its research)'],
+      ['U / Y', 'upgrade (Y: the other way, at a choice)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],
       ['Space', 'start the next wave now'],
