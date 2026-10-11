@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.playwright-mcp/
+__pycache__/
+*.pyc
+.claude/settings.local.json
+e2e/out/screens/
+e2e/out/screens-prev/

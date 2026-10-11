@@ -1,0 +1,19 @@
+{
+ "w": 16,
+ "h": 16,
+ "frames": 10,
+ "rows": 1,
+ "fps": 0,
+ "names": [
+  "ground0",
+  "ground1",
+  "ground2",
+  "ground3",
+  "path0",
+  "path1",
+  "ember0",
+  "ember1",
+  "decor0",
+  "decor1"
+ ]
+}
