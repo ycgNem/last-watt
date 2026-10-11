@@ -243,6 +243,9 @@ export class Play {
           this.opts.onProfile?.(this.profile);
         }
         this.say(`WAVE ${e.n}${g.endless ? '' : ` of ${LAST_WAVE}`}${w.note ? ': ' + w.note : ''}`, C.gold, 7);
+        // money in the bank lights nothing (the fourth review: the tutorial graduate met wave 4
+        // with 155 unspent); the first enemies are still a walk away
+        if (!this.bot && e.n > 1 && g.money >= 100) this.say(`${g.money} money unspent: what you build now still meets this wave.`, C.ember, 6);
         a.sfx('wave');
         break;
       }

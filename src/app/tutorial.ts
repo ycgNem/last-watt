@@ -91,14 +91,40 @@ export const STEPS: Step[] = [
     // done once the burst is over, so the player sees what it did before the next card holds the game
     done: (g) => g.stats.overcharges >= 1 && ![...g.buildings.values()].some((b) => b.overcharge > 0),
   },
+  // the fourth review (M1): the graduate walked into wave 4 with 155 money unspent and lost 13
+  // lights; a Burner pair and a fourth Lamp between waves 3 and 4 lose none
   {
-    title: 'RESEARCH',
-    text: 'A LAB (key =) turns spare power into research: Searchlights, Braziers, Starshells, wind Vanes, Pulse and tier-2 upgrades. Press L for the research board. Labs sit on tier 3, so they starve before your towers do.',
-    slot: 'lab', next: true, hold: true,
+    title: 'MORE WATTS',
+    text: 'Wave 4 brings eight Flits and three Shades: more than three Lamps on one Burner can answer. Spend between waves; money in the bank lights nothing. First a second EXTRACTOR (key 8) on the rock at the gold square.',
+    spot: { x: 15, y: 19, size: 1 }, slot: 'extractor',
+    done: (g) => count(g, 'extractor') >= 2,
+  },
+  {
+    title: 'ITS BURNER',
+    text: 'And a BURNER (key 9) touching it, on the gold square: another 20 kW once its first rock is in.',
+    spot: { x: 13, y: 18, size: 2 }, slot: 'burner',
+    done: (g) => count(g, 'burner') >= 2,
+  },
+  {
+    title: 'A FOURTH LAMP',
+    text: 'Flits are quick and come in clumps: more beams, not stronger ones. A fourth LAMP on the gold square, beside the third.',
+    spot: { x: 24, y: 16, size: 2 }, slot: 'lamp',
+    done: (g) => count(g, 'lamp') >= 4,
+  },
+  {
+    title: 'A LAB',
+    text: 'A LAB (key =) turns spare power into research: new towers, wind Vanes, upgrades. It asks 10 kW while it works and sits on tier 3, so it starves before your towers do. Place one on the gold square.',
+    spot: { x: 19, y: 18, size: 2 }, slot: 'lab',
+    done: (g) => count(g, 'lab') >= 1,
+  },
+  {
+    title: 'THE BRAZIER',
+    text: 'Press L for the research board and click BRAZIER: fire that burns everything within 2.5 tiles, the answer to a clump of Flits. The Lab works on it through the next wave; build one where the road bends when it is done.',
+    done: (g) => g.research.active === 'brazier' || g.research.queue.includes('brazier') || g.research.done.has('brazier'),
   },
   {
     title: 'YOU HAVE THE LIGHTS',
-    text: 'Shades cut Nodes, Snuffers put out Burners, Veils hide when your wall is starved, Palls drink thin beams. A card tells you about each one when it first comes. Floodlights work best where enemies line up: the outside of a bend. H shows every key.',
+    text: 'Shades cut Nodes, Snuffers put out Burners, Veils hide when your wall is starved, Palls drink thin beams. A card tells you about each one when it first comes. Floodlights work best where enemies line up: the outside of a bend. Spend each wave\'s pay before the next. H shows every key.',
     next: true, hold: true,
   },
 ];
