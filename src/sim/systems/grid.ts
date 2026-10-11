@@ -125,10 +125,12 @@ export function isConsumer(b: Building) {
   return r === 'tower' || r === 'beacon' || r === 'extractor' || r === 'lab';
 }
 
-export function gridSystem(g: Game) {
+/** one tick of the grid. `dry`: allocate only (no clocks, no Jar flow, no stats), for showing
+ *  the true state of what was just built while the sim is paused or held */
+export function gridSystem(g: Game, dry = false) {
   // nodes come back online
   for (const b of g.buildings.values()) {
-    if (b.offline > 0) {
+    if (!dry && b.offline > 0) {
       b.offline -= DT;
       if (b.offline <= 0) {
         b.offline = 0;
@@ -193,7 +195,7 @@ export function gridSystem(g: Game) {
         const js = g.spec(j);
         const room = ((js.capacity ?? 0) - j.charge) / DT;
         const take = Math.max(0, Math.min(js.maxCharge ?? 0, room, surplus));
-        j.charge += take * DT;
+        if (!dry) j.charge += take * DT;
         j.flow = take;
         surplus -= take;
         n.charged += take;
@@ -208,7 +210,7 @@ export function gridSystem(g: Game) {
       if (dis > 0)
         jars.forEach((j, i) => {
           const share = (dis * avail[i]) / sum;
-          j.charge = Math.max(0, j.charge - share * DT);
+          if (!dry) j.charge = Math.max(0, j.charge - share * DT);
           j.flow = -share;
         });
       n.discharge = dis;
@@ -249,6 +251,8 @@ export function gridSystem(g: Game) {
     total.wall.demand += n.wall.demand;
     total.wall.served += n.wall.served;
   }
+  g.grid = total;
+  if (dry) return;
   // what a Veil's sight reads: satisfaction over the last half second, so it doesn't flicker
   const k = Math.min(1, DT / 0.5);
   for (const b of g.buildings.values()) b.satAvg += ((b.net < 0 ? 0 : b.sat) - b.satAvg) * k;

@@ -6,7 +6,7 @@ import { C, rgb, rgba } from '../data/palette';
 import { RULES } from '../data/rules';
 import { ENEMIES } from '../data/enemies';
 import type { Game } from '../sim/Game';
-import { covers, pointRectDist } from '../sim/geom';
+import { covers, pointRectDist, touches } from '../sim/geom';
 import type { Building, Enemy } from '../sim/types';
 import { coneCatchers } from '../sim/systems/towers';
 import { hash2 } from '../engine/rng';
@@ -38,6 +38,8 @@ export interface Overlay {
   coverage?: boolean;
   /** the tutorial's suggested footprint */
   spot?: { x: number; y: number; size: number };
+  /** which enemies' reach to show in red while placing (only once they matter) */
+  danger?: { shade: boolean; snuffer: boolean };
 }
 
 export class Renderer {
@@ -474,6 +476,24 @@ export class Renderer {
     this.drawShots(g);
   }
 
+  /** a wedge from a point at an angle (the Floodlight ghost's preview) */
+  private drawConeAt(cx: number, cy: number, a0: number, halfDeg: number, range: number, color: string) {
+    const ctx = this.ctx;
+    const half = (halfDeg * Math.PI) / 180;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(this.sx(cx * TILE), this.sy(cy * TILE));
+    for (let i = 0; i <= 10; i++) {
+      const ang = a0 - half + (2 * half * i) / 10;
+      ctx.lineTo(this.sx(cx * TILE + Math.cos(ang) * range * TILE), this.sy(cy * TILE + Math.sin(ang) * range * TILE));
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** a Floodlight's cone: a faint wedge of light from the glass toward its target */
   private drawCone(g: Game, b: Building, t: Enemy, color: string, a: number) {
     const s = g.spec(b);
@@ -546,7 +566,11 @@ export class Renderer {
     else if (b.def.role === 'node' && b.offline > 0) {
       tag(`CUT ${Math.ceil(b.offline)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
     } else if (b.snuffed > 0 && b.net >= 0) tag(`SNUFFED ${Math.ceil(b.snuffed)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
-    else if (b.def.role === 'generator' && b.def.fuel === 'rock' && b.net >= 0 && b.output <= 0 && b.fuel <= 0) tag('NO FUEL', C.ember);
+    else if (b.def.role === 'generator' && b.def.fuel === 'rock' && b.net >= 0 && b.output <= 0 && b.fuel <= 0) {
+      const fed = [...g.buildings.values()].some((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
+      if (fed) tag('WAITING FOR ROCK', C.amber);
+      else tag('NO FUEL', C.ember);
+    }
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
     // a tier-2 building with no tier-2 sprite of its own wears a brass pip
     if (b.level > 1 && !SHEETS.has(`${b.def.id}2`)) {
@@ -693,7 +717,7 @@ export class Renderer {
       }
     const role = ov.ghost ? BUILDINGS[ov.ghost.id] : null;
     // where a passing Shade would cut a Node, or a Snuffer put out a Burner
-    const danger = role?.role === 'node' ? ENEMIES.shade.knockRadius : role?.fuel === 'rock' ? ENEMIES.snuffer.snuffRadius : 0;
+    const danger = role?.role === 'node' && ov.danger?.shade !== false ? ENEMIES.shade.knockRadius : role?.fuel === 'rock' && ov.danger?.snuffer !== false ? ENEMIES.snuffer.snuffRadius : 0;
     if (ov.ghost && danger) {
       ctx.fillStyle = rgba(C.red, 0.2);
       for (let ty = 0; ty < g.map.h; ty++)
@@ -733,6 +757,18 @@ export class Renderer {
     ctx.fillStyle = gh.ok ? rgba(C.lime, 0.28) : rgba(C.red, 0.4);
     ctx.fillRect(this.sx(gh.x * TILE), this.sy(gh.y * TILE), def.size * TILE * z, def.size * TILE * z);
     if (def.range) this.pixelCircle((gh.x + def.size / 2) * TILE, (gh.y + def.size / 2) * TILE, def.range * TILE, gh.ok ? C.gold : C.ember, 0.8);
+    // a cone shows its wedge aimed at the nearest road, so where enemies line up in it can be seen
+    if (def.kind === 'cone') {
+      const cx = gh.x + def.size / 2, cy = gh.y + def.size / 2;
+      let best = { x: cx + 1, y: cy, d: Infinity };
+      for (const path of g.paths)
+        for (let d = 0; d <= path.length; d += 0.5) {
+          const p = path.at(d);
+          const dd = Math.hypot(p.x - cx, p.y - cy);
+          if (dd < best.d) best = { x: p.x, y: p.y, d: dd };
+        }
+      this.drawConeAt(cx, cy, Math.atan2(best.y - cy, best.x - cx), def.halfAngle ?? 30, def.range ?? 0, gh.ok ? C.gold : C.ember);
+    }
     // does it land on a network?
     if (def.role !== 'node') {
       const cond = [...g.buildings.values()].filter((b) => (b.def.role === 'core' || (b.def.role === 'node' && b.offline <= 0)));

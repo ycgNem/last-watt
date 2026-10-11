@@ -48,7 +48,7 @@ export const SLICE_MAP: MapDef = {
     // far, out by the first straight: needs a chain of Nodes past the path
     [[6, 8], [7, 8], [6, 9], [7, 9], [8, 9], [7, 10]],
   ],
-  focus: [20, 12.5],
+  focus: [20, 13.5],
   windMean: 0.55,
   pace: 1,
   unlockWave: 0,

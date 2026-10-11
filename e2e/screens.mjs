@@ -63,6 +63,29 @@ const STATES = {
   }),
   win: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'win'; }),
   tutorial: async (page) => page.evaluate(() => { const p = window.__app.newGame(false, true); p.tutorial.advance(); }),
+  floodghost: async (page) => {
+    const at = await page.evaluate(() => {
+      const p = window.__app.newGame();
+      const g = p.game;
+      window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+      window.__place(g, 'lamp', 24, 13); window.__place(g, 'node', 21, 10); window.__place(g, 'lamp', 24, 7);
+      window.__next(g);
+      for (let i = 0; i < 60 * 3; i++) { p.tick(); g.drainEvents(); }
+      p.msgs = [];
+      p.paused = true;
+      p.buildId = 'floodlight';
+      const r = window.__app.r;
+      return { x: r.sx(28 * 16), y: r.sy(16 * 16) };
+    });
+    await page.mouse.move(at.x / (await page.evaluate(() => window.devicePixelRatio || 1)), at.y / (await page.evaluate(() => window.devicePixelRatio || 1)));
+  },
+  tutorialburner: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame(false, true);
+    p.tutorial.advance();
+    window.__place(p.game, 'lamp', 24, 13);
+    window.__place(p.game, 'extractor', 16, 18);
+    p.tutorial.update(p.game); p.tutorial.update(p.game);
+  }),
   tutorialhold: async (page) => page.evaluate(() => { const p = window.__app.newGame(false, true); for (let i = 0; i < 8; i++) p.tutorial.advance(); }),
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();

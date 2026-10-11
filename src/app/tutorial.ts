@@ -37,18 +37,18 @@ export const STEPS: Step[] = [
   {
     title: 'WATTS',
     text: 'A Lamp asks 12 kW while it fires. The Hearth makes only 8 kW (SUPPLY, top bar). Power comes from emberrock, the glowing red rock. Pick an EXTRACTOR (key 8) and place it on the rock at the gold square.',
-    spot: { x: 16, y: 19, size: 1 }, slot: 'extractor',
+    spot: { x: 16, y: 18, size: 1 }, slot: 'extractor',
     done: (g) => count(g, 'extractor') >= 1,
   },
   {
     title: 'A BURNER',
     text: 'The Extractor digs rock and hands it to a BURNER (key 9) that touches it. Place one on the gold square: +20 kW while it has rock.',
-    spot: { x: 16, y: 20, size: 2 }, slot: 'burner',
+    spot: { x: 16, y: 16, size: 2 }, slot: 'burner',
     done: (g) => [...g.buildings.values()].some((b) => b.def.id === 'burner' && [...g.buildings.values()].some((x) => x.def.id === 'extractor' && touches(g.rect(x), g.rect(b)))),
   },
   {
     title: 'CARRY THE POWER',
-    text: 'Power only reaches the lit ground around the Hearth and its Nodes. A NODE (key 7) carries it 4 tiles further. Place one on the gold square, out of reach of the path (Shades cut Nodes near it).',
+    text: 'Power only reaches the lit ground around the Hearth and its Nodes. A NODE (key 7) carries it 4 tiles further. Place one on the gold square, out of the red: a Shade walking by cuts any Node in it.',
     spot: { x: 21, y: 10, size: 1 }, slot: 'node',
     done: (g) => count(g, 'node') >= 1,
   },
@@ -60,7 +60,7 @@ export const STEPS: Step[] = [
   },
   {
     title: 'SHARE OF POWER',
-    text: 'You make 28 kW; two firing Lamps ask 24. If towers ask for more than you make, EVERY tower fires slower together (a brownout: the WALL bar at the top turns purple). So each new tower needs Burners behind it. Press SPACE (or the START button, top right) for wave 1.',
+    text: 'You make 28 kW: 8 from the Hearth, 20 from the Burner (SUPPLY, top). A Lamp asks 12 kW only while it fires, so two firing ask 24. Hover the LAMP slot: the forecast says what one more would do. SPACE starts wave 1.',
     done: (g) => g.wave >= 1,
   },
   {
@@ -69,18 +69,35 @@ export const STEPS: Step[] = [
     done: (g) => g.wavePaid.has(1),
   },
   {
-    title: 'PAY AND STORAGE',
-    text: 'Clearing a wave pays (15 + 5 × the wave), and every kill pays bounty. Spare power is wasted unless you store it: a JAR (key -) charges from it. With a charged Jar, select a tower and press E to OVERCHARGE it: 3× damage for 4 s.',
-    slot: 'jar', next: true, hold: true,
+    title: 'A THIRD LAMP',
+    text: 'Wave 2 brings 12 Moths, closer together; two Lamps cannot keep up. Put a third on the gold spot. Three firing ask 36 kW of your 28, so each fires at 78%. Weaker, not broken.',
+    spot: { x: 22, y: 16, size: 2 }, slot: 'lamp',
+    done: (g) => count(g, 'lamp') >= 3,
+  },
+  {
+    title: 'WATCH THE WALL',
+    text: 'When all three fire, the WALL bar (top) dips below 100%. Below 60% it turns violet and your towers flicker: a brownout. More Burners fix it, and so does a Jar.',
+    done: (g) => g.wavePaid.has(2),
+  },
+  {
+    title: 'A JAR',
+    text: 'Spare power is WASTED (top) unless you store it. Build a JAR (key -) on the gold spot. It charges from spare power in the breather and pays back in a pinch.',
+    spot: { x: 22, y: 19, size: 1 }, slot: 'jar',
+    done: (g) => count(g, 'jar') >= 1,
+  },
+  {
+    title: 'OVERCHARGE',
+    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of everything else and fires 3x as hard. The Jar pays what your Burner cannot; with no Jar, the other towers go dark for those 4 s.',
+    done: (g) => g.stats.overcharges >= 1,
   },
   {
     title: 'RESEARCH',
-    text: 'A LAB (key =) turns spare power into research: Searchlights, Braziers, Starshells, wind Vanes and tier-2 upgrades. Press L for the research board. Labs sit on tier 3, so they starve before your towers do.',
+    text: 'A LAB (key =) turns spare power into research: Searchlights, Braziers, Starshells, wind Vanes, Pulse and tier-2 upgrades. Press L for the research board. Labs sit on tier 3, so they starve before your towers do.',
     slot: 'lab', next: true, hold: true,
   },
   {
     title: 'YOU HAVE THE LIGHTS',
-    text: 'Shades cut Nodes, Snuffers put out Burners, Veils hide when your wall is starved, Palls drink thin beams. A card tells you about each one when it first comes. Keep the watts flowing. H shows every key.',
+    text: 'Shades cut Nodes, Snuffers put out Burners, Veils hide when your wall is starved, Palls drink thin beams. A card tells you about each one when it first comes. Floodlights work best where enemies line up: the outside of a bend. H shows every key.',
     next: true, hold: true,
   },
 ];

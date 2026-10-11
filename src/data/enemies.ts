@@ -42,11 +42,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   flit: {
     id: 'flit', name: 'Flit', code: 'F', blurb: 'Tiny and fast; comes in clumps of eight.',
-    answer: 'Too many for single beams to keep up: a Floodlight cone, a Brazier or a Starshell burst.',
+    answer: 'A Floodlight looking down a straight, a Starshell burst, or Lamps behind a Beacon. A Brazier needs a Beacon or tier 2.',
     health: 14, speed: 2.6, bounty: 2, leak: 1, packGap: 0.3,
     why: {
       health: '§5.1 Flit: 14 kJ', speed: '§5.1 Flit: 2.6 t/s', bounty: '§1 bounty = round(14 × 0.15) = 2', leak: '§5.1 Flit: 1 light',
-      packGap: '§5.1 Flit: clumps 0.3 s apart (a clump of 8 brings 37 kJ/s, three Lamps)',
+      packGap: '§5.1 Flit: clumps 0.3 s apart (a clump of 8 brings 14 / 0.3 = 46.7 kJ/s, about eight Lamps)',
     },
   },
   shade: {
@@ -77,7 +77,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   pall: {
     id: 'pall', name: 'Pall', code: 'P', blurb: 'Slow, heavy dark. Drinks 3/4 of a narrow beam; in a Floodlight\'s cone it shadows everything behind it.',
-    answer: 'Floodlights, Starshells, Braziers, and Overcharge. Lamps barely scratch it.',
+    answer: 'A Floodlight: a Pall alone in the cone drinks the whole beam. Overcharge it there. Lamps and Searchlights barely scratch it.',
     health: 400, speed: 0.6, bounty: 60, leak: 5, shadow: true, narrowBeam: 0.25,
     why: {
       health: '§5 Pall: 400 kJ', speed: '§5 Pall: 0.6 t/s', bounty: '§1 bounty = round(health × 0.15) = 60 (§6 economy)', leak: '§5 Pall: 5 lights', narrowBeam: '§5 Pall: a single beam lands 1/4 (§6: the Pall needs burst)',

@@ -17,13 +17,13 @@ import {
 } from '../sim/actions';
 import { Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
-import { fullDraw, rebuildNetworks } from '../sim/systems/grid';
+import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
 import { wavePay } from '../sim/systems/waves';
 import type { Building, GameEvent } from '../sim/types';
 import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
-import { Tutorial } from './tutorial';
+import { STEPS, Tutorial } from './tutorial';
 import { noBest, type Profile } from './save';
 import type { MapDef } from '../data/map';
 
@@ -71,6 +71,8 @@ export class Play {
   /** the build-bar slot rects drawn last frame (for the tutorial's highlight) */
   private slotRects = new Map<BuildingId, { x: number; y: number; w: number; h: number }>();
   private recorded = false;
+  /** the run is in the profile's run count (endless records again without counting again) */
+  private counted = false;
   /** left edge of the next-wave strip (UI px) */
   private stripLeft = 0;
 
@@ -127,9 +129,17 @@ export class Play {
     this.tutorial?.update(this.game);
     const g = this.game;
     this.audio.setHum(Math.min(1, g.grid.demand / 160), g.grid.wall.sat);
-    // building while paused: show the network the next tick will see
-    if (g.netDirty) rebuildNetworks(g);
+    // building while the sim stands still: show the network and the share the next tick will see
+    if (g.netDirty) {
+      if (this.paused || this.holding || this.board || g.over) gridSystem(g, true);
+      else rebuildNetworks(g);
+    }
     if (g.over && !this.recorded) this.record();
+    // the tutorial counts as done once its steps are through (or skipped), not at game over
+    if (this.tutorial?.finished && this.profile && !this.profile.tutorialDone) {
+      this.profile.tutorialDone = true;
+      this.opts.onProfile?.(this.profile);
+    }
   }
 
   /** the run's result into the profile */
@@ -138,7 +148,8 @@ export class Play {
     const p = this.profile;
     if (!p) return;
     const g = this.game;
-    p.runs++;
+    if (!this.counted) p.runs++;
+    this.counted = true;
     const reached = g.over === 'win' ? LAST_WAVE : g.wave;
     for (const b of [p.best, (p.maps[g.map.id] ??= noBest())]) {
       if (g.endless) b.endless = Math.max(b.endless, g.wave);
@@ -204,7 +215,10 @@ export class Play {
       }
       case 'newenemy':
         if (e.enemy !== 'moth' || this.tutorial) this.intel.push({ enemy: e.enemy, t: 0 });
-        if (this.profile && !this.profile.met.includes(e.enemy)) this.profile.met.push(e.enemy);
+        if (this.profile && !this.profile.met.includes(e.enemy)) {
+          this.profile.met.push(e.enemy);
+          this.opts.onProfile?.(this.profile);
+        }
         a.sfx('newenemy');
         break;
       case 'brownout': {
@@ -293,8 +307,11 @@ export class Play {
     if (this.hintClock < 1) return;
     this.hintClock = 0;
     const g = this.game;
-    if (g.wave === 0 || this.paused) return;
+    if (g.wave === 0 || this.paused || g.over) return;
     const bs = [...g.buildings.values()];
+    const hot = bs.find((b) => b.def.kind === 'radial' && b.tier <= 2 && b.demand > 20 && b.sat < RULES.starvedBelow.v);
+    if (hot && g.brownout)
+      this.sayOnce('brazier', 60, `A Brazier asked ${Math.round(hot.demand)} kW for ${hot.bodies} bodies and starved the wall. Put it on tier 3 (select it, Shift+T) so it burns only spare power.`, C.violet, 8);
     for (const b of bs) {
       if (b.def.role !== 'generator' || b.def.fuel !== 'rock' || b.fuel > 1 || b.off || b.snuffed > 0) continue;
       const feeders = bs.filter((x) => x.def.role === 'extractor' && touches(g.rect(x), g.rect(b)));
@@ -312,7 +329,7 @@ export class Play {
       }
     }
     if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
-      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it for the next wave and pays for Overcharge (E); a Lab (=) turns it into research.`, C.amber, 7);
+      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it for the next wave and feeds Overcharge (E); a Lab (=) turns it into research.`, C.amber, 7);
     if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.paths[e.route].length * 0.5))
       this.sayOnce('veil', 40, 'A Veil is walking past unseen: your towers near it are below 60% power. Ease the load, Overcharge, or burn it with a Brazier.', C.violet, 7);
     if (!g.research.active && bs.some((b) => b.def.role === 'lab') && g.research.done.size < RESEARCH_ORDER.length)
@@ -344,8 +361,8 @@ export class Play {
       else if (this.selectedId) this.selectedId = 0;
       else this.paused = !this.paused;
     }
-    if (this.holding && (k('Enter') || k('Space'))) {
-      this.tutorial!.advance();
+    if (this.tutorial?.step?.next && (k('Enter') || (this.holding && k('Space')))) {
+      this.tutorial.advance();
       return;
     }
     BUILD_CODES.forEach((code, i) => {
@@ -387,8 +404,8 @@ export class Play {
     if (k('KeyX') && target) this.act(toggleOff(g, target));
     if (k('KeyE') && target) this.act(overcharge(g, target));
     if (k('KeyQ') && g.research.done.has('pulse')) this.act(pulse(g));
-    // T raises a building's priority one tier (1 wraps round to 4)
-    if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, target.tier === 1 ? 4 : target.tier - 1), 'click');
+    // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
+    if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1)), 'click');
     if (k('KeyU') && target) this.act(upgrade(g, target), 'place');
     if ((k('Delete') || k('Backspace')) && this.selected) {
       const s = this.selected;
@@ -471,10 +488,39 @@ export class Play {
     }
     const spot = this.tutorial?.step?.spot;
     if (spot) ov.spot = spot;
+    // the Shade's and Snuffer's reach only once they have come, or come next (or in the tutorial's Node step)
+    const n = g.waveTimer > 0 || g.wave === 0 ? g.wave + 1 : g.wave;
+    const next = waveDef(n)?.seq ?? '';
+    ov.danger = {
+      shade: g.seenKinds.has('shade') || next.includes(ENEMIES.shade.code) || this.tutorial?.step?.slot === 'node',
+      snuffer: g.seenKinds.has('snuffer') || next.includes(ENEMIES.snuffer.code),
+    };
     return ov;
   }
 
   // ---- power forecasts (the core idea, said in numbers) ----
+
+  /** seconds until the first enemy walks into a lit tower's reach, while none is in reach (null otherwise) */
+  private contactIn(): number | null {
+    const g = this.game;
+    if (!g.enemies.length) return null;
+    const towers = [...g.buildings.values()].filter((b) => b.def.role === 'tower' && b.net >= 0 && !b.off);
+    if (!towers.length) return null;
+    const reaches = (x: number, y: number) => towers.some((b) => Math.hypot(x - b.x - b.def.size / 2, y - b.y - b.def.size / 2) <= (g.spec(b).range ?? 0));
+    let best = Infinity;
+    for (const e of g.enemies) {
+      if (reaches(e.x, e.y)) return null;
+      const path = g.paths[e.route];
+      for (let d = e.dist; d <= path.length; d += 0.5) {
+        const p = path.at(d);
+        if (reaches(p.x, p.y)) {
+          best = Math.min(best, (d - e.dist) / Math.max(0.1, e.def.speed * (1 - e.slow)));
+          break;
+        }
+      }
+    }
+    return Number.isFinite(best) && best >= 2 ? Math.round(best) : null;
+  }
 
   /** kW a tower asks while Overcharged (3× its firing draw; a Brazier counts a crowd of three) */
   private overchargeAsk(b: Building): number {
@@ -554,11 +600,12 @@ export class Play {
     this.drawMessages(ui);
     if (this.board) this.drawBoard(ui, g);
     if (this.help) this.drawHelp(ui);
-    if (this.paused && !g.over) {
-      ui.layer = 5;
-      ui.panel(ui.w / 2 - 60, ui.h / 2 - 16, 120, 28);
-      ui.textC('PAUSED', ui.w / 2, ui.h / 2 - 11, C.gold);
-      ui.textC('P to resume', ui.w / 2, ui.h / 2 - 1, C.ash);
+    if (this.paused && !g.over && !this.board && !this.help) {
+      // a banner just above the bar: it blocks no clicks and sits clear of the cards and feed
+      ui.layer = 1;
+      const pw = 132, py = ui.h - BAR_H - TAB_H - 26;
+      ui.panel(ui.w / 2 - pw / 2, py, pw, 12, { alpha: 0.9, border: C.gold, blocking: false });
+      ui.textC('PAUSED: P to resume', ui.w / 2, py + 2, C.gold);
     }
     if (g.over) this.drawEnd(ui, g);
     ui.end();
@@ -593,7 +640,7 @@ export class Play {
     const dw = ui.text(`${demand} kW`, dx, 6, short ? C.violet : C.mist);
     ui.text('DEMAND', dx, 16, C.steel);
     const wx = dx + Math.max(dw, textWidth('DEMAND')) + 7;
-    const ww = ui.text(`${wasted} kW`, wx, 6, wasted > 0 ? C.amber : C.steel);
+    const ww = ui.text(`${wasted} kW`, wx, 6, wasted > 0 && g.wave > 0 ? C.amber : C.steel);
     ui.text('WASTED', wx, 16, C.steel);
     let tx = wx + Math.max(ww, textWidth('WASTED')) + 8;
     if (gr.capacity > 0) {
@@ -634,7 +681,8 @@ export class Play {
         label = `NEXT ${key}`;
         tip = [`Wave ${g.wave + 1} in ${Math.ceil(g.waveTimer)} s`, 'The field is clear: Jars charge and Labs research on spare power. Space starts the next wave now.'];
       } else {
-        ui.textR(`${left} left`, rx - bw - 3, 17, C.steel);
+        const c = this.contactIn();
+        ui.textR(c !== null ? `contact ${c}s` : `${left} left`, rx - bw - 3, 17, c !== null ? C.gold : C.steel);
         label = `CALL ${key}`;
         tip = [`Call wave ${g.wave + 1} on top of this one`, 'The next wave comes 20 s after this one is cleared. Calling it now stacks the two.'];
       }
@@ -812,7 +860,9 @@ export class Play {
     if (b.snuffed > 0) return { text: `SNUFFED ${Math.ceil(b.snuffed)}s`, color: C.ember };
     if (b.def.role === 'generator') {
       if (b.def.fuel === 'wind') return { text: `TURNING: ${b.output.toFixed(1)} kW (wind ${Math.round(g.wind() * 100)}%)`, color: C.gold };
-      return b.output > 0 ? { text: 'LIT', color: C.gold } : { text: 'COLD: no emberrock', color: C.ember };
+      if (b.output > 0) return { text: 'LIT', color: C.gold };
+      const fed = [...g.buildings.values()].some((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
+      return fed ? { text: 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
     }
     if (b.def.role === 'lab' && !g.research.active) return { text: 'IDLE: pick a project (L)', color: C.cyan };
     if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%`, color: C.violet };
@@ -1032,7 +1082,7 @@ export class Play {
     const ex = bs.some((b) => b.def.role === 'extractor');
     const burner = bs.some((b) => b.def.role === 'generator' && bs.some((x) => x.def.role === 'extractor' && touches(g.rect(x), g.rect(b))));
     const steps: [boolean, string][] = [
-      [lamps >= 2, 'Two Lamps (1) inside the bends; a Node (7) carries power on'],
+      [lamps >= 2, 'Two Lamps (1) inside the two bends (a Node, 7, reaches the far one)'],
       [ex, 'An Extractor (8) on glowing emberrock near the Hearth'],
       [burner, 'A Burner (9) touching the Extractor: +20 kW'],
       [false, 'SPACE starts wave 1 when you are ready'],
@@ -1060,10 +1110,10 @@ export class Play {
     ui.panel(x, y, w, h, { border: pulse > 0.5 ? C.gold : C.brass, alpha: 0.96 });
     ui.icon('tutorial', x + 4, y + 2);
     ui.text(s.title, x + 22, y + 6, C.gold);
-    ui.textR(`${t.i + 1}/11`, x + w - 5, y + 6, C.steel);
+    ui.textR(`${t.i + 1}/${STEPS.length}`, x + w - 5, y + 6, C.steel);
     lines.forEach((l, i) => ui.text(l, x + 5, y + 18 + i * LINE_H, C.mist));
     const by = y + h - 17;
-    if (s.next && ui.button(t.i === 10 ? 'PLAY ON' : 'NEXT [ENTER]', x + w - 82, by, 77, 13, { color: C.gold })) t.advance();
+    if (s.next && ui.button(t.i === STEPS.length - 1 ? 'PLAY ON' : 'NEXT [ENTER]', x + w - 82, by, 77, 13, { color: C.gold })) t.advance();
     if (!s.next) ui.text('Do it to go on.', x + w - 5 - textWidth('Do it to go on.'), by + 3, C.ash);
     if (ui.button('SKIP', x + 5, by, 34, 13)) {
       t.skip();
@@ -1125,6 +1175,7 @@ export class Play {
     const rate = labs ? `${labs} Lab${labs > 1 ? 's' : ''}: ${kw.toFixed(0)} kJ/s ${g.research.active ? 'now' : '(idle)'}` : 'No Lab yet: build one (=) to research.';
     ui.text(rate, x + 6 + textWidth('RESEARCH') + 10, y + 5, labs ? C.mist : C.ember);
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.board = false;
+    ui.textR('game paused', x + w - 18, y + 5, C.steel);
     ui.wrap('A Lab turns watts into kJ of research at 1:1 while a project runs; more Labs go faster. Labs sit on tier 3: they starve before your towers do.', x + 6, y + 16, w - 12, C.ash);
     (['light', 'power'] as const).forEach((br, col) => {
       const cx = x + 6 + col * (colW + 6);
@@ -1178,6 +1229,17 @@ export class Play {
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.help = false;
   }
 
+  /** one line on why a run was lost, by rule (the second review's ask) */
+  private diagnose(): string {
+    const g = this.game, s = g.stats;
+    const lost = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
+    if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it: a Floodlight with the Pall alone in its cone, and an Overcharge, before it reaches the bend.';
+    if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: more Burners, or Jars to carry the peaks.`;
+    if (s.wastedKj > s.kjDelivered) return 'You made more power than your towers used: fewer Burners, more towers (or Jars and Labs for the spare).';
+    if ((s.lightsLostBy.flit ?? 0) / lost >= 0.3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
+    return 'More towers at the bends, and keep them fed.';
+  }
+
   private drawEnd(ui: UI, g: Game) {
     ui.layer = 8;
     const win = g.over === 'win';
@@ -1199,9 +1261,12 @@ export class Play {
       ['Time in brownout', `${Math.round(s.brownoutSeconds)} s`],
       ['Overcharges / research', `${s.overcharges} / ${s.researched}`],
     ];
+    const why = win ? '' : this.diagnose();
     const best = this.profile?.maps[g.map.id];
     if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);
-    const w = 276, h = 34 + rows.length * 10 + 26;
+    const w = 276;
+    const whyLines = why ? wrapText(why, w - 28) : [];
+    const h = 34 + rows.length * 10 + (whyLines.length ? whyLines.length * LINE_H + 6 : 0) + 26;
     const x = ui.w / 2 - w / 2, y = ui.h / 2 - h / 2;
     ui.panel(x, y, w, h, { border: win ? C.gold : C.ember, alpha: 0.96 });
     ui.big(win ? 'THE LIGHTS HELD' : 'THE HEARTH WENT DARK', ui.w / 2, y + 8, 2, win ? C.gold : C.ember);
@@ -1209,6 +1274,7 @@ export class Play {
       ui.text(k, x + 14, y + 32 + i * 10, C.ash);
       ui.textR(v, x + w - 14, y + 32 + i * 10, C.mist);
     });
+    whyLines.forEach((l, i) => ui.text(l, x + 14, y + 32 + rows.length * 10 + 4 + i * LINE_H, C.gold));
     if (win) {
       if (ui.button('KEEP GOING: ENDLESS', ui.w / 2 - 118, y + h - 22, 120, 15, { color: C.gold, tip: ['Endless', 'Waves keep coming, each 14% heavier. How long can the Hearth hold?'] })) {
         endless(g);
