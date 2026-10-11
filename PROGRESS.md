@@ -69,13 +69,16 @@ Title → BEGIN. The first-steps card says what to build; Space starts wave 1. H
   Overcharge, mid-run, win, lose, help → `e2e/out/`), `npm run smoke` (a real opening by clicks
   and keys, then wave 1). `design/tune.mts` re-tunes wave spacing with the bot;
   `design/check.mts` is one bot run with an optional spacing override.
+- **Deploy**: `.github/workflows/deploy.yml` (adapted from S&S) runs the tests, builds and
+  publishes to GitHub Pages on every push to `main`; the play link is in the repo's About box.
+  `README.md` has the pitch and controls for playtesters.
 - **Agents** (`.claude/agents/`): `td-critic` (replaces `indie-critic`), `art-director`,
   `qa-screens`, `balance-auditor`.
 
 ## Stubbed or missing
 
 - No saves (runs are ~11 min). `SAVE_VERSION` + migrations still to come.
-- No GitHub Pages workflow, no `Package for web.bat`, no jsfxr bank, no PixelLab scripts or art
+- No `Package for web.bat`, no jsfxr bank, no PixelLab scripts or art
   importers (code-drawn art goes straight from `build.py` to `src/assets/art/`).
 - Palette is provisional (Apollo); the owner hasn't picked. Endesga 64 is saved for a swap.
 - Construction is instant (tier 4 is empty). Embers and the skill tree: Milestone 8.
