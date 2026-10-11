@@ -41,6 +41,8 @@ export interface Overlay {
   spot?: { x: number; y: number; size: number };
   /** which enemies' reach to show in red while placing (only once they matter) */
   danger?: { shade: boolean; snuffer: boolean };
+  /** in the breather before a grid threat's first wave: its reach and what of yours is in it */
+  threat?: { radius: number; at: Building[] };
   /** the Lines view (V): every network outlined in its own colour, with what holds it back */
   lines?: LineReport[];
 }
@@ -287,6 +289,7 @@ export class Renderer {
     // above the dark
     if (ov.coverage) this.drawCoverage(g, ov);
     this.drawWires(g);
+    if (ov.threat) this.drawThreat(g, ov.threat);
     if (ov.selected && g.buildings.has(ov.selected.id)) this.drawFeed(g, ov.selected);
     this.drawBeams(g);
     this.tagRects = [];
@@ -800,6 +803,24 @@ export class Renderer {
       drawText(ctx, l.text, px + 3 * z, py + 11 * z, NECK_COLORS[l.neck], z);
       drawText(ctx, l.fix, px + 3 * z, py + 20 * z, C.ash, z);
     });
+  }
+
+  /** a grid threat's reach before its first wave (the sixth review C1): the road's band in red, and
+   *  each building of yours inside it outlined, pulsing */
+  private drawThreat(g: Game, th: NonNullable<Overlay['threat']>) {
+    const ctx = this.ctx;
+    const z = this.cam.z;
+    ctx.fillStyle = rgba(C.red, 0.18);
+    for (let ty = 0; ty < g.map.h; ty++)
+      for (let tx = 0; tx < g.map.w; tx++) if (this.pathReach(g, th.radius, tx, ty)) ctx.fillRect(this.sx(tx * TILE), this.sy(ty * TILE), TILE * z, TILE * z);
+    ctx.fillStyle = Math.sin(this.time * 6) > 0 ? C.red : C.ember;
+    for (const b of th.at) {
+      const x = b.x * TILE - 1, y = b.y * TILE - 1, s = b.def.size * TILE + 2;
+      ctx.fillRect(this.sx(x), this.sy(y), s * z, z);
+      ctx.fillRect(this.sx(x), this.sy(y + s - 1), s * z, z);
+      ctx.fillRect(this.sx(x), this.sy(y), z, s * z);
+      ctx.fillRect(this.sx(x + s - 1), this.sy(y), z, s * z);
+    }
   }
 
   /** what feeds a selected building (the fifth review): a dotted line to the Node it draws through

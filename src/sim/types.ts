@@ -31,6 +31,8 @@ export interface Building {
    *  stays put out by a Snuffer */
   fuel: number;
   coke: number;
+  /** burner: what is burning now is coke (a Snuffer can't put it out, §3.2) */
+  burnCoke: boolean;
   burnLeft: number;
   snuffed: number;
   /** extractor: progress to the next rock (0..1), rocks waiting to hand over */
@@ -143,13 +145,20 @@ export interface GridStats {
   wasted: number;
   stored: number;
   capacity: number;
-  /** index 1..4 */
+  /** index 0..3 (0: Overcharges) */
   tiers: TierStat[];
   /** the towers and Beacons together, whatever tiers they sit on */
   wall: TierStat;
   /** kW the whole wall would ask with every tower firing */
   peak: number;
+  /** kW Siphons drank this tick */
+  stolen: number;
+  /** kW full Nodes held back from the branches past them this tick (§3.3) */
+  held: number;
 }
+
+/** what a wave's supply was lost to while enemies were on the field (the loss screen reads it) */
+export type LossCause = 'snuff' | 'dry' | 'cut' | 'siphon' | 'overcharge' | 'held' | 'short';
 
 export type GameEvent =
   | { t: 'place'; id: number; def: BuildingId; x: number; y: number }
@@ -194,6 +203,10 @@ export interface RunStats {
   wavePay: number;
   kjDelivered: number;
   wastedKj: number;
+  /** kJ wasted while enemies were on the field (between waves almost everything is) */
+  wastedLiveKj: number;
+  /** per wave, kJ of supply or wall fire lost to each cause while enemies were on the field */
+  lossByWave: Partial<Record<LossCause, number>>[];
   brownoutSeconds: number;
   overcharges: number;
   pulses: number;

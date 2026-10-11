@@ -131,6 +131,24 @@ const STATES = {
     p.msgs = [];
     p.selectedId = ex.id;
   }),
+  // the breather before the first Snuffers: their reach unasked, the Burners in it outlined, and the
+  // strip's risk line (the sixth review C1)
+  threat: async (page) => {
+    await page.evaluate(() => {
+      const p = window.__app.newGame();
+      const g = p.game;
+      for (const [id, x, y] of [['extractor', 16, 19], ['burner', 16, 20], ['node', 21, 11], ['lamp', 24, 7], ['lamp', 24, 13], ['lamp', 22, 16], ['extractor', 16, 9], ['burner', 17, 7], ['burner', 14, 9], ['floodlight', 24, 10]]) window.__place(g, id, x, y);
+      for (const b of g.buildings.values()) if (b.def.id === 'burner') b.fuel = 5;
+      g.wave = 8;
+      for (let n = 1; n <= 8; n++) { g.waveStarted.add(n); g.wavePaid.add(n); }
+      g.waveTimer = 15;
+      for (const k of ['moth', 'flit', 'shade', 'veil', 'siphon', 'pall']) g.seenKinds.add(k);
+      for (let i = 0; i < 90; i++) p.tick();
+    });
+    await page.waitForTimeout(1200);
+    const at = await page.evaluate(() => { const a = window.__app; return { x: (a.play.stripLeft + 12) * a.ui.scale, y: 40 * a.ui.scale }; });
+    await page.mouse.move(at.x, at.y);
+  },
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;

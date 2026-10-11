@@ -102,7 +102,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   deepbit: {
     id: 'deepbit', name: 'Mining', branch: 'power', cost: 700,
-    blurb: 'Extractors can take a Deep bit (a rock every 5 s for 4 kW) or a Coker (coke, 2.5 rocks of heat each, for 10 kW: it pays with three Burners touching).',
+    blurb: 'Extractors can take a Deep bit (a rock every 5 s for 4 kW) or a Coker (coke: 2.5 rocks of heat each and too hot for a Snuffer, for 10 kW).',
     why: { cost: '§7 Extractor tier 2: 700 kJ' },
   },
   bank: {

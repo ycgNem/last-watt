@@ -24,10 +24,12 @@ import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { LESSONS, type LessonId } from './lessons';
+import { diagnose } from './diagnose';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
 import { fullOnTheWay, lineReports, linkRoom, strandedBy } from '../sim/lines';
 import { wavePressure } from '../sim/pressure';
+import { cuttable, snuffable, waveThreats } from '../sim/threats';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -127,7 +129,8 @@ export class Play {
    *  which teaches these itself); false once it has been shown, so the caller says its hint */
   lesson(id: LessonId): boolean {
     const key = `lesson:${id}`;
-    if (this.tutorial || !this.profile || this.profile.met.includes(key)) return false;
+    // (a run started from TUTORIAL plays on once the cards are done: lessons from then on, the sixth review M3)
+    if ((this.tutorial && !this.tutorial.finished) || !this.profile || this.profile.met.includes(key)) return false;
     this.profile.met.push(key);
     this.opts.onProfile?.(this.profile);
     this.intel.push({ lesson: id, t: 0 });
@@ -281,7 +284,7 @@ export class Play {
       case 'brownout': {
         // name an Overcharge when it is the cause (the third review)
         const oc = [...g.buildings.values()].filter((b) => b.overcharge > 0);
-        if (oc.length) this.sayOnce('ocbrownout', 20, `BROWNOUT from your Overcharge: ${oc.length > 1 ? `${oc.length} towers ask` : `the ${oc[0].def.name} asks`} ${Math.round(oc.reduce((a, b) => a + b.demand, 0))} kW ahead of everything, so the rest of the wall gets what is left for 4 s. Jars don't pay for an Overcharge.`, C.violet, 8);
+        if (oc.length) this.sayOnce('ocbrownout', 20, `BROWNOUT from your Overcharge: ${oc.length > 1 ? `${oc.length} towers ask` : `the ${oc[0].def.name} asks`} ${oc.reduce((a, b) => a + this.overchargeAsk(b), 0)} kW at full fire, after the Works and ahead of the rest of the wall, which gets what is left for 4 s. Jars don't pay for an Overcharge.`, C.violet, 8);
         else if (!this.lesson('brownout')) this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
         a.sfx('brownout');
         break;
@@ -395,7 +398,16 @@ export class Play {
     if (this.hintClock < 1) return;
     this.hintClock = 0;
     const g = this.game;
-    if (g.wave === 0 || this.paused || g.over) return;
+    if (this.paused || g.over) return;
+    const first = this.firstThreat();
+    if (first?.kind === 'snuffer') {
+      const at = snuffable(g);
+      this.sayOnce('threat-snuffer', 600, `Wave ${first.n} brings Snuffers. Red shows where they put Burners out: ${at.length ? `${at.length} of yours (${at.reduce((a, b) => a + (g.spec(b).output ?? 0), 0)} kW) are in it, outlined` : 'none of yours is in it'}.`, C.ember, 12);
+    } else if (first?.kind === 'shade' && g.wave > 0) {
+      const at = cuttable(g);
+      this.sayOnce('threat-shade', 600, `Wave ${first.n} brings Shades. Red shows where they cut Nodes: ${at.length ? `${at.length} of yours ${at.length > 1 ? 'are' : 'is'} in it, outlined` : 'none of yours is in it'}.`, C.ice, 12);
+    }
+    if (g.wave === 0) return;
     const bs = [...g.buildings.values()];
     const hot = bs.find((b) => b.def.kind === 'radial' && b.tier <= 2 && b.demand > 20 && b.sat < RULES.starvedBelow.v);
     if (hot && g.brownout)
@@ -656,7 +668,21 @@ export class Play {
       shade: g.seenKinds.has('shade') || next.includes(ENEMIES.shade.code) || this.tutorial?.step?.slot === 'node',
       snuffer: g.seenKinds.has('snuffer') || next.includes(ENEMIES.snuffer.code),
     };
+    // the breather before Snuffers (or Shades) first come: their reach, unasked (the sixth review C1)
+    const first = this.firstThreat();
+    if (first && !this.buildId) ov.threat = first.kind === 'snuffer' ? { radius: ENEMIES.snuffer.snuffRadius ?? 0, at: snuffable(g) } : { radius: ENEMIES.shade.knockRadius ?? 0, at: cuttable(g) };
     return ov;
+  }
+
+  /** the grid threat whose first wave of the run comes next, while the field is clear before it */
+  private firstThreat(): { kind: 'snuffer' | 'shade'; n: number } | null {
+    const g = this.game;
+    if (g.over || (g.wave > 0 && g.waveTimer <= 0)) return null;
+    const n = g.wave + 1;
+    const seq = waveDef(n, g.map)?.seq ?? '';
+    if (seq.includes(ENEMIES.snuffer.code) && !g.seenKinds.has('snuffer')) return { kind: 'snuffer', n };
+    if (seq.includes(ENEMIES.shade.code) && !g.seenKinds.has('shade') && !this.tutorial) return { kind: 'shade', n };
+    return null;
   }
 
   // ---- power forecasts (the core idea, said in numbers) ----
@@ -980,7 +1006,12 @@ export class Play {
     const prev = n > 1 ? waveDef(n - 1, g.map) : undefined;
     const step = prev ? pr.kj / seqHealth(prev.seq) : 0;
     const kjText = `${pr.kj} kJ`, stepText = step >= 1.05 ? `×${step.toFixed(1)}` : '';
-    const kjW = 6 + textWidth(kjText) + (stepText ? 3 + textWidth(stepText) : 0);
+    // what the wave's grid threats could take from this build (the sixth review C1): the wall's
+    // share at full fire if every Burner in a Snuffer's reach went out
+    const th = waveThreats(g, w.seq);
+    const shareIf = (lost: number) => (pr.peakKw > 0 ? Math.min(1, Math.max(0, pr.makeKw - pr.worksKw - lost) / pr.peakKw) : 1);
+    const risk = th.snuffKw > 0 && shareIf(th.snuffKw) < 0.75 ? { share: shareIf(th.snuffKw) } : null;
+    const kjW = 6 + textWidth(kjText) + (stepText ? 3 + textWidth(stepText) : 0) + (risk ? 4 + textWidth('!') : 0);
     const width = textWidth(label) + 8 + groups.reduce((a, m, i) => a + groupW(m) + (per.length ? textWidth(names![i]) + 4 + (i ? 6 : 0) : 0), 0) + kjW;
     const x = ui.w - width - 4, y = HUD_H + 2;
     this.stripLeft = x;
@@ -1001,17 +1032,28 @@ export class Play {
       }
     });
     cx += 2 + ui.text(kjText, cx + 2, y + 6, C.steel);
-    if (stepText) ui.text(stepText, cx + 3, y + 6, step >= 1.4 ? C.amber : C.steel);
+    if (stepText) cx += 3 + ui.text(stepText, cx + 3, y + 6, step >= 1.4 ? C.amber : C.steel);
+    if (risk) ui.text('!', cx + 4, y + 6, risk.share < RULES.starvedBelow.v ? C.violet : C.amber);
     if (ui.hover(x, y, width, 18)) {
       const kj = pr.kj;
       const palls = counts.get(ENEMIES.pall.code) ?? 0;
       const roadLine = (m: Map<string, number>, i: number) => `${names![i] === 'W' ? 'West' : names![i] === 'E' ? 'East' : names![i]} road: ${kinds.filter((id) => m.has(ENEMIES[id].code)).map((id) => `${m.get(ENEMIES[id].code)} ${ENEMIES[id].name}${m.get(ENEMIES[id].code)! > 1 ? 's' : ''}`).join(', ')}`;
       ui.tooltip([
         { text: `Wave ${n}: ${kj} kJ of dark${prev ? `, ${step.toFixed(1)}× the last` : ''}, one every ${spacingOf(g, w).toFixed(2)} s` },
-        { text: `Over ${Math.round(pr.span)} s: ${Math.round(pr.inflow)} kJ/s, against your towers' ${Math.round(pr.wall)} all firing${pr.wallFull > pr.wall + 0.5 ? ` (${Math.round(pr.wallFull)} at full power)` : ''}. Enemies stay in reach for seconds: a wall holds more than it deals.`, color: pr.wall < pr.wallFull * 0.75 ? C.amber : C.mist },
+        { text: `Over ${Math.round(pr.span)} s: ${Math.round(pr.inflow)} kJ/s, against your towers' ${Math.round(pr.wall)} all firing${pr.wallFull > pr.wall + 0.5 ? ` (${Math.round(pr.wallFull)} at full power)` : ''}. Each enemy stays in your towers' reach for seconds, so a wall can hold a wave that arrives faster than it deals.`, color: pr.wall < pr.wallFull * 0.75 ? C.amber : C.mist },
         ...(palls ? [{ text: `${palls} Pall${palls > 1 ? 's' : ''}: what costs lights late. Burst (E), fire or shells.`, color: C.violet }] : []),
+        ...(th.snuffers
+          ? [th.burners.length
+            ? { text: `${th.snuffers} Snuffer${th.snuffers > 1 ? 's' : ''}: ${th.burners.length} of your Burners (${th.snuffKw} kW) are within ${ENEMIES.snuffer.snuffRadius} tiles of the road. If they go out, your towers all firing get ${Math.round(shareIf(th.snuffKw) * 100)}% power.`, color: shareIf(th.snuffKw) < 0.75 ? C.amber : C.mist }
+            : { text: `${th.snuffers} Snuffer${th.snuffers > 1 ? 's' : ''}: none of your Burners is in their reach (or they burn coke).`, color: C.mist }]
+          : []),
+        ...(th.shades ? [{ text: `${th.shades} Shade${th.shades > 1 ? 's' : ''}: ${th.nodes.length ? `${th.nodes.length} Node${th.nodes.length > 1 ? 's' : ''} within ${ENEMIES.shade.knockRadius} tiles of the road, ${th.towers.length} tower${th.towers.length === 1 ? '' : 's'} drawing through them.` : 'no Node of yours in their reach.'}`, color: th.towers.length ? C.amber : C.mist }] : []),
+        ...(th.siphons ? [{ text: `${th.siphons} Siphon${th.siphons > 1 ? 's' : ''}: ${th.siphonKw / th.siphons} kW each from a line they pass, ahead of every tower.`, color: C.mist }] : []),
         ...per.map((m, i) => ({ text: roadLine(m, i), color: C.gold })),
-        ...kinds.map((id) => ({ text: `${ENEMIES[id].name} (${ENEMIES[id].health} kJ): ${ENEMIES[id].blurb}`, color: C.mist })),
+        // what each kind does, for the kinds not met yet this run; the rest in a line (the sixth
+        // review: a late wave's tooltip ran off a small screen)
+        ...kinds.filter((id) => !g.seenKinds.has(id)).map((id) => ({ text: `${ENEMIES[id].name} (${ENEMIES[id].health} kJ): ${ENEMIES[id].blurb}`, color: C.mist })),
+        ...(kinds.some((id) => g.seenKinds.has(id)) ? [{ text: `Met before: ${kinds.filter((id) => g.seenKinds.has(id)).map((id) => `${ENEMIES[id].name} ${ENEMIES[id].health} kJ`).join(', ')}.`, color: C.steel }] : []),
         { text: `Clearing it pays ${wavePay(n)}.`, color: C.gold },
       ]);
     }
@@ -1580,45 +1622,6 @@ export class Play {
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.help = false;
   }
 
-  /** one line on why a run was lost, by rule (the second review's ask) */
-  private diagnose(): string {
-    const g = this.game, s = g.stats;
-    // the leaks that took the last quarter of the lights decide what the run died of
-    const total = s.leakLog.reduce((a, l) => a + l.lights, 0);
-    const tail: typeof s.leakLog = [];
-    let sum = 0;
-    for (let i = s.leakLog.length - 1; i >= 0 && sum < Math.max(1, total / 4); i--) {
-      tail.push(s.leakLog[i]);
-      sum += s.leakLog[i].lights;
-    }
-    const by = (k: string) => tail.filter((l) => l.enemy === k).reduce((a, l) => a + l.lights, 0);
-    if (sum === 0) return 'More towers at the bends, and keep them fed.';
-    // "more Burners" only when power was short, not when it was being thrown away (the fifth review)
-    const wasteful = s.wastedKj > s.kjDelivered * 0.25;
-    const morePower = wasteful ? `Jars to carry the peaks (you wasted ${Math.round(s.wastedKj)} kJ)` : 'more Burners';
-    // the player's own bursts first: they take the rest of the wall (the fifth review M4)
-    const ocStarved = tail.filter((l) => l.overcharged && l.wall < 0.5).reduce((a, l) => a + l.lights, 0);
-    if (ocStarved >= sum / 2)
-      return `Your own Overcharges: ${ocStarved} of the last ${sum} lights got through while a burst held your wall under half. Each one takes the rest of the wall for 4 s; save them for a Pall.`;
-    const lostAll = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
-    if ((s.lightsLostBy.pall ?? 0) / lostAll >= 0.4 && by('pall') > 0) return `Palls took ${s.lightsLostBy.pall} of your ${lostAll} lights. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full), shell it (a Starshell burst lands on everything), or put a cone early on the road and Overcharge it there, on the Hearth's own reach where no Node caps the burst.`;
-    const veilsStarved = tail.filter((l) => l.enemy === 'veil' && l.wall < RULES.veilSight.v);
-    if (veilsStarved.length && by('veil') >= sum / 3)
-      return veilsStarved.some((l) => l.overcharged)
-        ? 'Veils walked past while your wall was under 60%: your Overcharges took the power their towers needed to see them.'
-        : `Veils walked past while your wall was under 60%: ${morePower}, fewer towers firing at once, or Pulse less (it empties the Jars that carry the wall).`;
-    if (by('pall') >= sum / 2) return 'Palls took the last of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
-    if (by('siphon') >= sum / 3) return 'Siphons got through: kill them where they drink (an Overcharge, a Brazier), or have spare kW on the line they tap.';
-    if (by('flit') >= sum / 3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
-    if (by('shade') >= sum / 3) return 'Shades got through: their 90 kJ needs two towers on them, or an Overcharge as they pass.';
-    const lost = lostAll;
-    if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
-    if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: ${wasteful ? morePower : 'more Burners, or Jars to carry the peaks'}.`;
-    if (s.wastedKj > s.kjDelivered) return 'You made more power than your towers used: fewer Burners, more towers (or Jars and Labs for the spare).';
-    if ((s.lightsLostBy.flit ?? 0) / lost >= 0.3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
-    return 'More towers at the bends, and keep them fed.';
-  }
-
   private drawEnd(ui: UI, g: Game) {
     ui.layer = 8;
     const win = g.over === 'win';
@@ -1644,7 +1647,7 @@ export class Play {
     ];
     if (this.profile) rows.push(['Embers', `+${this.embersEarned} (you have ${this.profile.embers}: SKILLS on the title)`]);
     const spare = !win && g.money >= 100 ? ` You ended with ${g.money} money unspent: between waves it is towers and Burners.` : '';
-    const why = win ? '' : this.diagnose() + spare;
+    const why = win ? '' : diagnose(this.game) + spare;
     const best = this.profile?.maps[g.map.id];
     if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);
     const w = Math.min(ui.w - 12, Math.max(276, ...rows.map(([k, v]) => textWidth(k) + textWidth(v) + 40)));

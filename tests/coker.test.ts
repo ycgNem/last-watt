@@ -1,8 +1,9 @@
 // The Coker (DESIGN.md §3.2, ROADMAP Milestone 3's Refiner): the Extractor's other tier 2. It still
-// digs a rock every 8 s, but hands it over as coke, 2.5 rocks of heat, for 10 kW. A Deep bit digs
-// faster for 4 kW. Which pays depends on how many Burners can touch the Extractor.
+// digs a rock every 8 s, but hands it over as coke, 2.5 rocks of heat, for 10 kW, and coke burns too
+// hot for a Snuffer. A Deep bit digs faster for 4 kW. Which pays depends on the ground: how many
+// Burners touch the Extractor, and whether they stand in a Snuffer's reach of the road.
 import { describe, expect, it } from 'vitest';
-import { Game, put } from './helpers';
+import { Game, park, put } from './helpers';
 import { run } from '../src/sim/commands';
 import { RULES } from '../src/data/rules';
 
@@ -61,5 +62,24 @@ describe('the Coker (§3.2)', () => {
     }
     // what it held, 25 s each, plus what was burning
     expect(t).toBeGreaterThan(held * 25 - 1);
+  });
+
+  it('a Snuffer cannot put out a Burner on coke; the same Burner on rock goes cold (the sixth review)', () => {
+    const snuffed = (coke: boolean) => {
+      const g = new Game();
+      const b = put(g, 'burner', 19, 18);
+      if (coke) b.coke = 3;
+      else b.fuel = 3;
+      g.step();
+      // a Snuffer parked on the road beside it (the station's road end passes within 5 tiles)
+      const s = park(g, 'snuffer', g.paths[0].length - 2);
+      s.hp = 1e9;
+      for (let i = 0; i < 30; i++) g.step();
+      return b;
+    };
+    expect(snuffed(false).snuffed).toBeGreaterThan(0);
+    const c = snuffed(true);
+    expect(c.snuffed).toBe(0);
+    expect(c.output).toBe(20);
   });
 });

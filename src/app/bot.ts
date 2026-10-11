@@ -10,7 +10,9 @@ import { nextWave, overcharge, overchargeProblem, place, pulse, pulseProblem, se
 import { windShade } from '../sim/systems/economy';
 import { BUILDINGS, specOf } from '../data/buildings';
 import { strandedBy } from '../sim/lines';
-import { covers } from '../sim/geom';
+import { covers, touches } from '../sim/geom';
+import { roadDist } from '../sim/threats';
+import { ENEMIES } from '../data/enemies';
 import { RULES } from '../data/rules';
 import { LAST_WAVE } from '../data/waves';
 import { fullDraw } from '../sim/systems/grid';
@@ -39,6 +41,10 @@ export interface BotPlan {
   /** which way to take a building's tier where it has a choice (0 the main line; a Node the
    *  Busbar, 1) */
   branches?: Partial<Record<BuildingId, number>>;
+  /** an Extractor's tier the way a player reading the ground would take it: a Coker where a
+   *  Burner it feeds is in a Snuffer's reach of the road or three Burners touch it, else a Deep
+   *  bit (the sixth review's Coker check) */
+  smartMining?: boolean;
   /** raise this many towers (the first built from the wall list) to tier 1, and nothing else
    *  beyond what the plan does: the "one T press" player */
   raise?: number;
@@ -449,15 +455,21 @@ export class Bot {
   }
 
   /** upgrade the first building of the listed kinds the research allows; true if it did */
+  private miningBranch(g: Game, x: Building): number {
+    const fed = [...g.buildings.values()].filter((u) => u.def.role === 'generator' && u.def.fuel === 'rock' && u.net >= 0 && touches(g.rect(u), g.rect(x)));
+    const r = ENEMIES.snuffer.snuffRadius ?? 0;
+    return fed.length >= 3 || fed.some((u) => roadDist(g, u) <= r) ? 1 : 0;
+  }
+
   private tryUpgrade(g: Game, kinds: BuildingId[]): boolean {
     for (const k of kinds) {
-      const branch = this.plan.branches?.[k] ?? 0;
-      const can = [...g.buildings.values()].filter((x) => x.def.id === k && !upgradeProblem(g, x, branch));
+      const branchOf = (x: Building) => (k === 'extractor' && this.plan.smartMining ? this.miningBranch(g, x) : this.plan.branches?.[k] ?? 0);
+      const can = [...g.buildings.values()].filter((x) => x.def.id === k && !upgradeProblem(g, x, branchOf(x)));
       // Nodes: the busiest first (a full one most of all, §3.3)
       if (k === 'node') can.sort((a, c) => Math.abs(c.carry) - Math.abs(a.carry));
       const b = can[0];
       if (b) {
-        upgrade(g, b, branch);
+        upgrade(g, b, branchOf(b));
         return true;
       }
     }

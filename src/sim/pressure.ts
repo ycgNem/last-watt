@@ -22,6 +22,10 @@ export interface Pressure {
   wallFull: number;
   /** inflow ÷ wall: §6 says 1.1–1.3 leaks 0–2 */
   ratio: number;
+  /** kW the grid makes, the Works ask, and every tower firing asks (what the shares come from) */
+  makeKw: number;
+  worksKw: number;
+  peakKw: number;
 }
 
 /** kW the grid makes without its Jars (a Vane at its average) */
@@ -58,5 +62,5 @@ export function wavePressure(g: Game, w: WaveDef): Pressure {
   const share = peak > 0 ? Math.min(1, Math.max(0, makeKw(g) - works) / peak) : 1;
   const wall = dealt * share;
   const inflow = span > 0 ? kj / span : kj;
-  return { kj, span, inflow, wall, wallFull: dealt, ratio: wall > 0 ? inflow / wall : Infinity };
+  return { kj, span, inflow, wall, wallFull: dealt, ratio: wall > 0 ? inflow / wall : Infinity, makeKw: makeKw(g), worksKw: works, peakKw: peak };
 }

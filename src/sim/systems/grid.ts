@@ -216,7 +216,7 @@ export function gridSystem(g: Game, dry = false) {
   }
   if (g.netDirty) rebuildNetworks(g);
 
-  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
+  const total = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0, stolen: 0, held: 0 };
   for (const b of g.buildings.values()) {
     if (b.net < 0) {
       b.demand = 0;
@@ -403,14 +403,29 @@ export function gridSystem(g: Game, dry = false) {
         c.full = atCap && (flow[i] > 0 ? short[i] > 0.5 : spare[i] > 0.5 && short[0] - short[i] > 0.5);
       }
     }
+    // what full links held back inward: each one's branch shortfall, counted at the first full link
+    // on the way out from the root
+    for (let i = 1; i < k; i++) {
+      const c = g.buildings.get(t.ids[i]);
+      if (!c?.full || flow[i] <= 0) continue;
+      let up = t.parent[i], outer = false;
+      while (up > 0 && !outer) {
+        outer = !!g.buildings.get(t.ids[up])?.full;
+        up = t.parent[up];
+      }
+      if (!outer) total.held += short[i];
+    }
     n.wall = { demand: 0, served: 0, sat: 1 };
     for (const b of consumers) {
       const i = at(b), tt = tierOf(b);
       const d = dem[tt][i];
       b.sat = b.off || g.tierOff[b.tier] ? 0 : d > 0 ? Math.min(1, got[tt][i] / d) : n.tiers[tt].sat;
       if (b.def.role === 'tower' || b.def.role === 'beacon') {
-        n.wall.demand += b.demand;
-        n.wall.served += b.demand * b.sat;
+        // an Overcharged tower is the wall at its base draw: one a full link caps short of its 3×
+        // is not starved (the sixth review: BROWNOUT fired with the Wall bar at 100%)
+        const base = b.overcharge > 0 ? b.demand / ocMult(g) : b.demand;
+        n.wall.demand += base;
+        n.wall.served += Math.min(base, b.demand * b.sat);
       }
     }
     n.wall.sat = n.wall.demand > 0 ? n.wall.served / n.wall.demand : 1;
@@ -451,6 +466,7 @@ export function gridSystem(g: Game, dry = false) {
   g.grid = total;
   g.stats.wastedKj += total.wasted * DT;
   g.stats.stolenKj += stolen * DT;
+  total.stolen = stolen;
 
   // brownout: the wall below the starved line; it ends only once the wall is clearly back
   const wall = total.wall;

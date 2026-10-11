@@ -50,7 +50,7 @@ export class Game {
   netDirty = true;
   /** bumped every time the networks are rebuilt (the renderer caches wires on it) */
   netVersion = 0;
-  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
+  grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0, stolen: 0, held: 0 };
   /** per line (keyed by its first conductor's id), this wave so far: the most it asked and the
    *  wall's lowest share, for the Lines view (§3.2, the fourth review) */
   lineMemo = new Map<number, { wave: number; peak: number; low: number }>();
@@ -82,7 +82,7 @@ export class Game {
   events: GameEvent[] = [];
   stats: RunStats = {
     kills: 0, leaks: 0, leaksByWave: [], lightsByWave: [], leakLog: [], lightsLostBy: {}, moneyEarned: 0, wavePay: 0, kjDelivered: 0,
-    wastedKj: 0, brownoutSeconds: 0, overcharges: 0, pulses: 0, knocks: 0, snuffs: 0, stolenKj: 0, researched: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
+    wastedKj: 0, wastedLiveKj: 0, lossByWave: [], brownoutSeconds: 0, overcharges: 0, pulses: 0, knocks: 0, snuffs: 0, stolenKj: 0, researched: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
   };
   over: null | 'win' | 'lose' = null;
   hearthId = 0;
@@ -183,7 +183,7 @@ export class Game {
   addBuilding(def: BuildingDef, x: number, y: number): Building {
     const b: Building = {
       id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, branch: 0, net: -1, demand: 0, sat: 0, satAvg: 1,
-      output: 0, fuel: 0, coke: 0, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
+      output: 0, fuel: 0, coke: 0, burnCoke: false, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
       overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0, fuse: 0, guard: 0, carry: 0, full: false,
     };
     // skills that act on a new building (§9)

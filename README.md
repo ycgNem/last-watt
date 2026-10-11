@@ -21,10 +21,10 @@ expected; what you felt matters more than bugs.
 - **Seven enemies** that each hit the grid a different way: Moths and Flits walk to the light,
   Shades cut Nodes, Snuffers put out Burners, Siphons drink from your lines, Veils hide from a
   starved wall, Palls drink thin beams.
-- **The grid**: Extractors dig emberrock for Burners, Vanes turn in the wind, Jars store what is
-  spare, Labs turn it into research. Every consumer sits on a priority tier (Works, Wall, Labs,
-  and Spare, which runs only on what would be wasted). Each Node carries at most 40 kW, so where
-  the power goes is a decision: a second route, a Jar past it, or a Heavy line.
+- **The grid**: Extractors dig emberrock for Burners (or coke, with a Coker), Vanes turn in the
+  wind, Jars store what is spare, Labs turn it into research. Every consumer sits on a priority
+  tier (Works, Wall, Labs). Each Node carries at most 60 kW, so where the power goes is a
+  decision: a second route, a Jar past it, or a Busbar (120 kW, but a shorter reach).
 - **Verbs mid-wave**: Overcharge a tower (3x for 4 s, paid from spare power and the rest of the
   wall), Pulse every Jar onto the enemies, Reroute a cut Node, shed a building or a whole tier,
   Dark Bait on the Fork.

@@ -1,6 +1,7 @@
 // Fuel (§3): Extractors dig emberrock at their satisfaction and hand it to a Burner touching
 // them (the stand-in for belts, DECISIONS.md); a Coker hands it over as coke, 2.5 rocks of heat
-// (§3.2). Burners burn one at a time, coke first, while lit, unless a Snuffer has put them out.
+// (§3.2). Burners burn one at a time, coke first, while lit, unless a Snuffer has put them out
+// (it can't while they burn coke).
 // Vanes turn the wind into power (§3.2).
 import { RULES } from '../../data/rules';
 import { DT, type Game } from '../Game';
@@ -45,6 +46,7 @@ export function economySystem(g: Game) {
       // one rock: 400 kJ of heat × efficiency at the output = 10 s at tier 1, 8 s with bellows (§3);
       // coke is 2.5 rocks of heat: 25 s, 20 s with bellows (§3.2)
       const k = u.coke > 0 ? RULES.cokeDensity.v : 1;
+      u.burnCoke = u.coke > 0;
       if (u.coke > 0) u.coke--;
       else u.fuel--;
       u.burnLeft += (k * (d.rockHeat ?? 0) * (d.efficiency ?? 0)) / (d.output ?? 1);

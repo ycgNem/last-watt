@@ -120,9 +120,9 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       stats: { rockInterval: 5, workDraw: 4 },
       why: { cost: '§4 upgrade rule: 30 × 1.25 = 37.5 → 38', rockInterval: '§3.2 deep bit: 8 s → 5 s per rock', workDraw: '§3.2 deep bit: 2 → 4 kW (more rock costs watts)' },
       alts: [{
-        name: 'Coker', cost: 38, research: 'deepbit', blurb: 'Coker: still 1 rock / 8 s, but each is coke, 2.5 rocks of heat (25 s in a Burner). Asks 10 kW. Pays only with three Burners touching it.',
+        name: 'Coker', cost: 38, research: 'deepbit', blurb: 'Coker: still 1 rock / 8 s, but as coke: 2.5 rocks of heat (25 s in a Burner), and too hot for a Snuffer to put out. Asks 10 kW. For rich ground by the road.',
         stats: { workDraw: 10, makesCoke: true },
-        why: { cost: '§4 upgrade rule: 30 × 1.25 = 37.5 → 38', workDraw: '§3.2 Coker: 2 kW digging + 8 kW coking (with two Burners touching, a Deep bit nets more; with three, the Coker)' },
+        why: { cost: '§4 upgrade rule: 30 × 1.25 = 37.5 → 38', workDraw: '§3.2 Coker: 2 kW digging + 8 kW coking: off the road, with two Burners touching, the Deep bit nets 6 kW more; the Coker is bought for the road (snuff-proof) and for three Burners' },
       }],
     }],
     why: {

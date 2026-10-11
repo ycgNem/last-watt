@@ -52,6 +52,9 @@ export function enemiesSystem(g: Game) {
     if (e.def.snuffRadius) {
       for (const b of g.buildings.values()) {
         if (b.def.role !== 'generator' || b.def.fuel !== 'rock') continue;
+        // coke burns too hot to snuff: a Burner on coke, or with coke to go to, stays lit (§3.2,
+        // the sixth review: the Coker re-derived as the answer to rich ground by the road)
+        if ((b.burnCoke && b.burnLeft > 0) || b.coke > 0) continue;
         if (pointRectDist(e.x, e.y, g.rect(b)) <= e.def.snuffRadius) {
           if (b.snuffed <= 0) {
             g.stats.snuffs++;
