@@ -2,6 +2,8 @@
 import { BUILDINGS, specOf, type BuildingDef } from '../data/buildings';
 import { SLICE_MAP, type MapDef } from '../data/map';
 import { RULES } from '../data/rules';
+import { RESEARCH } from '../data/research';
+import { SKILL_RULES } from '../data/skills';
 import type { EnemyId } from '../data/enemies';
 import { Path, type Rect } from './geom';
 import type { Building, Enemy, GameEvent, GridStats, Network, RunStats, Shot } from './types';
@@ -74,9 +76,15 @@ export class Game {
   over: null | 'win' | 'lose' = null;
   hearthId = 0;
 
-  constructor(opts: { map?: MapDef; seed?: number } = {}) {
+  /** the gaffer's skills this run (§9), fixed at the start */
+  skills: Set<string>;
+  /** Banked Spark: the first Jar of the run has been filled */
+  sparked = false;
+
+  constructor(opts: { map?: MapDef; seed?: number; skills?: string[] } = {}) {
     this.map = opts.map ?? SLICE_MAP;
     this.seed = opts.seed ?? 1;
+    this.skills = new Set(opts.skills ?? []);
     this.paths = this.map.paths.map((p) => new Path(this.map, p));
     for (const p of this.paths) for (const c of p.cells) this.pathCells.add(c);
     this.money = RULES.startMoney.v;
@@ -89,6 +97,13 @@ export class Game {
     });
     const hearth = this.addBuilding(BUILDINGS.hearth, this.map.hearth.x, this.map.hearth.y);
     this.hearthId = hearth.id;
+    if (this.skills.has('spareJar')) this.addBuilding(BUILDINGS.jar, this.map.jarSpot[0], this.map.jarSpot[1]);
+  }
+
+  /** kJ a research project costs this run (Head Start halves the first, §9) */
+  researchCost(id: string): number {
+    const c = RESEARCH[id]?.cost ?? 0;
+    return this.skills.has('headStart') && this.research.done.size === 0 ? c * SKILL_RULES.headStart.v : c;
   }
 
   /** the first road (most maps have one) */
@@ -139,7 +154,8 @@ export class Game {
 
   /** the Hearth's output: 8 kW at full lights, 0.4 kW less for every light lost (§3) */
   hearthOutput(): number {
-    return ((BUILDINGS.hearth.output ?? 0) * this.lights) / RULES.startLights.v;
+    const full = this.skills.has('hotHearth') ? SKILL_RULES.hotHearth.v : BUILDINGS.hearth.output ?? 0;
+    return (full * this.lights) / RULES.startLights.v;
   }
 
   emit(e: GameEvent) {
@@ -157,8 +173,14 @@ export class Game {
     const b: Building = {
       id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, net: -1, demand: 0, sat: 0, satAvg: 1,
       output: 0, fuel: 0, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
-      overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0,
+      overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0, fuse: 0,
     };
+    // skills that act on a new building (§9)
+    if (def.role === 'generator' && def.fuel === 'rock' && this.skills.has('kindling')) b.fuel = SKILL_RULES.kindling.v;
+    if (def.role === 'storage' && this.skills.has('bankedSpark') && !this.sparked) {
+      b.charge = def.capacity ?? 0;
+      this.sparked = true;
+    }
     this.buildings.set(b.id, b);
     for (let yy = y; yy < y + def.size; yy++)
       for (let xx = x; xx < x + def.size; xx++) this.occupied[yy * this.map.w + xx] = b.id;

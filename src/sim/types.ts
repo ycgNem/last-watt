@@ -38,6 +38,8 @@ export interface Building {
    *  seconds before it can be Overcharged again */
   target: number;
   dps: number;
+  /** node: seconds a Shade has been in reach without a break (Slow Fuse, §9) */
+  fuse: number;
   overcharge: number;
   cool: number;
   /** searchlight: seconds left swinging onto its target */

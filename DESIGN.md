@@ -555,12 +555,35 @@ a sector on purpose so light-seeking enemies turn toward a lit kill zone).
 
 ## 9. The gaffer's skill tree (embers, between runs)
 
-Embers earned = waves cleared + a bonus for lights remaining. Nodes change rules, never
-multiply stats. Starter list for Milestone 8: begin each run with one Jar placed; Hearth
-output 8 → 10 kW; burners relight 2× faster after a blackout; nodes can be placed during a
-wave; Overcharge cost 120 → 90 kJ; wasted power above 5 kW trickles into the nearest Jar;
-Shades take 2 s to knock a node offline instead of instantly. Each node's description names
-what it changes on the energy side.
+**Embers** (the fourth currency, PLAN.md) are paid when a run ends: **one for every wave
+cleared, and half the lights left on a win, rounded up**. A run lost at wave 5 pays 4; a win
+with 15 lights pays 12 + 8 = 20; endless pays each wave it clears on top. Nodes change rules,
+never multiply stats, and each one's description names what it changes on the energy side
+(`src/data/skills.ts`, field `watt`; the skill test checks it).
+
+The tree (Milestone 8, second session) is three columns of three; each node needs the one
+above it. Costs 4 / 8 / 12 by row: the whole tree is 72 embers, about four winning runs or a
+dozen short ones. Respec is free.
+
+| | Storage | Supply | Gaffer |
+|---|---|---|---|
+| **Row 1 (4)** | **Spare Jar**: every run starts with a Jar built beside the Hearth (600 kJ of storage, 60 money not spent) | **Hot Hearth**: the Hearth makes 10 kW at 20 lights (was 8), 0.5 kW a light | **Head Start**: the first research project costs half (350 kJ for a Brazier) |
+| **Row 2 (8)** | **Wide Mouth**: Jars charge at 22.5 kW (was 15): full in 27 s, not 40 | **Kindling**: a new Burner holds three rocks: 20 kW for 30 s before its Extractor digs | **Cool Glass**: an Overcharge asks 2.5× its draw (was 3×) and still fires 3× |
+| **Row 3 (12)** | **Banked Spark**: the first Jar of a run comes full (600 kJ) | **Quick Relight**: a snuffed Burner is cold 4 s after the Snuffer leaves (was 8) | **Slow Fuse**: a Node is cut only after a Shade has been in reach for 1.5 s |
+
+§9's first list is mostly here. Changed: "Overcharge cost 120 → 90 kJ" became Cool Glass (the
+flat price is gone, §8); "nodes can be placed during a wave" was already true, so Kindling
+took its place; "wasted power above 5 kW trickles into the nearest Jar" is what Jars already
+do, so Wide Mouth makes them take more of it; "burners relight 2× faster after a blackout"
+became Quick Relight (the Snuffer is the blackout a Burner has).
+
+What a node is worth, by the bot on the station (`design/skillcheck.mts`; reference 15 lights,
+44 s of brownout): Spare Jar, Head Start and Cool Glass alone each take it to 20; Hot Hearth
+cuts the brownout to 40 s; the whole tree gives 20 lights and 0 s of brownout. On Two Roads the
+whole tree leaves the result at 5 lights (the wave-8 Palls are limited by exposure, not power)
+and cuts the brownout from 30 s to 0. So the tree eases the power side, as intended, and the
+station becomes forgiving for a player who has played a lot: the harder maps and endless carry
+the challenge after that. If that is too generous, the lever is the row costs, not the rules.
 
 ## 10. What the slice must answer
 

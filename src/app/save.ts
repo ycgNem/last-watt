@@ -2,7 +2,7 @@
 // migrations (CLAUDE.md: saves from the first milestone). Runs themselves are not saved yet; a
 // run is about 15 minutes. Every read and write survives a blocked or missing localStorage.
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const KEY = 'lastwatt.profile';
 
 export interface Profile {
@@ -16,6 +16,9 @@ export interface Profile {
   maps: Record<string, Best>;
   /** the map picked last on the title screen */
   map: string;
+  /** embers not yet spent, and the skills learned with them (§9) */
+  embers: number;
+  skills: string[];
   runs: number;
   muted: boolean;
 }
@@ -27,7 +30,7 @@ export function noBest(): Best {
 }
 
 export function defaultProfile(): Profile {
-  return { v: SAVE_VERSION, tutorialDone: false, met: [], best: noBest(), maps: {}, map: 'station', runs: 0, muted: false };
+  return { v: SAVE_VERSION, tutorialDone: false, met: [], best: noBest(), maps: {}, map: 'station', embers: 0, skills: [], runs: 0, muted: false };
 }
 
 /** migrations[i] turns a version-i profile into version i + 1 */
@@ -36,6 +39,8 @@ const MIGRATIONS: ((d: any) => any)[] = [
   (d) => ({ ...defaultProfile(), ...(typeof d === 'object' && d ? d : {}), v: 1 }),
   // 1 → 2: maps (Milestone 7); every run so far was on the station
   (d) => ({ ...d, v: 2, maps: d.best?.wave > 0 ? { station: { ...noBest(), ...d.best } } : {}, map: 'station' }),
+  // 2 → 3: embers and the skill tree (Milestone 8); nothing earned before it
+  (d) => ({ ...d, v: 3, embers: 0, skills: [] }),
 ];
 
 export function migrate(d: any): Profile {
@@ -45,7 +50,7 @@ export function migrate(d: any): Profile {
     out = MIGRATIONS[v](out);
     v++;
   }
-  return { ...defaultProfile(), ...out, best: { ...noBest(), ...(out?.best ?? {}) }, maps: { ...(out?.maps ?? {}) } };
+  return { ...defaultProfile(), ...out, best: { ...noBest(), ...(out?.best ?? {}) }, maps: { ...(out?.maps ?? {}) }, skills: [...(out?.skills ?? [])] };
 }
 
 export function loadProfile(): Profile {

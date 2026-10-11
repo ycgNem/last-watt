@@ -25,6 +25,7 @@ import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { noBest, type Profile } from './save';
+import { embersFor } from '../data/skills';
 import type { MapDef } from '../data/map';
 
 interface Msg { text: string; color: string; t: number; life: number }
@@ -73,11 +74,15 @@ export class Play {
   private recorded = false;
   /** the run is in the profile's run count (endless records again without counting again) */
   private counted = false;
+  /** waves already paid in embers, whether the win's bonus was paid, and the last award */
+  private emberWaves = 0;
+  private emberWin = false;
+  embersEarned = 0;
   /** left edge of the next-wave strip (UI px) */
   private stripLeft = 0;
 
   constructor(public r: Renderer, public ui: UI, public input: Input, public audio: Audio, public onRestart: () => void, public opts: PlayOpts = {}) {
-    this.game = new Game({ seed: opts.seed, map: opts.tutorial ? undefined : opts.map });
+    this.game = new Game({ seed: opts.seed, map: opts.tutorial ? undefined : opts.map, skills: opts.profile?.skills });
     this.profile = opts.profile ?? null;
     const [fx, fy] = this.game.map.focus;
     r.cam.x = fx * TILE;
@@ -160,6 +165,14 @@ export class Play {
       }
     }
     if (this.tutorial) p.tutorialDone = true;
+    // embers (§9): a wave cleared is one, a win adds half the lights left; endless pays its waves too
+    const cleared = g.wavePaid.size;
+    const win = g.over === 'win' && !this.emberWin;
+    const e = embersFor(cleared - this.emberWaves, win, g.lights);
+    this.emberWaves = cleared;
+    if (win) this.emberWin = true;
+    this.embersEarned += e;
+    p.embers += e;
     this.opts.onProfile?.(p);
   }
 
@@ -931,7 +944,7 @@ export class Play {
       case 'lab': {
         const id = g.research.active;
         out.push({ text: `Asks ${d.workDraw} kW while a project runs: 1 kW = 1 kJ of research per second.` });
-        if (id) out.push({ text: `On: ${RESEARCH[id].name}, ${Math.floor(g.research.progress[id] ?? 0)}/${RESEARCH[id].cost} kJ.`, color: C.cyan });
+        if (id) out.push({ text: `On: ${RESEARCH[id].name}, ${Math.floor(g.research.progress[id] ?? 0)}/${Math.round(g.researchCost(id))} kJ.`, color: C.cyan });
         break;
       }
     }
@@ -1186,12 +1199,13 @@ export class Play {
         const done = g.research.done.has(id);
         const active = g.research.active === id;
         const why = researchProblem(g, id);
-        const p = (g.research.progress[id] ?? 0) / r.cost;
-        const label = done ? `${r.name}: done` : `${r.name}  ${r.cost} kJ`;
-        const secs = kw > 0 ? Math.ceil((r.cost - (g.research.progress[id] ?? 0)) / kw) : Math.ceil(r.cost / 10);
+        const cost = Math.round(g.researchCost(id));
+        const p = (g.research.progress[id] ?? 0) / cost;
+        const label = done ? `${r.name}: done` : `${r.name}  ${cost} kJ`;
+        const secs = kw > 0 ? Math.ceil((cost - (g.research.progress[id] ?? 0)) / kw) : Math.ceil(cost / 10);
         if (ui.button(label, cx, ry, colW, 13, {
           active, disabled: done || (!!why && !active), color: done ? C.steel : C.bone,
-          tip: [r.name, r.blurb, done ? 'Done.' : why && !active ? why : `${r.cost} kJ: about ${secs} s at ${kw > 0 ? kw.toFixed(0) : 10} kW. ${active ? 'Click to pause it.' : 'Click to work on it.'}`],
+          tip: [r.name, r.blurb, done ? 'Done.' : why && !active ? why : `${cost} kJ${cost < r.cost ? ' (Head Start)' : ''}: about ${secs} s at ${kw > 0 ? kw.toFixed(0) : 10} kW. ${active ? 'Click to pause it.' : 'Click to work on it.'}`],
         })) this.act(startResearch(g, id));
         ui.bar(cx, ry + 14, colW, 4, done ? 1 : p, done ? C.steel : active ? C.cyan : C.navy);
       });
@@ -1261,6 +1275,7 @@ export class Play {
       ['Time in brownout', `${Math.round(s.brownoutSeconds)} s`],
       ['Overcharges / research', `${s.overcharges} / ${s.researched}`],
     ];
+    if (this.profile) rows.push(['Embers', `+${this.embersEarned} (you have ${this.profile.embers}: SKILLS on the title)`]);
     const why = win ? '' : this.diagnose();
     const best = this.profile?.maps[g.map.id];
     if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);

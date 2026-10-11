@@ -1,5 +1,4 @@
 // Research (§7): each Lab converts its served kW into progress at 1:1 on the active project.
-import { RESEARCH } from '../../data/research';
 import { DT, type Game } from '../Game';
 
 export function researchSystem(g: Game) {
@@ -9,8 +8,9 @@ export function researchSystem(g: Game) {
   for (const b of g.buildings.values()) if (b.def.role === 'lab' && b.net >= 0) kw += b.demand * b.sat;
   const p = (g.research.progress[id] ?? 0) + kw * DT;
   g.research.progress[id] = p;
-  if (p >= RESEARCH[id].cost) {
-    g.research.progress[id] = RESEARCH[id].cost;
+  const cost = g.researchCost(id);
+  if (p >= cost) {
+    g.research.progress[id] = cost;
     g.research.done.add(id);
     g.research.active = null;
     g.stats.researched++;

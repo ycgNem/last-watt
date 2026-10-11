@@ -9,6 +9,7 @@ import { Play, HUD_H, BAR_H } from './app/play';
 import { loadProfile, saveProfile, type Profile } from './app/save';
 import { LAST_WAVE } from './data/waves';
 import { MAPS, mapById, type MapDef } from './data/map';
+import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
 import { Game } from './sim/Game';
 import { Bot } from './app/bot';
 import { C } from './data/palette';
@@ -29,6 +30,8 @@ class App {
   title = new Game({ map: this.map });
   loop: GameLoop;
   uiScale = 2;
+  /** the skill tree is open over the title */
+  skillsOpen = false;
 
   constructor() {
     this.input.attach(this.canvas);
@@ -59,6 +62,52 @@ class App {
     this.focusTitle();
     this.profile.map = m.id;
     saveProfile(this.profile);
+  }
+
+  /** the skill tree over the title: three columns of three, bought with embers, free to respec */
+  private drawSkills(top: number) {
+    const ui = this.ui, p = this.profile;
+    if (this.input.key('Escape') || this.input.key('KeyK')) {
+      this.skillsOpen = false;
+      return;
+    }
+    const w = Math.min(ui.w - 16, 432), colW = Math.floor((w - 24) / 3), rowH = 34;
+    const intro = wrapText('One ember a wave cleared, and half your lights left on a win. Each skill changes a power rule for every run after.', w - 12);
+    const head = 20 + intro.length * LINE_H;
+    const h = head + 14 + 3 * rowH + 22;
+    const x = Math.round(ui.w / 2 - w / 2), y = top;
+    ui.layer = 6;
+    ui.panel(x, y, w, h, { border: C.amber, alpha: 0.97 });
+    ui.text("THE GAFFER'S SKILLS", x + 6, y + 5, C.amber);
+    ui.textR(`${p.embers} embers`, x + w - 18, y + 5, C.gold);
+    if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.skillsOpen = false;
+    intro.forEach((l, i) => ui.text(l, x + 6, y + 16 + i * LINE_H, C.ash));
+    const cols = [['storage', 'STORAGE'], ['supply', 'SUPPLY'], ['gaffer', 'GAFFER']] as const;
+    cols.forEach(([col, name], ci) => {
+      const cx = x + 6 + ci * (colW + 6);
+      ui.text(name, cx, y + head, C.steel);
+      SKILL_ORDER.filter((id) => SKILLS[id].column === col).forEach((id) => {
+        const s = SKILLS[id];
+        const ry = y + head + 11 + (s.row - 1) * rowH;
+        const have = p.skills.includes(id);
+        const why = skillProblem(id, p.skills, p.embers);
+        const label = have ? `${s.name}: learned` : `${s.name}  ${s.cost}`;
+        if (ui.button(label, cx, ry, colW, 14, { active: have, disabled: !have && !!why, color: have ? C.gold : C.bone, tip: [s.name, s.blurb, s.watt, ...(have ? ['Learned.'] : why ? [why] : [`${s.cost} embers: click to learn.`])] }) && !have && !why) {
+          p.embers -= s.cost;
+          p.skills.push(id);
+          saveProfile(p);
+          this.audio.sfx('upgrade');
+        }
+        if (s.row < 3) ui.fill(cx + Math.floor(colW / 2), ry + 15, 1, rowH - 16, have ? C.amber : C.iron);
+      });
+    });
+    const spent = p.skills.reduce((a, id) => a + (SKILLS[id]?.cost ?? 0), 0);
+    if (ui.button(`RESPEC (+${spent})`, x + 6, y + h - 20, 90, 14, { disabled: spent === 0, tip: ['Respec', 'Forget every skill and get all the embers back. Free.'] })) {
+      p.embers += spent;
+      p.skills = [];
+      saveProfile(p);
+    }
+    if (ui.button('DONE (K)', x + w - 96, y + h - 20, 90, 14, { color: C.gold })) this.skillsOpen = false;
   }
 
   private focusTitle() {
@@ -123,18 +172,26 @@ class App {
     const s = Math.max(3, Math.floor(ui.w / 110));
     ui.big('LAST WATT', ui.w / 2, Math.round(ui.h * 0.2), s, C.gold, C.rust);
     const ty = ui.h * 0.2 + s * 9 + 10;
+    if (this.skillsOpen) {
+      this.drawSkills(Math.round(ty));
+      ui.end();
+      return;
+    }
     ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
     ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
     const by = Math.round(ui.h * 0.58);
     const first = !this.profile.tutorialDone;
-    if (ui.button(first ? 'TUTORIAL (START HERE)' : 'TUTORIAL', ui.w / 2 - 130, by, 124, 18, { color: first ? C.gold : C.bone, active: first, tip: ['Tutorial', 'A guided first run: place each piece on a marked spot and learn why watts matter. About 3 minutes, then the run carries on.'] }) || this.input.key('KeyT')) {
+    const tbw = 112, bx = Math.round(ui.w / 2 - (tbw * 3 + 12) / 2);
+    if (ui.button(first ? 'TUTORIAL (START HERE)' : 'TUTORIAL', bx, by, tbw, 18, { color: first ? C.gold : C.bone, active: first, tip: ['Tutorial', 'A guided first run: place each piece on a marked spot and learn why watts matter. About 4 minutes, then the run carries on.'] }) || this.input.key('KeyT')) {
       this.audio.unlock();
       this.newGame(false, true);
     }
-    if (ui.button('PLAY', ui.w / 2 + 6, by, 124, 18, { color: first ? C.bone : C.gold, active: !first, tip: ['Play', `${LAST_WAVE} waves on ${this.map.name}, then endless if you like.`] }) || this.input.key('Enter') || this.input.key('Space')) {
+    if (ui.button('PLAY', bx + tbw + 6, by, tbw, 18, { color: first ? C.bone : C.gold, active: !first, tip: ['Play', `${LAST_WAVE} waves on ${this.map.name}, then endless if you like.`] }) || this.input.key('Enter') || this.input.key('Space')) {
       this.audio.unlock();
       this.newGame();
     }
+    const owned = this.profile.skills.length;
+    if (ui.button(`SKILLS: ${this.profile.embers} EMBERS`, bx + 2 * (tbw + 6), by, tbw, 18, { color: this.profile.embers > 0 ? C.amber : C.bone, tip: ['The gaffer\'s skills (K)', `Embers come from runs: one for every wave cleared, and half your lights left on a win. Spend them on skills that change the power rules for every run after. ${owned} of ${SKILL_ORDER.length} learned.`] }) || this.input.key('KeyK')) this.skillsOpen = true;
     // the map picker: one button per map, locked ones say what opens them
     const mw = 108, gap = 4, my = by + 26;
     const mx = Math.round(ui.w / 2 - (MAPS.length * mw + (MAPS.length - 1) * gap) / 2);
@@ -159,7 +216,7 @@ class App {
       ui.textC(b.won ? `Best here: held all ${LAST_WAVE} waves with ${b.lights} lights${b.endless ? `; endless to wave ${b.endless}` : ''}.` : `Best here: reached wave ${b.wave} of ${LAST_WAVE}.`, ui.w / 2, y, C.amber);
       y += 12;
     }
-    ui.textC('T tutorial, Enter play, arrows pick a map. H in game shows the controls.', ui.w / 2, y + 2, C.steel);
+    ui.textC('T tutorial, Enter play, K skills, arrows pick a map. H in game shows the controls.', ui.w / 2, y + 2, C.steel);
     ui.end();
   }
 }
@@ -169,6 +226,7 @@ const app = new App();
 (window as any).__Game = Game;
 (window as any).__Bot = Bot;
 (window as any).__maps = MAPS;
+(window as any).__skills = SKILL_ORDER;
 // hooks for the e2e harness and for debugging by hand (free placement, no money spent)
 (window as any).__place = (g: Game, id: any, x: number, y: number) => {
   const b = place(g, id, x, y, true);

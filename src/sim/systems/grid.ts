@@ -2,6 +2,7 @@
 // networks from nodes, supply, line losses, priority tiers, satisfaction, Jar charge/discharge,
 // wasted kW. Consumers read b.sat afterwards; they never compute it.
 import { RULES } from '../../data/rules';
+import { SKILL_RULES } from '../../data/skills';
 import { DT, emptyTiers, type Game } from '../Game';
 import { covers } from '../geom';
 import type { Building, Network } from '../types';
@@ -80,7 +81,7 @@ export function demandOf(g: Game, b: Building): number {
   switch (d.role) {
     case 'tower': {
       // an Overcharge asks 3× whatever the tower would ask, ahead of every tier (§8)
-      const k = b.overcharge > 0 ? RULES.overchargeMult.v : 1;
+      const k = b.overcharge > 0 ? (g.skills.has('coolGlass') ? SKILL_RULES.coolGlass.v : RULES.overchargeMult.v) : 1;
       switch (d.kind) {
         case 'radial': return k * ((d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies);
         case 'mortar': return b.shell < (d.shellSize ?? 0) * (d.magazine ?? 1) ? k * (d.chargeDraw ?? 0) : 0;
@@ -194,7 +195,8 @@ export function gridSystem(g: Game, dry = false) {
         if (j.off) continue;
         const js = g.spec(j);
         const room = ((js.capacity ?? 0) - j.charge) / DT;
-        const take = Math.max(0, Math.min(js.maxCharge ?? 0, room, surplus));
+        const rate = (js.maxCharge ?? 0) * (g.skills.has('wideMouth') ? SKILL_RULES.wideMouth.v : 1);
+        const take = Math.max(0, Math.min(rate, room, surplus));
         if (!dry) j.charge += take * DT;
         j.flow = take;
         surplus -= take;

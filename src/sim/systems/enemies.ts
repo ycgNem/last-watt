@@ -2,9 +2,13 @@
 // Burners, leaks cost lights.
 import { DT, type Game } from '../Game';
 import { pointRectDist } from '../geom';
+import { SKILL_RULES } from '../../data/skills';
 
 export function enemiesSystem(g: Game) {
   let removed = false;
+  // Slow Fuse (§9): a Node is cut only once a Shade has been in reach this long without a break
+  const fuse = g.skills.has('slowFuse') ? SKILL_RULES.slowFuse.v : 0;
+  const pressed = new Set<number>();
   for (const e of g.enemies) {
     const path = g.paths[e.route];
     const len = path.length;
@@ -18,6 +22,11 @@ export function enemiesSystem(g: Game) {
       for (const b of g.buildings.values()) {
         if (b.def.role !== 'node') continue;
         if (pointRectDist(e.x, e.y, g.rect(b)) <= e.def.knockRadius) {
+          if (!pressed.has(b.id)) {
+            pressed.add(b.id);
+            b.fuse += DT;
+          }
+          if (b.fuse < fuse) continue;
           if (b.offline <= 0) {
             g.netDirty = true;
             g.stats.knocks++;
@@ -38,7 +47,7 @@ export function enemiesSystem(g: Game) {
           }
           // the burning rock is lost; the Burner stays cold while the Snuffer is near and 8 s after
           b.burnLeft = 0;
-          b.snuffed = e.def.snuffTime ?? 0;
+          b.snuffed = (e.def.snuffTime ?? 0) * (g.skills.has('quickRelight') ? SKILL_RULES.quickRelight.v : 1);
         }
       }
     }
@@ -53,4 +62,6 @@ export function enemiesSystem(g: Game) {
     }
   }
   if (removed) g.enemies = g.enemies.filter((e) => e.hp !== -Infinity);
+  // a Node no Shade pressed this tick starts its fuse again
+  for (const b of g.buildings.values()) if (b.def.role === 'node' && !pressed.has(b.id)) b.fuse = 0;
 }

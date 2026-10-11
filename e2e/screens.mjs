@@ -132,6 +132,23 @@ const STATES = {
     for (let i = 0; i < 60 * 34; i++) { p.tick(); g.drainEvents(); }
     p.msgs = [];
   }),
+  skills: async (page) => {
+    await page.evaluate(() => {
+      const a = window.__app;
+      a.profile.embers = 13;
+      a.profile.skills = ['spareJar', 'wideMouth', 'hotHearth'];
+      a.skillsOpen = true;
+    });
+    await page.mouse.move(4, 4);
+  },
+  winembers: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    for (let n = 1; n <= 12; n++) g.wavePaid.add(n);
+    g.wave = 12;
+    g.lights = 15;
+    g.over = 'win';
+  }),
   titlemaps: async (page) => {
     await page.evaluate(() => {
       const a = window.__app;

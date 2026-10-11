@@ -18,6 +18,8 @@ export interface MapDef {
   deposits: [number, number][][];
   /** where the camera starts, in tiles */
   focus: [number, number];
+  /** where the Spare Jar skill builds its Jar (beside the Hearth, clear of the tutorial and bot spots) */
+  jarSpot: [number, number];
   /** the wind's mean on this map (a Vane's share of its rating), §3.2 */
   windMean: number;
   /** every wave's spacing × this (§11) */
@@ -49,6 +51,7 @@ export const SLICE_MAP: MapDef = {
     [[6, 8], [7, 8], [6, 9], [7, 9], [8, 9], [7, 10]],
   ],
   focus: [20, 13.5],
+  jarSpot: [21, 17],
   windMean: 0.55,
   pace: 1,
   unlockWave: 0,
@@ -86,6 +89,7 @@ export const SWITCHBACK: MapDef = {
     [[34, 15], [35, 15], [34, 16], [35, 16], [35, 17]],
   ],
   focus: [21, 15],
+  jarSpot: [22, 22],
   windMean: 0.7,
   pace: 1,
   unlockWave: 4,
@@ -120,6 +124,7 @@ export const TWO_ROADS: MapDef = {
     [[2, 15], [3, 15], [2, 16], [3, 16]],
   ],
   focus: [19.5, 15],
+  jarSpot: [21, 22],
   windMean: 0.55,
   pace: 1.8,
   unlockWave: 8,
