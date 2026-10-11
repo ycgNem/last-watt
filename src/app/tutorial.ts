@@ -79,23 +79,12 @@ export const STEPS: Step[] = [
     text: 'When all three fire, the WALL bar (top) dips below 100%. Below 60% it turns violet and your towers flicker: a brownout (you will see one if you Overcharge with nothing spare). More Burners fix it, and so does a Jar.',
     done: (g) => g.wavePaid.has(2),
   },
-  {
-    title: 'A JAR',
-    text: 'Spare power is WASTED (top) unless you store it. Build a JAR (key -) on the gold spot. It charges from spare power in the breather and pays back in a pinch.',
-    spot: { x: 22, y: 19, size: 1 }, slot: 'jar',
-    done: (g) => count(g, 'jar') >= 1,
-  },
-  {
-    title: 'OVERCHARGE',
-    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of the rest of the wall (after your Extractors) and fires 3x as hard. The extra comes from spare power, then from your other towers: watch them dim. Jars don\'t pay for it; they hold the wall.',
-    // done once the burst is over, so the player sees what it did before the next card holds the game
-    done: (g) => g.stats.overcharges >= 1 && ![...g.buildings.values()].some((b) => b.overcharge > 0),
-  },
-  // the fourth review (M1): the graduate walked into wave 4 with 155 money unspent and lost 13
-  // lights; a Burner pair and a fourth Lamp between waves 3 and 4 lose none
+  // the fifth review (M5): built after wave 3, as the card says, these left a newcomer 5-7 lights
+  // down in wave 3 whatever they did with the Overcharge; wave 3 is throughput (four Flits in a
+  // clump), so the Burner pair and the fourth Lamp come after wave 2, and the Jar after wave 3
   {
     title: 'MORE WATTS',
-    text: 'Wave 4 brings eight Flits and three Shades: more than three Lamps on one Burner can answer. Spend between waves; money in the bank lights nothing. First a second EXTRACTOR (key 8) on the rock at the gold square.',
+    text: 'Wave 3 brings four Flits in a clump and two Shades: more than three Lamps on one Burner can answer. Spend between waves; money in the bank lights nothing. First a second EXTRACTOR (key 8) on the rock at the gold square.',
     spot: { x: 15, y: 19, size: 1 }, slot: 'extractor',
     done: (g) => count(g, 'extractor') >= 2,
   },
@@ -110,6 +99,18 @@ export const STEPS: Step[] = [
     text: 'Flits are quick and come in clumps: more beams, not stronger ones. A fourth LAMP on the gold square, beside the third.',
     spot: { x: 24, y: 16, size: 2 }, slot: 'lamp',
     done: (g) => count(g, 'lamp') >= 4,
+  },
+  {
+    title: 'OVERCHARGE',
+    text: 'The two Shades of wave 3 carry 90 kJ each. When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of the rest of the wall (after your Extractors) and fires 3x as hard. The extra comes from spare power, then from your other towers: watch them dim.',
+    // done once the burst is over, so the player sees what it did before the next card holds the game
+    done: (g) => g.stats.overcharges >= 1 && ![...g.buildings.values()].some((b) => b.overcharge > 0),
+  },
+  {
+    title: 'A JAR',
+    text: 'Spare power is WASTED (top) unless you store it. Once wave 3 is over, build a JAR (key -) on the gold spot. It charges from spare power and holds the wall when supply dips: a Shade cutting a Node, a clump of Flits. It never pays for an Overcharge.',
+    spot: { x: 22, y: 19, size: 1 }, slot: 'jar',
+    done: (g) => count(g, 'jar') >= 1,
   },
   {
     title: 'A LAB',

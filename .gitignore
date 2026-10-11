@@ -7,3 +7,4 @@ __pycache__/
 e2e/out/screens/
 e2e/out/screens-prev/
 e2e/out/peek-*
+e2e/out/critic*/

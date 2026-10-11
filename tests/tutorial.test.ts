@@ -3,7 +3,8 @@
 // must be legal and affordable when its step comes up, and the steps must be done before wave 4
 // (the second review: the old tutorial handed the player a 7-leak wave 2). Then the graduate plays
 // on through wave 4 without touching anything (the fourth review: it walked into wave 4 with 155
-// money unspent and lost 13 lights).
+// money unspent and lost 13 lights). It builds only between waves, as the cards say (the fifth
+// review's M5: built mid-wave the old order passed; built in the breathers it lost 5-7 in wave 3).
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/sim/Game';
 import { STEPS, Tutorial } from '../src/app/tutorial';
@@ -24,7 +25,10 @@ describe('tutorial', () => {
         t.advance();
         continue;
       }
-      if (s.spot && s.slot && built !== t.i) {
+      // as a newcomer would and as the cards say: build in the breathers, not mid-wave (the fifth
+      // review: the old test passed by placing each building the instant its step appeared)
+      const breather = g.wave === 0 || g.wavePaid.has(g.wave);
+      if (s.spot && s.slot && built !== t.i && breather) {
         const r = place(g, s.slot, s.spot.x, s.spot.y);
         if (typeof r === 'string') {
           if (!/money/i.test(r)) problems.push(`step ${t.i + 1} ${s.title}: ${r}`);
@@ -61,6 +65,7 @@ describe('tutorial', () => {
     }
     console.log(`after wave 4: lights ${g.lights}, leaks ${g.stats.leaksByWave.slice(1).join(' ')}, money ${g.money}`);
     expect(g.wavePaid.has(4)).toBe(true);
-    expect(g.lights).toBeGreaterThanOrEqual(12);
+    expect(g.stats.leaksByWave[3] ?? 0).toBeLessThanOrEqual(1);
+    expect(g.lights).toBeGreaterThanOrEqual(16);
   });
 });

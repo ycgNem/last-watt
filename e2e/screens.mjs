@@ -87,13 +87,13 @@ const STATES = {
     p.tutorial.update(p.game); p.tutorial.update(p.game);
   }),
   tutorialhold: async (page) => page.evaluate(() => { const p = window.__app.newGame(false, true); for (let i = 0; i < 8; i++) p.tutorial.advance(); }),
-  // after wave 3: the second Burner pair and the Lab (the fourth review's M1)
+  // after wave 2: the second Burner pair and a fourth Lamp (the fifth review's M5)
   tutorialmore: async (page) => page.evaluate(() => {
     const p = window.__app.newGame(false, true);
     const g = p.game;
-    for (const [id, x, y] of [['lamp', 24, 13], ['extractor', 16, 18], ['burner', 16, 16], ['node', 21, 11], ['lamp', 24, 7], ['lamp', 22, 16], ['jar', 22, 19]]) window.__place(g, id, x, y);
-    g.wave = 3; g.wavePaid.add(1); g.wavePaid.add(2); g.wavePaid.add(3); g.waveTimer = 12; g.money = 155;
-    while (p.tutorial.i < 12) p.tutorial.advance();
+    for (const [id, x, y] of [['lamp', 24, 13], ['extractor', 16, 18], ['burner', 16, 16], ['node', 21, 11], ['lamp', 24, 7], ['lamp', 22, 16]]) window.__place(g, id, x, y);
+    g.wave = 2; g.wavePaid.add(1); g.wavePaid.add(2); g.waveTimer = 12; g.money = 125;
+    while (p.tutorial.i < 10) p.tutorial.advance();
   }),
   tutorialbrazier: async (page) => page.evaluate(() => {
     const p = window.__app.newGame(false, true);
