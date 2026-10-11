@@ -61,7 +61,8 @@ map once it is open; K skills; O settings; H in game lists every key.
   at a wave's start), the message feed (bottom left, two at most), help,
   the **Esc menu** (resume, settings, help, to the title), settings (O), the end screen (embers,
   a diagnosis from the last quarter of the lights, worst wave by lights, PLAY AGAIN, TITLE).
-- **Title**: map picker (four maps), skill tree (K), settings (O), CONTINUE.
+- **Title**: map picker (four maps, each with a whole-map preview and a line of facts), skill
+  tree (K), settings (O), CONTINUE.
 - **Maps**: The Last Station; **The Switchback** (72-tile road, heavier late waves, pace 0.9);
   **The Fork** (the road forks; the light-drawn take the brighter branch, Dark Bait turns them);
   **Two Roads** (two roads meet at a junction 9.4 tiles above the Hearth; pace 1.4). A bot plan
@@ -91,7 +92,7 @@ map once it is open; K skills; O settings; H in game lists every key.
 - **M4**: towers 7–10, enemies 8–10 (the Magpie, a storage thief, is parked on the branch
   `magpie-wip`), walls and gates.
 - **M5**: per-Lab projects (all Labs work on one; there is a queue).
-- **M7**: maps five and six, a map preview on the picker.
+- **M7**: maps five and six; wave tables generated from a model.
 - **M8**: done in part (the tree has nine nodes; §9 lists more).
 - **M9**: the jsfxr bank.
 - **M10**: keybinds; lesson cards for first wasted power exist as hints, not cards.

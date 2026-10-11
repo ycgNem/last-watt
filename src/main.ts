@@ -264,7 +264,7 @@ class App {
     if (ui.button('SETTINGS (O)', ui.w - 78, 4, 74, 13, { tip: ['Settings', 'Volume, UI scale, screen flashes.'] })) this.settingsOpen = true;
     ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
     ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
-    const by = Math.min(Math.round(ui.h * 0.7), ui.h - 100);
+    const by = Math.min(Math.round(ui.h * 0.62), ui.h - 130);
     if (this.saved) {
       const s = this.saved;
       const cw = 220;
@@ -304,16 +304,41 @@ class App {
     const hint = `${this.saved ? 'C continue, ' : ''}T tutorial, Enter play, K skills, O settings, arrows pick a map. H in game: keys.`;
     const bw = Math.min(ui.w - 32, Math.max(360, textWidth(hint) + 8));
     const b = this.profile.maps[this.map.id];
-    const ph = wrapText(this.map.blurb, bw).length * LINE_H + (b && b.wave > 0 ? 12 : 0) + 22;
-    ui.panel(Math.round(ui.w / 2 - bw / 2) - 8, my + 17, bw + 16, ph, { alpha: 0.8 });
-    const lines = ui.wrap(this.map.blurb, Math.round(ui.w / 2 - bw / 2), my + 21, bw, C.mist);
-    let y = my + 21 + lines + 4;
-    if (b && b.wave > 0) {
-      ui.textC(b.won ? `Best here: held all ${LAST_WAVE} waves with ${b.lights} lights${b.endless ? `; endless to wave ${b.endless}` : ''}.` : `Best here: reached wave ${b.wave} of ${LAST_WAVE}.`, ui.w / 2, y, C.amber);
-      y += 12;
-    }
-    ui.textC(hint, ui.w / 2, y + 2, C.steel);
+    const best = b && b.wave > 0 ? (b.won ? `Best here: held all ${LAST_WAVE} waves with ${b.lights} lights${b.endless ? `; endless to wave ${b.endless}` : ''}.` : `Best here: reached wave ${b.wave} of ${LAST_WAVE}.`) : '';
+    const facts = this.mapFacts();
+    // the whole map beside its blurb (M7): 2 px a tile when the screen has the room, else 1
+    const left = Math.round(ui.w / 2 - bw / 2), top = my + 21;
+    const textH = (tw: number) => wrapText(this.map.blurb, tw).length * LINE_H + wrapText(facts, tw).length * LINE_H + 2 + (best ? wrapText(best, tw).length * LINE_H + 2 : 0);
+    const mm = ui.h - top - 16 >= this.map.h * 2 + 2 && textH(bw - this.map.w * 2 - 10) <= this.map.h * 2 + 2 ? 2 : 1;
+    const mw2 = this.map.w * mm, mh2 = this.map.h * mm;
+    const tx = left + mw2 + 10, tw = bw - mw2 - 10;
+    const body = Math.max(mh2 + 2, textH(tw));
+    ui.panel(left - 8, my + 17, bw + 16, body + 22, { alpha: 0.8 });
+    this.drawMiniMap(left, top + 1, mm);
+    let y = top + ui.wrap(this.map.blurb, tx, top, tw, C.mist) + 2;
+    y += ui.wrap(facts, tx, y, tw, C.ash) + 2;
+    if (best) ui.wrap(best, tx, y, tw, C.amber);
+    ui.textC(hint, ui.w / 2, top + body + 2, C.steel);
     ui.end();
+  }
+
+  /** the picked map in one line: its roads' lengths, the wind, how dense its waves come (§11) */
+  private mapFacts(): string {
+    const m = this.map;
+    const names = m.fork?.names ?? m.roadNames;
+    const roads = this.title.paths.map((p, i) => `${names ? names[i] + ' ' : ''}${Math.round(p.length)}`).join(' / ');
+    const pace = m.pace === 1 ? 'waves as written' : `waves ${Math.round(Math.abs(1 / m.pace - 1) * 100)}% ${m.pace < 1 ? 'denser' : 'looser'}`;
+    return `${this.title.paths.length > 1 ? 'Roads' : 'Road'} ${roads} tiles, wind ${Math.round(m.windMean * 100)}%, ${pace}`;
+  }
+
+  /** the picked map as a few pixels a tile: its roads, the Hearth, the deposits (M7) */
+  private drawMiniMap(x: number, y: number, s: number) {
+    const ui = this.ui, m = this.map, g = this.title;
+    ui.fill(x - 1, y - 1, m.w * s + 2, m.h * s + 2, C.steel);
+    ui.fill(x, y, m.w * s, m.h * s, C.ink);
+    for (const d of m.deposits) for (const [dx, dy] of d) ui.fill(x + dx * s, y + dy * s, s, s, C.ember);
+    for (const p of g.paths) for (const c of p.cells) ui.fill(x + (c % m.w) * s, y + Math.floor(c / m.w) * s, s, s, C.ash);
+    ui.fill(x + m.hearth.x * s, y + m.hearth.y * s, 4 * s, 4 * s, C.gold);
   }
 }
 
