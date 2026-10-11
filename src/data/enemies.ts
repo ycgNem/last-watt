@@ -54,12 +54,12 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   shade: {
-    id: 'shade', name: 'Shade', code: 'S', blurb: 'Cuts any Node within 2.5 tiles as it passes, for 10 s.',
-    answer: 'Keep Nodes 3+ tiles from the path, or give power a second route.',
-    health: 90, speed: 1.0, bounty: 14, leak: 2, knockRadius: 2.5, knockTime: 10,
+    id: 'shade', name: 'Shade', code: 'S', blurb: 'Cuts any Node within 3.5 tiles as it passes, for 6 s.',
+    answer: 'Give power a second route (two Nodes, or the reach of the Hearth itself), Reroute a cut Node, or kill the Shade before it reaches your Nodes.',
+    health: 90, speed: 1.0, bounty: 14, leak: 2, knockRadius: 3.5, knockTime: 6,
     why: {
       health: '§5 Shade: 90 kJ', speed: '§5 Shade: 1.0 t/s', bounty: '§1 bounty = round(health × 0.15) = 14 (§6 economy)', leak: '§5 Shade: 2 lights',
-      knockRadius: '§5 Shade: nodes within 2.5 tiles (was 1: §6, the critic\'s first review)', knockTime: '§5 Shade: offline 10 s (§3 Node)',
+      knockRadius: '§5 Shade: nodes within 3.5 tiles (the third review: at 2.5 every Node could hide; at 4.5 none could, and a 12-Shade wave cut a bend for its whole length)', knockTime: '§5 Shade: offline 6 s (an outage to manage mid-wave, not a run-ender)',
     },
   },
   veil: {

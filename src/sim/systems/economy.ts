@@ -1,6 +1,7 @@
 // Fuel (§3): Extractors dig emberrock at their satisfaction and hand it to a Burner touching
 // them (the stand-in for belts, DECISIONS.md); Burners burn one rock at a time while lit, unless a
 // Snuffer has put them out. Vanes turn the wind into power (§3.2).
+import { RULES } from '../../data/rules';
 import { DT, type Game } from '../Game';
 import { touches } from '../geom';
 import type { Building } from '../types';
@@ -55,6 +56,18 @@ export function economySystem(g: Game) {
   const wind = g.wind();
   for (const b of g.buildings.values()) {
     if (b.def.role !== 'generator' || b.def.fuel !== 'wind') continue;
-    b.output = b.off || b.net < 0 ? 0 : (g.spec(b).output ?? 0) * wind;
+    b.output = b.off || b.net < 0 ? 0 : (g.spec(b).output ?? 0) * wind * windShade(g, b);
   }
+}
+
+/** a Vane's share of the wind after the wakes of the other Vanes near it (§3.2): 0.6 for each one
+ *  within 4 tiles, centre to centre */
+export function windShade(g: Game, b: { x: number; y: number; id?: number; def: { size: number } }): number {
+  let k = 1;
+  const cx = b.x + b.def.size / 2, cy = b.y + b.def.size / 2;
+  for (const o of g.buildings.values()) {
+    if (o === b || o.def.role !== 'generator' || o.def.fuel !== 'wind') continue;
+    if (Math.hypot(o.x + o.def.size / 2 - cx, o.y + o.def.size / 2 - cy) <= RULES.windShadowRadius.v) k *= 1 - RULES.windShadow.v;
+  }
+  return k;
 }

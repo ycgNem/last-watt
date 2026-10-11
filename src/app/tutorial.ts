@@ -49,7 +49,7 @@ export const STEPS: Step[] = [
   {
     title: 'CARRY THE POWER',
     text: 'Power only reaches the lit ground around the Hearth and its Nodes. A NODE (key 7) carries it 4 tiles further. Place one on the gold square, out of the red: a Shade walking by cuts any Node in it.',
-    spot: { x: 21, y: 10, size: 1 }, slot: 'node',
+    spot: { x: 21, y: 11, size: 1 }, slot: 'node',
     done: (g) => count(g, 'node') >= 1,
   },
   {

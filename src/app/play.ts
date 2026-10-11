@@ -15,6 +15,7 @@ import { overchargeProblem, pulseProblem, placeProblem, rerouteProblem, research
 import { DT, Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
 import { coneCatchers } from '../sim/systems/towers';
+import { windShade } from '../sim/systems/economy';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
 import { wavePay } from '../sim/systems/waves';
 import type { Building, GameEvent } from '../sim/types';
@@ -230,7 +231,7 @@ export class Play {
         break;
       }
       case 'wave': {
-        const w = waveDef(e.n)!;
+        const w = waveDef(e.n, g.map)!;
         this.say(`WAVE ${e.n}${g.endless ? '' : ` of ${LAST_WAVE}`}${w.note ? ': ' + w.note : ''}`, C.gold, 7);
         a.sfx('wave');
         break;
@@ -274,7 +275,7 @@ export class Play {
         r.burst(e.x, e.y, 14, C.ice, 2, 0.5, 'spark');
         a.sfx('knock');
         if (g.research.done.has('reroute')) this.sayOnce('reroute', 40, 'A Node was cut: select it and press G to Reroute it (100 kJ from your Jars).', C.cyan, 6);
-        this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 10 s. Build Nodes further back (red shows the Shade\'s reach when you place one), or give power a second route.', C.ice, 9);
+        this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 6 s. Build Nodes further back (red shows the Shade\'s reach when you place one), give power a second route, or Reroute it.', C.ice, 9);
         break;
       case 'snuff':
         r.burst(e.x, e.y, 16, C.ash, 1.5, 0.8, 'puff');
@@ -564,7 +565,7 @@ export class Play {
     if (spot) ov.spot = spot;
     // the Shade's and Snuffer's reach only once they have come, or come next (or in the tutorial's Node step)
     const n = g.waveTimer > 0 || g.wave === 0 ? g.wave + 1 : g.wave;
-    const next = waveDef(n)?.seq ?? '';
+    const next = waveDef(n, g.map)?.seq ?? '';
     if (this.lines) ov.lines = lineReports(g);
     ov.danger = {
       shade: g.seenKinds.has('shade') || next.includes(ENEMIES.shade.code) || this.tutorial?.step?.slot === 'node',
@@ -634,7 +635,7 @@ export class Play {
     for (const b of g.buildings.values()) {
       if (b.net < 0) continue;
       peak += fullDraw(g, b);
-      if (b.def.role === 'core' || b.def.role === 'generator') make += b.def.fuel === 'wind' ? (g.spec(b).output ?? 0) * RULES.windMean.v : b.def.role === 'core' ? g.hearthOutput() : g.spec(b).output ?? 0;
+      if (b.def.role === 'core' || b.def.role === 'generator') make += b.def.fuel === 'wind' ? (g.spec(b).output ?? 0) * g.map.windMean * windShade(g, b) : b.def.role === 'core' ? g.hearthOutput() : g.spec(b).output ?? 0;
     }
     return { make, peak, share: peak > 0 ? Math.min(1, make / peak) : 1 };
   }
@@ -652,7 +653,7 @@ export class Play {
         break;
       }
       case 'generator':
-        add = def.fuel === 'wind' ? (def.output ?? 0) * RULES.windMean.v : def.output ?? 0;
+        add = def.fuel === 'wind' ? (def.output ?? 0) * this.game.map.windMean : def.output ?? 0;
         break;
       default:
         return null;
@@ -830,7 +831,7 @@ export class Play {
     this.stripLeft = ui.w;
     if (g.over) return;
     const n = g.waveTimer > 0 || g.wave === 0 ? g.wave + 1 : g.wave;
-    const w = waveDef(n);
+    const w = waveDef(n, g.map);
     if (!w || (!g.endless && n > LAST_WAVE)) return;
     const counts = new Map<string, number>();
     for (const c of w.seq) counts.set(c, (counts.get(c) ?? 0) + 1);
@@ -1012,6 +1013,8 @@ export class Play {
       case 'generator': {
         if (d.fuel === 'wind') {
           out.push({ text: `Makes ${d.output} kW × the wind: ${b.output.toFixed(1)} kW now.` }, { text: 'No fuel. A Jar evens out the gusts.' });
+          const shade = windShade(g, b);
+          if (shade < 1) out.push({ text: `In the wake of ${Math.round(Math.log(shade) / Math.log(1 - RULES.windShadow.v))} other Vane(s) within ${RULES.windShadowRadius.v} tiles: it catches ${Math.round(shade * 100)}% of the wind. Spread Vanes out.`, color: C.amber });
           break;
         }
         const fed = [...g.buildings.values()].filter((u) => u.def.role === 'extractor' && touches(g.rect(u), g.rect(b))).length;
@@ -1022,7 +1025,7 @@ export class Play {
         break;
       }
       case 'node':
-        out.push({ text: `Carries power ${d.nodeRadius} tiles${d.lineLoss ? `, losing ${d.lineLoss} kW on the line` : ''}.` }, { text: 'A Shade passing within 2.5 tiles cuts it for 10 s.' });
+        out.push({ text: `Carries power ${d.nodeRadius} tiles${d.lineLoss ? `, losing ${d.lineLoss} kW on the line` : ''}.` }, { text: `A Shade passing within ${ENEMIES.shade.knockRadius} tiles cuts it for ${ENEMIES.shade.knockTime} s.` });
         break;
       case 'storage':
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });

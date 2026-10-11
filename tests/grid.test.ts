@@ -106,10 +106,10 @@ describe('grid (§2)', () => {
     expect(lamp.net).toBeGreaterThanOrEqual(0);
   });
 
-  it('a Shade cuts a Node within 2.5 tiles of the path, not one further back (§5)', () => {
+  it('a Shade cuts a Node within 3.5 tiles of the path, not one further back (§5)', () => {
     const g = new Game();
-    const beside = put(g, 'node', 10, 9); // row 9: 2.5 tiles from the path's centreline
-    const off = put(g, 'node', 14, 10); // row 10: 3.5 tiles
+    const beside = put(g, 'node', 10, 10); // row 10: 3.5 tiles from the path's centreline
+    const off = put(g, 'node', 14, 11); // row 11: 4.5 tiles
     g.enemies.push({ id: g.nextId++, def: ENEMIES.shade, hp: 1e9, dist: 5, x: 4, y: 6.5, slow: 0, face: 1, hit: 0, wave: 0, seen: false, route: 0 });
     settle(g, 12);
     expect(g.stats.knocks).toBe(1);
@@ -153,7 +153,8 @@ describe('towers (§4, §8)', () => {
     expect(lamp.dps).toBeCloseTo(10.8);
   });
 
-  it('Overcharge: the Lamp asks 36 kW ahead of every tier; the Jar pays what the Hearth cannot, and it lands 72 kJ in 4 s (§8)', () => {
+  it('Overcharge: the Lamp asks 36 kW ahead of every tier, but a Jar never pays for the extra (§8)', () => {
+    // the Hearth's 8 kW and a full Jar: the Jar covers the 4 kW the Lamp lacked anyway, no more
     const g = new Game();
     const jar = put(g, 'jar', 22, 18);
     jar.charge = 600;
@@ -164,12 +165,28 @@ describe('towers (§4, §8)', () => {
     expect(overcharge(g, lamp)).toBeNull();
     settle(g, 0.05);
     expect(lamp.demand).toBeCloseTo(36);
-    expect(lamp.sat).toBeCloseTo(1);
+    expect(lamp.sat).toBeCloseTo(12 / 36);
     settle(g, 3.95);
-    expect(hp0 - m.hp).toBeCloseTo(72, 0);
-    // 36 kW for 4 s, 8 of it from the Hearth: the Jar paid about 28 × 4 = 112 kJ
-    expect(kj0 - jar.charge).toBeGreaterThan(100);
-    expect(kj0 - jar.charge).toBeLessThan(120);
+    // 12 kW at 0.5 for 4 s: what it landed without the Overcharge; the Jar gave 4 × 4 = 16 kJ
+    expect(hp0 - m.hp).toBeCloseTo(24, 0);
+    expect(kj0 - jar.charge).toBeCloseTo(16, 0);
+  });
+
+  it('Overcharge takes spare power first, then everything below it, Extractors included (§8)', () => {
+    const g = new Game();
+    const { extractor } = factory(g);
+    const lamp = put(g, 'lamp', 24, 13);
+    const jar = put(g, 'jar', 22, 18);
+    jar.charge = 600;
+    park(g, 'moth', BEND_B_DIST, 1000);
+    settle(g, 0.2);
+    const kj0 = jar.charge;
+    expect(overcharge(g, lamp)).toBeNull();
+    settle(g, 0.1);
+    // 28 kW made, 36 asked ahead of the Works: the Lamp gets 28, the Extractor nothing, the Jar nothing
+    expect(lamp.sat).toBeCloseTo(28 / 36);
+    expect(extractor.sat).toBe(0);
+    expect(jar.charge).toBeCloseTo(kj0, 0);
   });
 
   it('Floodlight cone: each enemy catches 0.4 of 14.4 kJ/s, three or more share all of it; a Pall shadows those behind (§4)', () => {

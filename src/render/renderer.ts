@@ -60,6 +60,8 @@ export class Renderer {
   flash = { red: 0, white: 0 };
   /** screen flashes on (a setting: off for anyone they bother) */
   flashOn = true;
+  /** tiles along a road where enemies appear (they fade in from there) */
+  spawnAt = 0;
   private ground: HTMLCanvasElement | null = null;
   private groundFor: Game | null = null;
   private light: HTMLCanvasElement;
@@ -265,6 +267,7 @@ export class Renderer {
 
   draw(g: Game, ov: Overlay) {
     const ctx = this.ctx;
+    this.spawnAt = g.map.spawnAt;
     const z = this.cam.z;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -637,6 +640,9 @@ export class Renderer {
     // a Veil no tower can find is only a shimmer (§5.1)
     const hidden = e.def.veiled && !e.seen;
     if (hidden) ctx.globalAlpha = 0.22 + 0.12 * Math.sin(this.time * 5 + e.id);
+    // out of the dark: it fades in over its first tile and a half
+    const fresh = Math.min(1, Math.max(0.15, (e.dist - this.spawnAt) / 1.5));
+    if (fresh < 1) ctx.globalAlpha *= fresh;
     // a shadow on the ground
     ctx.fillStyle = 'rgba(9,10,20,0.5)';
     ctx.fillRect(this.sx(Math.round(wx - w / 4)), this.sy(Math.round(wy + 2)), Math.round(w / 2) * z, z);

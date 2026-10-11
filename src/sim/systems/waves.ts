@@ -4,6 +4,7 @@ import { LAST_WAVE, waveDef } from '../../data/waves';
 import { ENEMY_BY_CODE } from '../../data/enemies';
 import { RULES } from '../../data/rules';
 import { DT, type Game } from '../Game';
+import type { MapDef } from '../../data/map';
 
 export function wavesSystem(g: Game) {
   // the breather: once a wave has fully spawned and the field is clear, the next one comes in 20 s
@@ -56,8 +57,10 @@ export function wavePay(n: number): number {
 
 function spawn(g: Game, code: string, wave: number, route: number) {
   const def = ENEMY_BY_CODE[code];
-  const p = g.paths[route].at(0);
-  g.enemies.push({ id: g.nextId++, def, hp: def.health, dist: 0, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave, seen: false, route });
+  // they come out of the dark a few tiles along the road (§6), not at the map's edge
+  const d0 = Math.min(g.map.spawnAt, g.paths[route].length / 4);
+  const p = g.paths[route].at(d0);
+  g.enemies.push({ id: g.nextId++, def, hp: def.health, dist: d0, x: p.x, y: p.y, slow: 0, face: 1, hit: 0, wave, seen: false, route });
   if (!g.seenKinds.has(def.id)) {
     g.seenKinds.add(def.id);
     g.emit({ t: 'newenemy', enemy: def.id });
@@ -65,8 +68,8 @@ function spawn(g: Game, code: string, wave: number, route: number) {
 }
 
 /** total bounty a wave pays if everything in it dies (§5) */
-export function waveBounty(n: number): number {
-  const w = waveDef(n);
+export function waveBounty(n: number, map?: MapDef): number {
+  const w = waveDef(n, map);
   if (!w) return 0;
   let sum = 0;
   for (const c of w.seq) sum += ENEMY_BY_CODE[c].bounty;
@@ -76,7 +79,7 @@ export function waveBounty(n: number): number {
 /** start the next wave now (Space, or the breather running out) */
 export function startNextWave(g: Game) {
   if (g.over || (!g.endless && g.wave >= LAST_WAVE)) return;
-  const w = waveDef(g.wave + 1)!;
+  const w = waveDef(g.wave + 1, g.map)!;
   g.wave++;
   g.waveStarted.add(g.wave);
   g.waveTimer = 0;

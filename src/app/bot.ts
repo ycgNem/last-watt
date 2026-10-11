@@ -6,7 +6,8 @@
 import type { BuildingId } from '../data/buildings';
 import type { Game } from '../sim/Game';
 import type { Building } from '../sim/types';
-import { nextWave, overcharge, overchargeProblem, place, pulse, pulseProblem, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
+import { nextWave, overcharge, overchargeProblem, place, pulse, pulseProblem, setTier, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
+import { windShade } from '../sim/systems/economy';
 import { BUILDINGS } from '../data/buildings';
 import { RULES } from '../data/rules';
 import { LAST_WAVE } from '../data/waves';
@@ -31,12 +32,18 @@ export interface BotPlan {
   /** a slower, plainer player: acts once a second, Overcharges only a cone, a Brazier or a
    *  Starshell, and only on a Pall (the 'human' check in tests/bot.test.ts) */
   human?: boolean;
+  /** no verbs at all: no Overcharge, no Pulse, no shedding (the third review's zero-verb control) */
+  noVerbs?: boolean;
+  /** raise this many towers (the first built from the wall list) to tier 1, and nothing else
+   *  beyond what the plan does: the "one T press" player */
+  raise?: number;
 }
 
 export const BOT_PLAN: BotPlan = {
   opening: [
-    // layout A, with its Node at (21, 10): out of a Shade's reach, still covering the bend-A Lamp
-    { b: 'extractor', x: 16, y: 19 }, { b: 'burner', x: 16, y: 20 }, { b: 'node', x: 21, y: 10 },
+    // layout A, with its Node at (21, 11): 4.5 tiles from both legs, out of a Shade's 3.5, still
+    // covering the bend-A Lamps
+    { b: 'extractor', x: 16, y: 19 }, { b: 'burner', x: 16, y: 20 }, { b: 'node', x: 21, y: 11 },
     { b: 'lamp', x: 24, y: 7 }, { b: 'lamp', x: 24, y: 13 },
   ],
   wall: [
@@ -141,46 +148,47 @@ export const SWITCHBACK_PLAN: BotPlan = {
   headroom: 1.8,
 };
 
-/** Two Roads: the ridge between the last legs first (its middle column sees both roads), then
- *  each road's outside, power from the safe south deposit, the north one behind a ridge Node. */
+/** Two Roads: the shared last stretch first (on the Hearth's own power), then the junction behind
+ *  two Nodes 4.5 tiles from the roads, then each road's last leg; power from the safe south deposit
+ *  and three Vanes spread out of each other's wake. */
 export const TWO_ROADS_PLAN: BotPlan = {
   opening: [
     { b: 'extractor', x: 18, y: 25 }, { b: 'burner', x: 16, y: 25 },
-    { b: 'lamp', x: 17, y: 17 }, { b: 'lamp', x: 18, y: 15 },
+    { b: 'lamp', x: 16, y: 16 }, { b: 'lamp', x: 19, y: 16 },
   ],
   wall: [
-    { b: 'lamp', x: 14, y: 17 },
-    { b: 'lamp', x: 21, y: 15 },
-    { b: 'brazier', x: 14, y: 15, wave: 3 },
-    { b: 'brazier', x: 21, y: 17 },
-    { b: 'node', x: 17, y: 15 },
-    { b: 'lamp', x: 17, y: 13 },
-    { b: 'starshell', x: 22, y: 21, wave: 5 },
-    { b: 'starshell', x: 13, y: 21 },
+    { b: 'lamp', x: 16, y: 14 },
+    { b: 'lamp', x: 19, y: 14 },
+    { b: 'node', x: 13, y: 16 },
     { b: 'node', x: 23, y: 16 },
-    { b: 'floodlight', x: 23, y: 13 },
-    { b: 'floodlight', x: 13, y: 13 },
-    { b: 'floodlight', x: 17, y: 11 },
-    { b: 'searchlight', x: 12, y: 17, wave: 6 },
-    { b: 'searchlight', x: 23, y: 17 },
-    { b: 'brazier', x: 21, y: 13 },
-    { b: 'beacon', x: 13, y: 19 },
+    { b: 'floodlight', x: 16, y: 12, wave: 3 },
+    { b: 'brazier', x: 19, y: 12, wave: 4 },
+    { b: 'starshell', x: 13, y: 13, wave: 5 },
+    { b: 'floodlight', x: 23, y: 12 },
+    { b: 'lamp', x: 21, y: 12 },
+    { b: 'searchlight', x: 11, y: 13, wave: 6 },
+    { b: 'beacon', x: 21, y: 14 },
+    { b: 'starshell', x: 25, y: 15 },
+    { b: 'searchlight', x: 25, y: 13 },
+    { b: 'lamp', x: 9, y: 12 },
+    { b: 'starshell', x: 9, y: 15 },
+    { b: 'floodlight', x: 21, y: 21 },
+    { b: 'lamp', x: 14, y: 18 },
   ],
   power: [
     [{ b: 'extractor', x: 19, y: 25 }, { b: 'burner', x: 20, y: 25 }],
     [{ b: 'extractor', x: 17, y: 24 }, { b: 'burner', x: 15, y: 23 }],
     [{ b: 'extractor', x: 19, y: 24 }, { b: 'burner', x: 20, y: 23 }],
     [{ b: 'extractor', x: 18, y: 24 }],
-    [{ b: 'vane', x: 22, y: 24 }],
-    [{ b: 'vane', x: 24, y: 22 }],
+    [{ b: 'vane', x: 24, y: 20 }],
     [{ b: 'vane', x: 13, y: 24 }],
     [{ b: 'vane', x: 22, y: 26 }],
   ],
   extras: [
-    { b: 'jar', x: 19, y: 17, wave: 3 },
-    { b: 'lab', x: 15, y: 21, wave: 3 },
-    { b: 'jar', x: 19, y: 18, wave: 5 },
-    { b: 'lab', x: 22, y: 19, wave: 6 },
+    { b: 'jar', x: 21, y: 19, wave: 3 },
+    { b: 'lab', x: 22, y: 17, wave: 3 },
+    { b: 'jar', x: 21, y: 20, wave: 5 },
+    { b: 'lab', x: 13, y: 21, wave: 6 },
   ],
   research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
   upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
@@ -223,7 +231,7 @@ export class Bot {
     let s = 0;
     for (const b of g.buildings.values()) {
       if (b.def.role === 'core') s += g.hearthOutput();
-      else if (b.def.role === 'generator') s += (g.spec(b).output ?? 0) * (b.def.fuel === 'wind' ? RULES.windMean.v : 1);
+      else if (b.def.role === 'generator') s += (g.spec(b).output ?? 0) * (b.def.fuel === 'wind' ? g.map.windMean * windShade(g, b) : 1);
     }
     return s;
   }
@@ -284,6 +292,21 @@ export class Bot {
       const next = p.research.find((r) => !g.research.done.has(r));
       if (next) startResearch(g, next);
     }
+    // T: the first towers of the wall list up to tier 1, served with the Works before the rest
+    if (p.raise) {
+      let n = 0;
+      for (const s of p.wall) {
+        if (n >= p.raise) break;
+        const b = [...g.buildings.values()].find((x) => x.x === s.x && x.y === s.y && x.def.role === 'tower');
+        if (!b) continue;
+        if (b.tier !== 1) setTier(g, b, 1);
+        n++;
+      }
+    }
+    if (p.noVerbs) {
+      if (g.wave === 0) nextWave(g);
+      return;
+    }
     // the Lab: shed it while the wall is starved, bring it back when the wall is fed
     if (this.shedLab)
       for (const b of g.buildings.values()) {
@@ -295,6 +318,7 @@ export class Bot {
     // Overcharge: a tower on a Pall, a late healthy Shade or Snuffer, or a crowd close to the Hearth;
     // a cone, a Brazier or a Starshell before a narrow beam (a Pall drinks most of a beam)
     let pick: Building | undefined;
+    let pickT: string | undefined;
     const close = g.enemies.filter((e) => g.left(e) < 8).length;
     for (const b of g.buildings.values()) {
       if (b.def.role !== 'tower' || b.target < 0 || overchargeProblem(g, b)) continue;
@@ -302,16 +326,20 @@ export class Bot {
       if (!t) continue;
       const heavyLate = (t.def.id === 'shade' || t.def.id === 'snuffer' || t.def.id === 'veil') && g.left(t) < 14 && t.hp > 40;
       if (this.plan.human ? t.def.id === 'pall' && b.def.kind !== 'beam' : t.def.id === 'pall' || heavyLate || (close >= 3 && b.def.kind !== 'beam') || close >= 5) {
-        if (!pick || (pick.def.kind === 'beam' && b.def.kind !== 'beam')) pick = b;
+        if (!pick || (pick.def.kind === 'beam' && b.def.kind !== 'beam')) {
+          pick = b;
+          pickT = t.def.id;
+        }
         if (b.def.kind !== 'beam') break;
       }
     }
-    // an Overcharge pays in live power: only when spare kW or the Jars on its network can cover the
-    // extra for the whole burst, so it doesn't starve the rest of the wall
+    // an Overcharge is paid from spare power, then from the rest of the wall (Jars never pay for it):
+    // the bot spends the wall on a Pall, and otherwise only what is spare
     if (pick) {
       const n = g.networkOf(pick)!;
       const extra = (RULES.overchargeMult.v - 1) * fullDraw(g, pick);
-      if (n.wasted >= extra || n.stored >= extra * RULES.overchargeTime.v) overcharge(g, pick);
+      // a narrow beam on a Pall wastes three quarters of the wall it takes (§5)
+      if (pickT === 'pall' ? pick.def.kind !== 'beam' && g.left(g.enemyById(pick.target)!) < 16 : n.wasted + n.charged >= extra * 0.75) overcharge(g, pick);
     }
     // Pulse: when the Jars are mostly full and a crowd (or a Pall) is inside the flashes
     if (g.research.done.has('pulse') && g.grid.stored >= g.grid.capacity * 0.6 && !pulseProblem(g)) {

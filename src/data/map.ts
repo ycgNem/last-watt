@@ -1,5 +1,6 @@
 // The maps (DESIGN.md §6 slice map, §11 maps; ROADMAP Milestone 7). Each is 40 × 30 tiles with
 // one or more roads that end at the Hearth, emberrock deposits, and its own wind and pace.
+import { WAVES } from './waves';
 
 export interface MapDef {
   id: string;
@@ -28,6 +29,10 @@ export interface MapDef {
   pace: number;
   /** reach this wave on any map to play it */
   unlockWave: number;
+  /** tiles along each road where enemies come out of the dark (the road runs on to the edge) */
+  spawnAt: number;
+  /** this map's own sequences for some waves, in place of the table's (§11) */
+  waves?: Record<number, string>;
   why: Record<string, string>;
 }
 
@@ -57,12 +62,13 @@ export const SLICE_MAP: MapDef = {
   windMean: 0.55,
   pace: 1,
   unlockWave: 0,
+  spawnAt: 6,
   why: {
     w: '§6 / ROADMAP M0: 40 × 30 tiles', h: '§6 / ROADMAP M0: 40 × 30 tiles',
     hearth: '§6: the Hearth sits where both bends face it, so layout A costs one Node (§6 wave 1 budget)',
     paths: '§6 slice map: 41 tiles, two bends (east 27.5 / south 9 / west 4.5), bends within reach of the Hearth',
     deposits: '§3 / §6 supply ceiling: two near deposits of 5 tiles and one far of 6, one Extractor per tile',
-    windMean: '§3.2 wind: 0.55 on the station map', pace: '§6: the waves were tuned on this map', unlockWave: '§11: always open',
+    windMean: '§3.2 wind: 0.55 on the station map', pace: '§6: the waves were tuned on this map', unlockWave: '§11: always open', spawnAt: '§6: enemies appear 6 tiles in (the third review: 15 s of walking before contact every wave)',
   },
 };
 
@@ -94,51 +100,61 @@ export const SWITCHBACK: MapDef = {
   firstLamps: 'Two Lamps (1) inside the bends by the Hearth (a Node, 7, carries power)',
   jarSpot: [22, 22],
   windMean: 0.7,
-  pace: 1,
+  pace: 0.9,
   unlockWave: 4,
+  spawnAt: 4,
+  // the long road kills Palls by exposure alone, so its late waves bring more of them, and waves
+  // 10-12 half again (the third review: the plan won 20/20 with 930 left and no verb mattered)
+  waves: {
+    8: WAVES[7].seq + 'PP',
+    10: WAVES[9].seq + WAVES[9].seq.slice(0, WAVES[9].seq.length >> 1) + 'PP',
+    11: WAVES[10].seq + WAVES[10].seq.slice(0, WAVES[10].seq.length >> 1) + 'PP',
+    12: WAVES[11].seq + WAVES[11].seq.slice(0, WAVES[11].seq.length >> 1) + 'PPP',
+  },
   why: {
     w: '§11: 40 × 30 tiles', h: '§11: 40 × 30 tiles',
     hearth: '§11 Switchback: the Hearth under the last two legs',
     paths: '§11 Switchback: 72 tiles, five bends; the strip between legs 2 and 4 is 7 tiles deep',
     deposits: '§11 Switchback: one near deposit, one in the exposed strip, one far',
     windMean: '§11 Switchback: an open plateau, wind mean 0.7 (a Vane averages 10.5 kW)',
-    pace: '§11 Switchback: 1.0 (a longer road adds exposure, not throughput; the bot finds the station pace fits)',
-    unlockWave: '§11: reach wave 4 anywhere',
+    pace: '§11 Switchback: 0.9 (the third review: at 1.0 the plan won 20/20 with 930 money left and no Jars)',
+    unlockWave: '§11: reach wave 4 anywhere', spawnAt: '§11 Switchback: 4 tiles in (its first leg is 6.5 long)',
   },
 };
 
 export const TWO_ROADS: MapDef = {
   id: 'tworoads',
   name: 'Two Roads',
-  blurb: 'Two roads come down either side of a narrow ridge to the Hearth. The ridge sees both, and both can reach it.',
+  blurb: 'Two roads from either edge meet at a junction above the Hearth and come down as one. Cover each road on its way in, or wait at the junction where everything passes, behind Nodes a Shade can reach.',
   w: 40,
   h: 30,
   hearth: { x: 17, y: 19 },
   paths: [
-    [[-1, 4.5], [7.5, 4.5], [7.5, 12.5], [16.5, 12.5], [16.5, 20.5], [16.9, 20.5]],
-    [[41, 6.5], [30.5, 6.5], [30.5, 12.5], [20.5, 12.5], [20.5, 18.9]],
+    [[-1, 4.5], [7.5, 4.5], [7.5, 11.5], [18.5, 11.5], [18.5, 18.9]],
+    [[41, 6.5], [30.5, 6.5], [30.5, 11.5], [18.5, 11.5], [18.5, 18.9]],
   ],
   deposits: [
     // south of the Hearth, safe from Shades
     [[17, 24], [18, 24], [19, 24], [18, 25], [19, 25]],
-    // north of the ridge, out of reach of both roads but far from the Hearth
-    [[18, 7], [19, 7], [18, 8], [19, 8], [20, 8]],
+    // north of the junction, 4.5 tiles from the roads: out of a Snuffer's reach, far from the Hearth
+    [[18, 5], [19, 5], [18, 6], [19, 6], [20, 6]],
     // far west, past the west road
     [[2, 15], [3, 15], [2, 16], [3, 16]],
   ],
-  focus: [19.5, 18.5],
-  firstLamps: 'Two Lamps (1) on the ridge between the two last legs',
+  focus: [19.5, 17],
+  firstLamps: 'Two Lamps (1) beside the last stretch, where both roads come down as one',
   jarSpot: [21, 22],
   windMean: 0.55,
-  pace: 1.8,
+  pace: 1.4,
   unlockWave: 8,
+  spawnAt: 4,
   why: {
     w: '§11: 40 × 30 tiles', h: '§11: 40 × 30 tiles',
-    hearth: '§11 Two Roads: the Hearth at the foot of the ridge, between the two last legs',
-    paths: '§11 Two Roads: 34 and 33 tiles, four and three bends; the last legs run either side of a 3-wide ridge, so a tower on it sees both roads; spawns alternate roads per kind, a clump keeps to one',
-    deposits: '§11 Two Roads: one safe south, one north of the ridge behind exposed Nodes, one far west',
-    windMean: '§3.2 wind: 0.55', pace: '§11 Two Roads: spacing × 1.8 (each road sees half the spawns; the Palls are limited by exposure, so the pace is set by the crowds of waves 8–12: the bot wins with 5 lights)',
-    unlockWave: '§11: reach wave 8 anywhere',
+    hearth: '§11 Two Roads: the Hearth under the shared last stretch',
+    paths: '§11 Two Roads: 34 and 35 tiles; they meet at a junction 7.4 tiles above the Hearth and share the last stretch, so the junction sees every enemy (the third review: two separate last legs halved the wall and lost every human-speed run)',
+    deposits: '§11 Two Roads: one safe south, one north of the junction (4.5 tiles from both roads), one far west',
+    windMean: '§3.2 wind: 0.55', pace: '§11 Two Roads: spacing × 1.4 (two roads bring the waves in from two sides; the bot sweep in §11)',
+    unlockWave: '§11: reach wave 8 anywhere', spawnAt: '§11 Two Roads: 4 tiles in (its first legs are 8.5 and 10.5 long)',
   },
 };
 

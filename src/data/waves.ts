@@ -4,6 +4,7 @@
 // each sequence against the composition §5 promises.
 import { ENEMY_BY_CODE } from './enemies';
 import { RULES } from './rules';
+import type { MapDef } from './map';
 
 export interface WaveDef {
   n: number;
@@ -23,9 +24,9 @@ export const WAVES: WaveDef[] = [
     why: { n: '§5 wave table', spacing: '§6 wave 1: 2.25 s (sim; placement lesson holds 2.0–2.4 s)' } },
   { n: 2, seq: 'MMMMMMMMMMMM', spacing: 1.9, composition: { M: 12 },
     why: { n: '§5 wave table', spacing: '§6 bot-tuned: 1.9 s (the reference sim gave 1.75)' } },
-  { n: 3, seq: 'MMMSMMMMSMMM', spacing: 2.4, composition: { M: 10, S: 2 }, note: 'Shades: they cut Nodes near the path.',
+  { n: 3, seq: 'MMMSMMFFFFMMSMMM', spacing: 2.4, composition: { M: 10, S: 2, F: 4 }, note: 'Shades cut Nodes near the path; Flits come fast, in a clump.',
     why: { n: '§5 wave table', spacing: '§6: 2.4 s, 16.7 kJ/s = 1.2× one Burner wall (the second review: at 3.0 the money split only bit at wave 4)' } },
-  { n: 4, seq: 'MMMSMMMS' + F8 + 'MMMSMMM', spacing: 2.2, composition: { M: 12, S: 3, F: 8 }, note: 'Flits: a fast clump of eight.',
+  { n: 4, seq: 'MMMSMMMS' + F8 + 'MMMSMMM', spacing: 2.2, composition: { M: 12, S: 3, F: 8 }, note: 'A full clump of eight Flits.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 5, seq: 'MMMMMPMMMMM' + F8, spacing: 1.6, composition: { M: 10, P: 1, F: 8 }, note: 'A Pall: 400 kJ of dark. Floodlights and Overcharge.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
@@ -35,11 +36,11 @@ export const WAVES: WaveDef[] = [
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 8, seq: 'MMSMMSMMSPMMSMMSMMSPMMSMMSMMS' + 'MMSMMSMMS', spacing: 0.6, composition: { M: 24, S: 12, P: 2 },
     why: { n: '§5 wave table (the slice\'s wave 7, a third more Moths and Shades)', spacing: '§6 bot-tuned' } },
-  { n: 9, seq: 'MMNMMVMM' + F8 + 'MMVMMNMMVMM' + F8 + 'MMVMMN' + F8 + 'MMN', spacing: 0.85, composition: { M: 20, N: 4, V: 4, F: 24 }, note: 'Snuffers: they put out Burners near the path.',
+  { n: 9, seq: 'MMNMMVMD' + F8 + 'MMVMMNMMVMM' + F8 + 'MDVMMN' + F8 + 'MMN', spacing: 0.85, composition: { M: 18, N: 4, V: 4, F: 24, D: 2 }, note: 'Snuffers: they put out Burners near the path.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 10, seq: 'MMSMMVMMSMMVMMN' + F8 + 'MMSDVMMSDVMMN' + 'P' + F8 + 'MMSMMSMMS', spacing: 0.65, composition: { M: 22, S: 7, V: 4, N: 2, P: 1, F: 16, D: 2 },
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
-  { n: 11, seq: 'MMMSMMMSMMMSP' + F8 + 'MMMSVMMMSVMMMSP' + F8 + 'MMMSVMMMSVMMMSPMMM' + 'MMSMMSMMSMMS', spacing: 0.42, composition: { M: 38, S: 13, V: 4, P: 3, F: 16 },
+  { n: 11, seq: 'MMMSMMMSMMMSP' + F8 + 'DMMSVMMMSVMMMSP' + F8 + 'MMMSVMMMSVMMMSPMDM' + 'MMSMMSMMSMMS', spacing: 0.42, composition: { M: 36, S: 13, V: 4, P: 3, F: 16, D: 2 },
     why: { n: '§5 wave table (the slice\'s wave 8 with Veils and Flits)', spacing: '§6 bot-tuned' } },
   { n: 12, seq: 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSDVMMSDVMMNP' + F8 + 'MMSMMSMMS', spacing: 0.38,
     composition: { M: 42, S: 11, V: 8, N: 4, P: 5, F: 32, D: 2 }, note: 'The last wave. Five Palls.',
@@ -69,7 +70,13 @@ export function endlessWave(n: number): WaveDef {
   return { n, seq, spacing, composition, note: `Endless: wave ${n}.`, why: { n: '§5.3 endless', spacing: '§5.3 endless: 3% tighter a wave, never under 0.25 s' } };
 }
 
-export function waveDef(n: number): WaveDef | undefined {
+/** wave n, with the map's own sequence for it where it has one (§11) */
+export function waveDef(n: number, map?: MapDef): WaveDef | undefined {
   if (n < 1) return undefined;
-  return n <= LAST_WAVE ? WAVES[n - 1] : endlessWave(n);
+  const base = n <= LAST_WAVE ? WAVES[n - 1] : endlessWave(n);
+  const seq = map?.waves?.[n];
+  if (!seq) return base;
+  const composition: Record<string, number> = {};
+  for (const c of seq) composition[c] = (composition[c] ?? 0) + 1;
+  return { ...base, seq, composition };
 }

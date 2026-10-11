@@ -96,7 +96,7 @@ adds instead are new ways to make, store and carry watts, each a different energ
 
 | Building | Cost | Numbers | Its decision |
 |---|---|---|---|
-| **Vane** (research 600 kJ) | 50 | 15 kW × the wind, no fuel, goes anywhere on a network | The wind is three slow sine swells (periods 53, 19 and 7.1 s, amplitudes 0.28 / 0.17 / 0.08 around **0.55**, clamped to 0.1–1). Average 8.2 kW: **6.1 money per average kW**, nearly twice a Burner's 3.2, but it needs no deposit and no Extractor, and a Snuffer can't put it out. Its gusts are the Jar's job. |
+| **Vane** (research 600 kJ) | 50 | 15 kW × the wind, no fuel, goes anywhere on a network | The wind is three slow sine swells (periods 53, 19 and 7.1 s, amplitudes 0.28 / 0.17 / 0.08 around **0.55**, clamped to 0.1–1). Average 8.2 kW: **6.1 money per average kW**, nearly twice a Burner's 3.2, but it needs no deposit and no Extractor, and a Snuffer can't put it out. Its gusts are the Jar's job. **Wind shadow** (the third review): each other Vane within **4 tiles** (centre to centre, about two rotor diameters) takes **40%** of its wind, so two side by side make 1.6 Vanes' worth and three in a clump 1.08. Money no longer buys unlimited wind: generation is bounded by room on the network, which the map sets. |
 | **Bellows** (Burner tier 2, 1000 kJ) | +50 | 30 kW at efficiency 0.6 | A rock gives 400 × 0.6 = 240 kJ (was 200) and lasts 8 s (was 10), so one Extractor (8 s a rock) feeds exactly one Bellows Burner. +50% output and +20% energy per rock. |
 | **Deep bit** (Extractor tier 2, 700 kJ) | +38 | 1 rock / 5 s, draws 4 kW | 1.6 rocks per 8 s for 2 kW more: feeds a Bellows Burner and most of another. |
 | **Bank** (Jar tier 2, 800 kJ) | +75 | 1500 kJ, charge 25 kW, discharge 45 kW | Late waves are long enough that one Jar's 600 kJ runs dry mid-wave. |
@@ -223,7 +223,7 @@ not; from the inside corner the near legs are about 124° apart.)
 | Enemy | Health | Speed | Bounty | Behavior | Station damage on leak |
 |---|---|---|---|---|---|
 | **Moth** | 30 kJ | 1.5 t/s | 5 | walks the path | 1 light |
-| **Shade** | 90 kJ | 1.0 t/s | 14 | cuts any Node whose footprint is within **2.5 tiles** of it for 10 s; never the Hearth | 2 lights |
+| **Shade** | 90 kJ | 1.0 t/s | 14 | cuts any Node whose footprint is within **3.5 tiles** of it for **6 s**; never the Hearth | 2 lights |
 | **Pall** | 400 kJ | 0.6 t/s | 60 | walks; casts a shadow: a Pall in a Floodlight's beam takes its own share *and every share after it*, whether or not there are enemies to receive them, so the Moths beside it get nothing; a **single narrow beam** (a Lamp) lands only **1/4** on it, the rest is drunk | 5 lights |
 
 Station starts with **20 lights**. At 0 the run ends.
@@ -237,7 +237,13 @@ call-early bonus was flagged as Kingdom Rush's mechanic almost one to one. Both 
 Why the Shade reaches 2.5 tiles (it was 1): at 1 tile a Node one tile back from the path was safe
 and still powered Lamps across it, so no real layout ever exposed a Node and the bot was cut 0
 times a run. At 2.5, power that crosses or hugs the path is always cuttable, and where Nodes go
-becomes the transmission decision. Why the Pall drinks narrow beams: about seven ordinary Lamps
+becomes the transmission decision. *Third review:* at 2.5 a Node 3.5 back still fed every
+path-side tower, so the critic played 11 waves with 0 cuts. At **4.5** (a Node's 4 + 0.5) no
+Node feeding a path-side tower could hide, and a 12-Shade wave kept a bend's Node cut for its
+whole length: the bot lost 12–14 lights to Shades in wave 8 whatever it did. At **3.5** the safe
+Node spots shrink to a few per bend (the station's bend-A Node moved from (21, 10) to (21, 11)),
+and a cut lasts **6 s** (was 10), an outage to manage (a second route, Reroute) rather than a lost
+bend. Why the Pall drinks narrow beams: about seven ordinary Lamps
 killed a Pall, so the §6 claim that "the Pall needs burst" was false and the Floodlight and
 Overcharge had no job.
 
@@ -267,15 +273,15 @@ the first time it appears. Flits come in clumps of eight, 0.3 s apart inside a c
 |---|---|---|---|---|---|
 | 1 | 8 Moth | 240 | 40 | 20 | 2.25 s |
 | 2 | 12 Moth | 360 | 60 | 25 | 1.9 s |
-| 3 | 10 Moth, 2 Shade | 480 | 78 | 30 | **2.4 s** |
-| 4 | 12 Moth, 3 Shade, 8 Flit (new) | 742 | 118 | 35 | 2.2 s |
+| 3 | 10 Moth, 2 Shade, 4 Flit (new) | 536 | 86 | 30 | **2.4 s** |
+| 4 | 12 Moth, 3 Shade, 8 Flit | 742 | 118 | 35 | 2.2 s |
 | 5 | 10 Moth, 1 Pall, 8 Flit | 812 | 126 | 40 | 1.6 s |
 | 6 | 10 Moth, 4 Shade, 16 Flit, 2 Siphon (new) | 1,124 | 174 | 45 | 1.2 s |
 | 7 | 14 Moth, 6 Veil (new), 2 Shade | 1,020 | 164 | 50 | 1.4 s |
 | 8 | 24 Moth, 12 Shade, 2 Pall | 2,600 | 408 | 55 | 0.6 s |
-| 9 | 20 Moth, 4 Snuffer (new), 4 Veil, 24 Flit | 1,856 | 290 | 60 | 0.85 s |
+| 9 | 18 Moth, 4 Snuffer (new), 4 Veil, 24 Flit, 2 Siphon | 2,036 | 316 | 60 | 0.85 s |
 | 10 | 22 Moth, 7 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit, 2 Siphon | 2,754 | 428 | 65 | 0.65 s |
-| 11 | 38 Moth, 13 Shade, 4 Veil, 3 Pall, 16 Flit | 4,014 | 628 | 70 | 0.42 s |
+| 11 | 36 Moth, 13 Shade, 4 Veil, 3 Pall, 16 Flit, 2 Siphon | 4,194 | 654 | 70 | 0.42 s |
 | 12 | 42 Moth, 11 Shade, 8 Veil, 4 Snuffer, 5 Pall, 32 Flit, 2 Siphon | 6,138 | 948 | 75 | 0.38 s |
 
 Total: about 3,400 bounty and 570 wave pay. A run is about 17 minutes.
@@ -488,14 +494,36 @@ some runs with 1,500 money unspent, which measured the plan, not the game. Tests
 with 10–16 lights and more than 10 s of brownout; the human profile wins with 6 or more; 1.2
 and 3.0 end with at most half the plan's lights; no Jars ends at least 5 lights worse.
 
+**After the third review** (Jars never pay for an Overcharge, the Vane's wind shadow, the Shade
+at 3.5 tiles for 6 s, four Flits in wave 3, enemies appearing 6 tiles along the road, Siphons in
+waves 6 and 9–12; `design/verbs.mts` measures it). The review's bar was: the plan with no verbs
+ends with 8 lights or fewer, a plain player who uses the verbs well ends with 14 or more, and two
+extra Jars do not make the run flawless. Measured (lights left at wave 12):
+
+| Map | Plan (verbs) | No verbs at all | Human profile | Plan + 2 Jars |
+|---|---|---|---|---|
+| The Last Station | 16 | 0 (loses wave 12: Palls) | 16 | 16 |
+| The Switchback | 16 | 1 | 16 | 16 |
+| Two Roads | 1 | 0 (loses wave 12) | 10 | 12 |
+
+Not met: the review also asked that the no-verb wall spend 15 s or more under 75% in each of
+waves 8–12; it doesn't (the bot's headroom and its Jars carry the waves' own peaks). The grid is
+pressed instead by the player's own Overcharges, which now take from the rest of the wall, and by
+Siphons; the no-verb plan loses to Palls rather than to brownout. On Two Roads the plan's eager
+Overcharges cost it (1 light against the human profile's 10): there, an Overcharge on anything
+but a Pall is a bad trade, which is the decision working. The enemies' shorter walk (6 tiles) took
+37 s of Lab time out of the run before wave 8, which pushed lamp2 and the Vane a wave later; the
+plan absorbs it. Tests: the plan wins with 10–16 lights and some brownout; the human profile wins
+every map with 6 or more and no verbs ends at least 4 below it; two extra Jars stay under 20.
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
   Burner) leaks ≥ 5;
 - wave 2: three Lamps on one Burner leak fewer than two Lamps;
-- a Jar charges at its 15 kW limit in a breather: two Overcharges' worth in one 20 s gap, full in two;
+- a Jar charges at its 15 kW limit in a breather: a Pulse's 300 kJ in one 20 s gap, full in two;
 - a far Lamp fed by Nodes inside a Shade's reach loses ≥ 10 s of uptime in wave 3; fed from Nodes
-  out of reach, none;
+  4.5 tiles back, out of a Shade's 3.5, none;
 - the bot wins the whole run with 10–16 lights and some brownout; a slower "human" profile wins
   with 6 or more; with no factory it loses by wave 4; with too much factory (headroom 1.2) and
   with too little (3.0) it keeps at most half the plan's lights; without Jars, at least 5 fewer
@@ -545,13 +573,16 @@ bank), refiners (emberrock → coke, 2.5× energy density), towers, gaffer abili
 
 ## 8. Gaffer abilities (stored energy, mid-wave)
 
-Abilities spend energy the grid has: an Overcharge pulls live power ahead of every tier, Jars
-first; Pulse empties the Jars. A Jar cut off by a Shade can't pay. Slice set:
+Abilities spend energy the grid has: an Overcharge pulls live power ahead of every tier (never
+from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pay. Slice set:
 
 - **Overcharge** (second review: **live power, no flat price, no cooldown**): for 4 s one tower
   asks **3× its draw** and is served in a tier of its own **ahead of Works**: from spare power,
-  then the Jars on its network (up to their discharge rate), then whatever the rest of the grid
-  was getting. It fires at 3× its draw × what it is served. On a Lamp that is 36 kW and 72 kJ of
+  then whatever the rest of the grid was getting. **Jars never pay for it** (third review): they
+  discharge only for the deficit the line would have without the Overcharge, so a burst is a pure
+  reallocation of live power. With two extra Jars the second-review rule made Overcharge free
+  again (the bot went to 20/20 with zero leaks); now the plan with two extra Jars ends on 16, the
+  same as without them (tested: it must not reach 20). It fires at 3× its draw × what it is served. On a Lamp that is 36 kW and 72 kJ of
   damage; on a Floodlight 72 kW and 173 kJ, shared across a crowd or all of it into a Pall. Every
   tower kind follows the same rule: a Brazier burns each body at 3×, a Starshell charges at 30 kW,
   a Searchlight asks 90 kW. An Overcharged tower also blows away a Veil's cover (§5.1).
@@ -563,8 +594,9 @@ first; Pulse empties the Jars. A Jar cut off by a Shade can't pay. Slice set:
   wall: Overcharging a tier-2 Floodlight (108 kW) with two Jars behind it (60 kW of discharge)
   takes 48 kW from the other towers, Veils slip past them, and now *where the watts go* is the
   decision mid-wave (pillar 1). A Jar is no longer required, but without one an Overcharge
-  starves the wall for its 4 s (tested). The bot now Overcharges only when spare power or its
-  network's Jars cover the extra; its brownout went from 0 to 44 s a run.
+  starves the wall for its 4 s (tested). The bot Overcharges a Pall with a cone, fire or a shell
+  once it is close (a narrow beam on a Pall wastes three quarters of the wall it takes), and
+  anything else only when spare power covers three quarters of the extra.
 - **Shed** (free): toggle a tower, sector or building to off/another tier. This is a UI verb,
   but it is the most important one and gets a hotkey and a visible dimming.
 
@@ -649,8 +681,8 @@ wave 8 (lenient on purpose: the owner wants to see the content).
 | Map | Roads | Deposits | Wind | Pace | Its decision |
 |---|---|---|---|---|---|
 | **The Last Station** | one, 41 tiles, two bends facing the Hearth | two near, one far | 0.55 | 1.0 | the slice: bends vs straights (§6) |
-| **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | 1.0 | the strip is the best ground on the map (a Lamp there reaches both legs) and every Node in it is within a Shade's 2.5; a windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW, still more than a Burner's 3.2) |
-| **Two Roads** | two, 34 and 33 tiles, from the west and the east; their last legs run down either side of a **3-wide ridge** to the Hearth | one safe south, one north of the ridge, one far west | 0.55 | **1.8** | the ridge is the only ground that sees both roads (a Lamp on it sits 1.5 from one road and 2.5 from the other: 6.3 + 4.9 tiles of beam), it holds one tower per two rows, and only its lower half is inside the Hearth's reach; the rest hangs off a ridge Node that every Shade on either road can cut. Everything off the ridge covers one road. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road, so each road sees half of every kind |
+| **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | **0.9** | the strip between the legs is rich ground, and every Node in it is within a Shade's reach; only a Floodlight, a Searchlight or a Starshell placed in it reaches both legs (a Lamp at the middle sits 3.5 from each: 2√(3.5² − 3.5²) = 0 tiles of beam; the first version of this row said a Lamp reaches both, and was wrong). A windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW). Its late waves are heavier (two more Palls in wave 8, waves 10–12 half again with more Palls): the long road kills by exposure, so without them no verb mattered |
+| **Two Roads** | two, 34 and 35 tiles, from the west and the east; they **meet at a junction** 7.4 tiles above the Hearth and come down as one | one safe south, one north of the junction (4.5 tiles from both roads), one far west | 0.55 | **1.4** | cover each road on its way in, or wait at the junction and on the shared stretch, where every enemy passes: the stretch is on the Hearth's own power, the junction hangs off Nodes a Shade can reach. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road |
 
 Why those paces. **Exposure, not inflow, sets the pace on a long road.** The Switchback was first
 set to 0.8 on the reasoning that 1.75× the road gives 1.75× the time on each enemy, so the waves
@@ -671,6 +703,18 @@ at **1.8**, now the map's pace. The Switchback stays at 1.0 and is the forgiving
 review's changes (the bot wins 20/20; at 0.9 it still wins with 18, at 0.8 the early waves
 outrun its opening).
 Two Roads is the hard map on purpose: it opens at wave 8.
+
+**The third review: Two Roads redrawn.** With the ridge, every human-speed policy the critic tried
+lost wave 5, and the bot's win (5 lights) rested on about 200 Overcharges a run paid from its
+Jars. Once Jars stopped paying for Overcharge it lost by wave 6 at every pace from 1.5 to 2.6,
+with lighter early waves, with longer last legs, and without Shades. The halved wall was the
+cause, so the roads now meet at a junction and share the last 7.4 tiles: the stretch gets the
+whole wall, the junction is the strong but cuttable ground, and the roads before it are the
+choice. At pace 1.0 the opening can't hold waves 1–2 (two Lamps against both roads' inflow on
+one stretch); at **1.4** the human profile wins with 10 and no verbs loses. Enemies appear 4 tiles
+in (6 on the station, 4 on the Switchback, whose first leg is 6.5 long). The Switchback moved to
+**0.9** and heavier late waves (above); before them its plan won 16 with 1,000 money left whether
+it used a verb or not.
 
 Per-kind alternation (not per-spawn): with one counter, a wave whose sequence puts its Palls on
 odd indices sends both down the same road, and the player learns a sequence quirk rather than

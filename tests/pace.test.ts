@@ -87,7 +87,7 @@ describe('pace tests (§6)', () => {
     expect(l3).toBeLessThan(l2);
   });
 
-  it('a Jar charges at its 15 kW limit in a breather: two Lamp Overcharges (144 kJ each) in one 20 s gap (§6)', () => {
+  it('a Jar charges at its 15 kW limit in a breather: a Pulse (300 kJ) in one 20 s gap, full in two (§6, §8)', () => {
     // two Burners on the Hearth between waves: 48 kW, towers idle at a few kW, so the Jar
     // charges at 15 kW: 300 kJ in the 20 s breather, full in two
     const g = new Game();
@@ -97,7 +97,7 @@ describe('pace tests (§6)', () => {
     settle(g, 10);
     const jar = put(g, 'jar', 22, 18);
     settle(g, RULES.breather.v);
-    expect(jar.charge).toBeGreaterThanOrEqual(2 * RULES.overchargeMult.v * 12 * RULES.overchargeTime.v);
+    expect(jar.charge).toBeCloseTo(RULES.pulseMin.v, 0);
     settle(g, RULES.breather.v);
     expect(jar.charge).toBeCloseTo(600, 0);
   });
@@ -106,7 +106,7 @@ describe('pace tests (§6)', () => {
     // the far wall: a Lamp beside the first straight, west of anything the Hearth reaches
     const farWall = (g: Game, back: boolean) => {
       wave1Factory(g);
-      put(g, 'node', 17, 10); // 3.5 tiles from the path: safe
+      put(g, 'node', 17, 11); // 4.5 tiles from the path: safe from a Shade's 3.5
       if (back) {
         put(g, 'node', 13, 11); // 4.5 tiles back: safe
         put(g, 'node', 10, 11);

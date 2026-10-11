@@ -138,13 +138,13 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   },
   vane: {
     id: 'vane', name: 'Vane', role: 'generator', group: 'power', size: 2, cost: 50, fuel: 'wind', research: 'vane',
-    blurb: 'Wind power: up to 15 kW, no fuel, goes anywhere on the grid. The wind comes and goes; a Jar evens it out.',
+    blurb: 'Wind power: up to 15 kW, no fuel, goes anywhere on the grid. The wind comes and goes; a Jar evens it out. Each other Vane within 4 tiles steals 40% of its wind.',
     output: 15,
     why: { size: '§3.2 Vane (2x2 mast)', cost: '§3.2 Vane: 50 (6.1 money per average kW vs the Burner\'s 3.2)', output: '§3.2 Vane: 15 kW at full wind (average 0.55 → 8.2 kW)' },
   },
   node: {
     id: 'node', name: 'Node', role: 'node', group: 'power', size: 1, cost: 10,
-    blurb: 'Carries power to anything within 4 tiles. A Shade passing within 2.5 tiles cuts it for 10 s.',
+    blurb: 'Carries power to anything within 4 tiles. A Shade passing within 3.5 tiles cuts it for 6 s.',
     nodeRadius: 4,
     upgrades: [{
       cost: 13, research: 'longline', blurb: 'Long line: reaches 6 tiles, but the line loses 1 kW while it carries power.',

@@ -18,6 +18,8 @@ export const RULES = {
   starvedBelow: { v: 0.6, why: 'STYLE.md rule 1: starved = satisfaction < 0.6' },
   veilSight: { v: 0.6, why: '§5.1 Veil: seen only by a tower above the starved line (0.6)' },
   brownoutEnds: { v: 0.75, why: '§2 brownout ends when the wall is back above 0.75 for 2 s (hysteresis so it does not flap)' },
+  windShadow: { v: 0.4, why: '§3.2 wind shadow: each other Vane within reach takes 40% of the wind it would catch (a deep wake)' },
+  windShadowRadius: { v: 4, why: '§3.2 wind shadow: 4 tiles, about two rotor diameters' },
   windMean: { v: 0.55, why: '§3.2 wind: averages 0.55 of a Vane\'s rating' },
   endlessGrowth: { v: 1.14, why: '§5.3 endless: each wave past the last brings 14% more kJ' },
 } satisfies Record<string, Rule>;

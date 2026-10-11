@@ -81,7 +81,7 @@ export function demandOf(g: Game, b: Building): number {
   switch (d.role) {
     case 'tower': {
       // an Overcharge asks 3× whatever the tower would ask, ahead of every tier (§8)
-      const k = b.overcharge > 0 ? (g.skills.has('coolGlass') ? SKILL_RULES.coolGlass.v : RULES.overchargeMult.v) : 1;
+      const k = b.overcharge > 0 ? ocMult(g) : 1;
       switch (d.kind) {
         case 'radial': return k * ((d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies);
         case 'mortar': return b.shell < (d.shellSize ?? 0) * (d.magazine ?? 1) ? k * (d.chargeDraw ?? 0) : 0;
@@ -97,6 +97,11 @@ export function demandOf(g: Game, b: Building): number {
     default:
       return 0;
   }
+}
+
+/** an Overcharge's multiple on a tower's draw (Cool Glass lowers it, §9) */
+export function ocMult(g: Game): number {
+  return g.skills.has('coolGlass') ? SKILL_RULES.coolGlass.v : RULES.overchargeMult.v;
 }
 
 /** kW a consumer would ask at its busiest (every tower firing, a Brazier with three bodies) */
@@ -173,6 +178,8 @@ export function gridSystem(g: Game, dry = false) {
     n.capacity = 0;
     const jars: Building[] = [];
     const consumers: Building[] = [];
+    // kW the Overcharges on this line ask beyond what their towers would ask anyway
+    let ocExtra = 0;
     for (const id of n.members) {
       const b = g.buildings.get(id)!;
       const role = b.def.role;
@@ -191,6 +198,7 @@ export function gridSystem(g: Game, dry = false) {
         b.demand = demandOf(g, b);
         n.tiers[tierOf(b)].demand += b.demand;
         n.demand += b.demand;
+        if (b.overcharge > 0) ocExtra += b.demand - b.demand / ocMult(g);
         consumers.push(b);
         if (b.def.role === 'tower' || b.def.role === 'beacon') total.peak += fullDraw(g, b);
       }
@@ -216,8 +224,9 @@ export function gridSystem(g: Game, dry = false) {
       }
       n.wasted = surplus;
     } else {
-      // a deficit draws on Jars, up to each one's discharge rate (§2.1)
-      const deficit = n.demand - made;
+      // a deficit draws on Jars, up to each one's discharge rate (§2.1); but an Overcharge's extra
+      // never comes out of a Jar: it is taken from spare power, then from the rest of the wall (§8)
+      const deficit = Math.max(0, n.demand - ocExtra - made);
       const avail = jars.map((j) => (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)));
       const sum = avail.reduce((a, b) => a + b, 0);
       const dis = Math.min(deficit, sum);

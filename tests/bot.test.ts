@@ -60,6 +60,20 @@ describe('full run (bot)', () => {
   });
 });
 
+describe('the verbs (the third review: §10 Q1)', () => {
+  it('the same plan with no verbs at all (no Overcharge, Pulse or shedding) ends at least 4 lights worse', () => {
+    const g = playRun(new Game(), new Bot({ ...BOT_PLAN, noVerbs: true }));
+    console.log(`no verbs: ${g.over} at wave ${g.wave}, ${g.lights} lights, leaks ${leaks(g)}`);
+    expect(g.lights).toBeLessThanOrEqual(16 - 4);
+  });
+
+  it('two extra Jars do not make Overcharge free: the plan with them does not hold all 20 lights', () => {
+    const g = playRun(new Game(), new Bot({ ...BOT_PLAN, extras: [...BOT_PLAN.extras, { b: 'jar', x: 22, y: 19, wave: 3 }, { b: 'jar', x: 23, y: 19, wave: 3 }] }));
+    console.log(`+2 Jars: ${g.over} at wave ${g.wave}, ${g.lights} lights`);
+    expect(g.lights).toBeLessThan(20);
+  });
+});
+
 describe('the bot plan itself', () => {
   it('every spot in the plan lands on a network once the plan is built', () => {
     const g = playRun(new Game(), new Bot());
