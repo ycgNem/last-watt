@@ -70,7 +70,9 @@ export class Game {
   seenKinds = new Set<EnemyId>();
   /** every player command so far, with the tick it came before (sim/commands.ts; saves replay it) */
   log: LogEntry[] = [];
-  research = { active: null as string | null, progress: {} as Record<string, number>, done: new Set<string>() };
+  /** research (§7): the project the Labs work on, progress per project, what is done, and the
+   *  projects queued to start, in order, as each one finishes (Milestone 5) */
+  research = { active: null as string | null, progress: {} as Record<string, number>, done: new Set<string>(), queue: [] as string[] };
   /** towers' tier-1 satisfaction has fallen below the starved line */
   brownout = false;
   brownoutClock = 0;

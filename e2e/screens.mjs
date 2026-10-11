@@ -93,6 +93,7 @@ const STATES = {
     window.__place(g, 'lab', 19, 18);
     g.research.done.add('brazier'); g.research.done.add('lamp2');
     g.research.active = 'starshell'; g.research.progress.starshell = 500;
+    g.research.queue = ['lamp3', 'vane'];
     p.board = true;
   }),
   intel: async (page) => page.evaluate(() => {

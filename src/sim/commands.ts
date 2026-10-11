@@ -4,7 +4,7 @@
 import type { BuildingId } from '../data/buildings';
 import type { Game } from './Game';
 import type { Building } from './types';
-import { bait, endless, nextWave, overcharge, place, pulse, reroute, sell, setTier, startResearch, toggleOff, toggleTier, upgrade } from './actions';
+import { bait, endless, nextWave, overcharge, place, pulse, queueResearch, reroute, sell, setTier, startResearch, toggleOff, toggleTier, upgrade } from './actions';
 import { rebuildNetworks } from './systems/grid';
 
 export type Command =
@@ -19,6 +19,7 @@ export type Command =
   | { k: 'reroute'; b: number }
   | { k: 'bait'; branch: number }
   | { k: 'research'; id: string }
+  | { k: 'queue'; id: string }
   | { k: 'wave' }
   | { k: 'endless' };
 
@@ -57,6 +58,7 @@ function exec(g: Game, c: Command): Building | string | null {
     case 'reroute': return reroute(g, b!);
     case 'bait': return bait(g, c.branch);
     case 'research': return startResearch(g, c.id);
+    case 'queue': return queueResearch(g, c.id);
     case 'wave': return nextWave(g);
     case 'endless': return endless(g);
   }

@@ -11,7 +11,7 @@ import type { Audio } from '../engine/audio';
 import type { Input } from '../engine/input';
 import { TILE, type Renderer } from '../render/renderer';
 import { drawFrame } from '../render/art';
-import { overchargeProblem, pulseProblem, placeProblem, rerouteProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
+import { overchargeProblem, pulseProblem, placeProblem, queueProblem, rerouteProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
 import { DT, Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
 import { coneCatchers } from '../sim/systems/towers';
@@ -265,7 +265,7 @@ export class Play {
         // name an Overcharge when it is the cause (the third review)
         const oc = [...g.buildings.values()].filter((b) => b.overcharge > 0);
         if (oc.length) this.sayOnce('ocbrownout', 20, `BROWNOUT from your Overcharge: ${oc.length > 1 ? `${oc.length} towers ask` : `the ${oc[0].def.name} asks`} ${Math.round(oc.reduce((a, b) => a + b.demand, 0))} kW ahead of everything, so the rest of the wall gets what is left for 4 s. Jars don't pay for an Overcharge.`, C.violet, 8);
-        this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
+        else this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
         a.sfx('brownout');
         break;
       }
@@ -334,7 +334,8 @@ export class Play {
       case 'research': {
         const res = RESEARCH[e.id];
         const unlocks = Object.values(BUILDINGS).find((b) => b.research === e.id);
-        this.say(`Research done: ${res.name}. ${unlocks ? `${unlocks.name} is on the build bar (${BUILD_KEYS[BUILD_ORDER.indexOf(unlocks.id)]}).` : 'Select a building and upgrade it (U).'}`, C.cyan, 8);
+        const next = g.research.active ? ` Next: ${RESEARCH[g.research.active].name}.` : '';
+        this.say(`Research done: ${res.name}. ${unlocks ? `${unlocks.name} is on the build bar (${BUILD_KEYS[BUILD_ORDER.indexOf(unlocks.id)]}).` : 'Select a building and upgrade it (U).'}${next}`, C.cyan, 8);
         a.sfx('research');
         break;
       }
@@ -1448,7 +1449,7 @@ export class Play {
     ui.text(rate, x + 6 + textWidth('RESEARCH') + 10, y + 5, labs ? C.mist : C.ember);
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.board = false;
     ui.textR('game paused', x + w - 18, y + 5, C.steel);
-    ui.wrap('A Lab turns watts into kJ of research at 1:1 while a project runs; more Labs go faster. Labs sit on tier 3: they starve before your towers do.', x + 6, y + 16, w - 12, C.ash);
+    ui.wrap('A Lab turns watts into kJ of research at 1:1 while a project runs; more Labs go faster. Labs sit on tier 3: they starve before your towers do. Shift-click queues a project.', x + 6, y + 16, w - 12, C.ash);
     (['light', 'power'] as const).forEach((br, col) => {
       const cx = x + 6 + col * (colW + 6);
       ui.text(br === 'light' ? 'LIGHT' : 'POWER', cx, y + 36, br === 'light' ? C.amber : C.cyan);
@@ -1460,12 +1461,16 @@ export class Play {
         const why = researchProblem(g, id);
         const cost = Math.round(g.researchCost(id));
         const p = (g.research.progress[id] ?? 0) / cost;
+        const qi = g.research.queue.indexOf(id);
         const label = done ? `${r.name}: done` : `${r.name}  ${cost} kJ`;
         const secs = kw > 0 ? Math.ceil((cost - (g.research.progress[id] ?? 0)) / kw) : Math.ceil(cost / 10);
+        const qwhy = queueProblem(g, id);
+        const queueTip = qi >= 0 ? 'Shift-click to take it out of the queue.' : !qwhy && g.research.active ? 'Shift-click to queue it: it starts by itself when the Labs finish what is ahead.' : '';
         if (ui.button(label, cx, ry, colW, 13, {
-          active, disabled: done || (!!why && !active), color: done ? C.steel : C.bone,
-          tip: [r.name, r.blurb, done ? 'Done.' : why && !active ? why : `${cost} kJ${cost < r.cost ? ' (Head Start)' : ''}: about ${secs} s at ${kw > 0 ? kw.toFixed(0) : 10} kW. ${active ? 'Click to pause it.' : 'Click to work on it.'}`],
-        })) this.act(this.cmd({ k: 'research', id }));
+          active, disabled: done || (!!why && !active && !!qwhy && qi < 0), color: done ? C.steel : qi >= 0 ? C.cyan : C.bone,
+          tip: [r.name, r.blurb, done ? 'Done.' : why && !active ? (qwhy ? why : `${why}. ${queueTip}`) : `${cost} kJ${cost < r.cost ? ' (Head Start)' : ''}: about ${secs} s at ${kw > 0 ? kw.toFixed(0) : 10} kW. ${active ? 'Click to pause it.' : 'Click to work on it now.'} ${active ? '' : queueTip}`],
+        })) this.act(this.cmd(this.input.shift || (why && !qwhy) ? { k: 'queue', id } : { k: 'research', id }));
+        if (qi >= 0) ui.textR(`NEXT ${qi + 1}`, cx + colW - 3, ry + 3, C.cyan);
         ui.bar(cx, ry + 14, colW, 4, done ? 1 : p, done ? C.steel : active ? C.cyan : C.navy);
       });
     });

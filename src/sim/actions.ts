@@ -246,6 +246,32 @@ export function startResearch(g: Game, id: string): string | null {
   const why = researchProblem(g, id);
   if (why) return why;
   g.research.active = g.research.active === id ? null : id;
+  g.research.queue = g.research.queue.filter((q) => q !== id);
+  return null;
+}
+
+/** put a project in the queue (or take it out): it starts by itself when the Labs finish what is
+ *  ahead of it. A project can queue behind the one it needs. */
+export function queueProblem(g: Game, id: string): string | null {
+  const r = RESEARCH[id];
+  if (!r) return 'No such project';
+  if (g.research.done.has(id)) return 'Already researched';
+  if (g.research.active === id) return 'The Labs are on it now';
+  const ahead = [g.research.active, ...g.research.queue];
+  if (r.requires && !g.research.done.has(r.requires) && !ahead.includes(r.requires)) return `Needs ${RESEARCH[r.requires].name} first (queue that before it)`;
+  return null;
+}
+export function queueResearch(g: Game, id: string): string | null {
+  const q = g.research.queue;
+  if (q.includes(id)) {
+    // and anything queued behind it that needs it
+    g.research.queue = q.filter((x) => x !== id && RESEARCH[x].requires !== id);
+    return null;
+  }
+  const why = queueProblem(g, id);
+  if (why) return why;
+  if (!g.research.active) g.research.active = id;
+  else q.push(id);
   return null;
 }
 
