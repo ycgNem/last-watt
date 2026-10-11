@@ -51,6 +51,8 @@ export class Renderer {
   fx: Fx[] = [];
   /** red vignette after a leak, white after an Overcharge */
   flash = { red: 0, white: 0 };
+  /** screen flashes on (a setting: off for anyone they bother) */
+  flashOn = true;
   private ground: HTMLCanvasElement | null = null;
   private groundFor: Game | null = null;
   private light: HTMLCanvasElement;
@@ -284,14 +286,14 @@ export class Renderer {
     if (ov.spot) this.drawSpot(ov.spot);
     if (ov.ghost) this.drawGhost(g, ov.ghost);
     this.drawFx();
-    if (this.flash.red > 0) {
+    if (this.flash.red > 0 && this.flashOn) {
       const gr = ctx.createRadialGradient(this.W / 2, this.H / 2, Math.min(this.W, this.H) * 0.3, this.W / 2, this.H / 2, Math.max(this.W, this.H) * 0.7);
       gr.addColorStop(0, 'rgba(165,48,48,0)');
       gr.addColorStop(1, `rgba(165,48,48,${Math.min(0.45, this.flash.red)})`);
       ctx.fillStyle = gr;
       ctx.fillRect(0, 0, this.W, this.H);
     }
-    if (this.flash.white > 0) {
+    if (this.flash.white > 0 && this.flashOn) {
       ctx.fillStyle = `rgba(235,237,233,${Math.min(0.25, this.flash.white)})`;
       ctx.fillRect(0, 0, this.W, this.H);
     }

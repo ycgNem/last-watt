@@ -12,6 +12,7 @@ import { MAPS, mapById, type MapDef } from './data/map';
 import { ENEMIES } from './data/enemies';
 import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
 import { clearRun, loadRun, type RunSave } from './app/runsave';
+import { drawSettings } from './app/settings';
 import { replay } from './sim/commands';
 import { Game } from './sim/Game';
 import { Bot } from './app/bot';
@@ -33,8 +34,9 @@ class App {
   title = new Game({ map: this.map });
   loop: GameLoop;
   uiScale = 2;
-  /** the skill tree is open over the title */
+  /** the skill tree, or the settings, is open over the title */
   skillsOpen = false;
+  settingsOpen = false;
   /** the run saved mid-way (CONTINUE), and a note when one could not be used */
   saved: RunSave | null = null;
   saveNote = '';
@@ -42,6 +44,7 @@ class App {
   constructor() {
     this.input.attach(this.canvas);
     this.audio.setMuted(this.profile.muted);
+    this.applySettings();
     this.ui.sfx = (id) => this.audio.sfx(id);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -57,6 +60,14 @@ class App {
       this.focusTitle();
       this.readSave();
     });
+  }
+
+  /** settings into the audio, the renderer and the layout */
+  applySettings() {
+    const s = this.profile.settings;
+    this.audio.setVolume(s.volume);
+    this.r.flashOn = s.flashes;
+    this.resize();
   }
 
   /** look for a run saved mid-way */
@@ -80,7 +91,7 @@ class App {
       console.warn('replay failed:', err);
       return;
     }
-    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), { game: g, map, seed: s.seed, profile: this.profile, onProfile: (p) => saveProfile(p) });
+    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), { game: g, map, seed: s.seed, profile: this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings() });
     this.play.paused = true;
     this.play.say(`Continued: ${map.name}, wave ${g.wave}. Paused: P to play on.`, C.gold, 6);
     this.screen = 'play';
@@ -158,7 +169,10 @@ class App {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.floor(window.innerWidth * dpr), h = Math.floor(window.innerHeight * dpr);
     this.r.resize(w, h);
-    this.uiScale = Math.max(1, Math.floor(Math.min(w / 500, h / 290)));
+    const fit = Math.max(1, Math.floor(Math.min(w / 500, h / 290)));
+    // a chosen scale wins, but never one the UI would not fit at
+    const most = Math.max(1, Math.floor(Math.min(w / 420, h / 260)));
+    this.uiScale = this.profile.settings.uiScale ? Math.min(this.profile.settings.uiScale, most) : fit;
     const uiH = (HUD_H + BAR_H) * this.uiScale;
     this.r.cam.z = Math.max(1, Math.min(6, Math.floor(Math.min(w / (26 * TILE), (h - uiH) / (14 * TILE)))));
   }
@@ -168,7 +182,7 @@ class App {
     if (!withBot && !tutorial) this.saved = null;
     const seed = withBot ? 1 : Math.floor(Math.random() * 1000);
     this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), {
-      tutorial, seed, map: withBot ? undefined : this.map, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p),
+      tutorial, seed, map: withBot ? undefined : this.map, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings(),
     });
     if (withBot) this.play.bot = new Bot();
     this.screen = 'play';
@@ -217,6 +231,21 @@ class App {
       ui.end();
       return;
     }
+    if (this.input.key('KeyO')) this.settingsOpen = !this.settingsOpen;
+    if (this.settingsOpen) {
+      this.settingsOpen = drawSettings(ui, this.profile, this.audio.muted, (st, mute) => {
+        this.profile.settings = st;
+        if (mute !== undefined) {
+          this.audio.setMuted(mute);
+          this.profile.muted = mute;
+        }
+        saveProfile(this.profile);
+        this.applySettings();
+      });
+      ui.end();
+      return;
+    }
+    if (ui.button('SETTINGS (O)', ui.w - 78, 4, 74, 13, { tip: ['Settings', 'Volume, UI scale, screen flashes.'] })) this.settingsOpen = true;
     ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
     ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
     const by = Math.round(ui.h * 0.58);
@@ -256,7 +285,7 @@ class App {
       const open = MAPS.filter((m) => this.open(m));
       this.pickMap(open[(open.indexOf(this.map) + step + open.length) % open.length]);
     }
-    const hint = `${this.saved ? 'C continue, ' : ''}T tutorial, Enter play, K skills, arrows pick a map. H in game shows the controls.`;
+    const hint = `${this.saved ? 'C continue, ' : ''}T tutorial, Enter play, K skills, O settings, arrows pick a map. H in game: keys.`;
     const bw = Math.min(ui.w - 32, Math.max(360, textWidth(hint) + 8));
     const b = this.profile.maps[this.map.id];
     const ph = wrapText(this.map.blurb, bw).length * LINE_H + (b && b.wave > 0 ? 12 : 0) + 22;

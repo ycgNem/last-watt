@@ -22,6 +22,7 @@ import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
+import { drawSettings } from './settings';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
 import { embersFor } from '../data/skills';
@@ -46,6 +47,8 @@ export interface PlayOpts {
   seed?: number;
   profile?: Profile;
   onProfile?: (p: Profile) => void;
+  /** settings changed: apply them (volume, scale, flashes) */
+  onSettings?: () => void;
 }
 
 export class Play {
@@ -60,6 +63,7 @@ export class Play {
   speed = 1;
   help = false;
   board = false;
+  settingsOpen = false;
   bot: Bot | null = null;
   tutorial: Tutorial | null = null;
   profile: Profile | null;
@@ -120,7 +124,7 @@ export class Play {
 
   /** one fixed sim tick (called by the loop) */
   tick() {
-    if (this.paused || this.game.over || this.holding || this.board) return;
+    if (this.paused || this.game.over || this.holding || this.board || this.settingsOpen) return;
     if (this.bot && this.game.tick % 6 === 0) this.bot.act(this.game);
     this.game.step();
   }
@@ -364,6 +368,7 @@ export class Play {
     const inp = this.input, r = this.r, g = this.game;
     const k = (c: string) => inp.key(c);
     if (k('KeyH') || k('F1')) this.help = !this.help;
+    if (k('KeyO') && this.profile) this.settingsOpen = !this.settingsOpen;
     if (k('KeyM')) {
       this.audio.setMuted(!this.audio.muted);
       if (this.profile) {
@@ -651,6 +656,17 @@ export class Play {
     this.drawMessages(ui);
     if (this.board) this.drawBoard(ui, g);
     if (this.help) this.drawHelp(ui);
+    if (this.settingsOpen && this.profile) {
+      this.settingsOpen = drawSettings(ui, this.profile, this.audio.muted, (s, mute) => {
+        this.profile!.settings = s;
+        if (mute !== undefined) {
+          this.audio.setMuted(mute);
+          this.profile!.muted = mute;
+        }
+        this.opts.onProfile?.(this.profile!);
+        this.opts.onSettings?.();
+      });
+    }
     if (this.paused && !g.over && !this.board && !this.help) {
       // a banner just above the bar: it blocks no clicks and sits clear of the cards and feed
       ui.layer = 1;
@@ -1266,6 +1282,7 @@ export class Play {
       ['T', 'raise its priority one tier'],
       ['E', 'Overcharge a tower (needs a charged Jar)'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
+      ['O', 'Settings: volume, UI scale, screen flashes'],
       ['G', 'Reroute: a cut Node back at once (100 kJ)'],
       ['U', 'upgrade (after its research)'],
       ['L', 'research board'],

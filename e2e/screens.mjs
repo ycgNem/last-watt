@@ -163,6 +163,17 @@ const STATES = {
     });
     await page.mouse.move(4, 4);
   },
+  settings: async (page) => {
+    await page.evaluate(() => {
+      window.__app.profile.settings = { volume: 0.3, uiScale: 0, flashes: false };
+      window.__app.settingsOpen = true;
+    });
+    await page.mouse.move(4, 4);
+  },
+  settingsplay: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    p.settingsOpen = true;
+  }),
   winembers: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;

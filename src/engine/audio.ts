@@ -50,6 +50,11 @@ export class Audio {
     }
   }
 
+  setVolume(v: number) {
+    this.volume = v;
+    if (this.master && !this.muted) this.master.gain.value = v;
+  }
+
   setMuted(m: boolean) {
     this.muted = m;
     if (this.master) this.master.gain.value = m ? 0 : this.volume;
