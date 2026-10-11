@@ -375,6 +375,14 @@ STATES.feedpath = async (page) => {
   await page.evaluate(() => { const p = window.__app.play; p.selectedId = [...p.game.buildings.values()].find((b) => b.def.id === 'lamp' && b.x === 18).id; });
 };
 
+// the first full Node of a profile: its lesson card, fired by the hints' own check (Milestone 10)
+STATES.lessonfull = async (page) => {
+  await page.evaluate(nodeFull, false);
+  await page.evaluate(() => { const a = window.__app; a.profile.met = a.profile.met.filter((m) => !m.startsWith('lesson:')); });
+  await page.waitForTimeout(1300);
+  await page.evaluate(() => { window.__app.play.paused = true; });
+};
+
 STATES.nodefulllines = async (page) => {
   await page.evaluate(nodeFull, false);
   await page.evaluate(() => { window.__app.play.lines = true; });

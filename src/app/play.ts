@@ -23,6 +23,7 @@ import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
+import { LESSONS, type LessonId } from './lessons';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
 import { fullOnTheWay, lineReports, linkRoom, strandedBy } from '../sim/lines';
@@ -34,7 +35,8 @@ import { embersFor } from '../data/skills';
 import type { MapDef } from '../data/map';
 
 interface Msg { text: string; color: string; t: number; life: number }
-interface Intel { enemy: EnemyId; t: number }
+/** a card on the left: a new enemy, or a lesson the first time something happens (lessons.ts) */
+interface Intel { enemy?: EnemyId; lesson?: LessonId; t: number }
 
 const HUD_H = 30;
 const BAR_H = 36;
@@ -121,6 +123,17 @@ export class Play {
   }
 
   /** say something at most once per `cd` seconds per key */
+  /** the lesson card for `id`, the first time it happens for this profile (not in the tutorial,
+   *  which teaches these itself); false once it has been shown, so the caller says its hint */
+  lesson(id: LessonId): boolean {
+    const key = `lesson:${id}`;
+    if (this.tutorial || !this.profile || this.profile.met.includes(key)) return false;
+    this.profile.met.push(key);
+    this.opts.onProfile?.(this.profile);
+    this.intel.push({ lesson: id, t: 0 });
+    return true;
+  }
+
   sayOnce(key: string, cd: number, text: string, color?: string, life?: number) {
     const last = this.cool.get(key);
     if (last !== undefined && this.clock - last < cd) return;
@@ -269,7 +282,7 @@ export class Play {
         // name an Overcharge when it is the cause (the third review)
         const oc = [...g.buildings.values()].filter((b) => b.overcharge > 0);
         if (oc.length) this.sayOnce('ocbrownout', 20, `BROWNOUT from your Overcharge: ${oc.length > 1 ? `${oc.length} towers ask` : `the ${oc[0].def.name} asks`} ${Math.round(oc.reduce((a, b) => a + b.demand, 0))} kW ahead of everything, so the rest of the wall gets what is left for 4 s. Jars don't pay for an Overcharge.`, C.violet, 8);
-        else this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
+        else if (!this.lesson('brownout')) this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
         a.sfx('brownout');
         break;
       }
@@ -307,7 +320,7 @@ export class Play {
         r.burst(e.x, e.y, 14, C.ice, 2, 0.5, 'spark');
         a.sfx('knock');
         if (g.research.done.has('reroute')) this.sayOnce('reroute', 40, 'A Node was cut: select it and press G to Reroute it (100 kJ from your Jars).', C.cyan, 6);
-        this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 6 s. Build Nodes further back (red shows the Shade\'s reach when you place one), give power a second route, or Reroute it.', C.ice, 9);
+        if (!this.lesson('knock')) this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 6 s. Build Nodes further back (red shows the Shade\'s reach when you place one), give power a second route, or Reroute it.', C.ice, 9);
         break;
       case 'snuff':
         r.burst(e.x, e.y, 16, C.ash, 1.5, 0.8, 'puff');
@@ -397,21 +410,17 @@ export class Play {
       const starved = feeders.filter((x) => x.sat < 0.3 && !x.off && x.stock === 0);
       if (feeders.length && starved.length === feeders.length) {
         const low = starved.some((x) => x.tier > 1 || g.tierOff[x.tier]);
-        const oc = bs.filter((x) => x.overcharge > 0);
-        if (oc.length) {
-          this.sayOnce('ocspiral', 25, `An Overcharge goes ahead of your Extractors: the ${oc[0].def.name}'s ${Math.round(oc[0].demand)} kW starved them, and the Burners are running out of rock. Fewer Overcharges at once, or more Burners.`, C.violet, 9);
-          break;
-        }
         this.sayOnce('spiral', 25, low
           ? 'Your Extractors are starved and the Burners are running out. Their tier is below the towers: select one and press T (or click tier 1).'
           : 'Your Extractors are starved even on the first tier: there is not enough power for anything. Shed some towers (X) so the Burners can refuel.', C.violet, 9);
         break;
       }
     }
-    if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
+    if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0 && !this.lesson('waste'))
       this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it; a Lab (=) turns it into research.`, C.amber, 7);
     if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.paths[e.route].length * 0.5))
       this.sayOnce('veil', 40, 'A Veil is walking past unseen: your towers near it are below 60% power. Ease the load, Overcharge, or burn it with a Brazier.', C.violet, 7);
+    if (g.enemies.length && bs.some((b) => b.def.role === 'node' && b.full)) this.lesson('full');
     if (!g.research.active && bs.some((b) => b.def.role === 'lab') && g.research.done.size < RESEARCH_ORDER.length)
       this.sayOnce('labidle', 45, 'Your Lab is idle: press L and pick a project.', C.cyan, 5);
   }
@@ -1455,20 +1464,23 @@ export class Play {
   private drawIntel(ui: UI) {
     ui.layer = 2;
     for (const c of this.intel.slice(-2)) {
-      const e = ENEMIES[c.enemy];
+      const e = c.enemy ? ENEMIES[c.enemy] : undefined;
+      const l = c.lesson ? LESSONS[c.lesson] : undefined;
       const w = 196;
-      const body = wrapText(e.blurb, w - 44);
-      const ans = wrapText(e.answer, w - 10);
+      const body = wrapText(e ? e.blurb : l!.body, w - 44);
+      const ans = wrapText(e ? e.answer : l!.answer, w - 10);
       const h = 14 + Math.max(body.length * LINE_H, 22) + ans.length * LINE_H + 8;
       const { x, y } = this.leftCard(ui, w, h);
       // full alpha while paused, so a card never hangs half-faded over the map
       ui.ctx.globalAlpha = this.paused || this.holding ? 1 : Math.min(1, (14 - c.t) * 1.5);
-      ui.panel(x, y, w, h, { border: C.violet, alpha: 0.95 });
-      ui.text(`NEW: ${e.name.toUpperCase()}`, x + 5, y + 4, C.gold);
-      ui.textR(`${e.health} kJ`, x + w - 18, y + 4, C.steel);
+      ui.panel(x, y, w, h, { border: e ? C.violet : C.cyan, alpha: 0.95 });
+      ui.text(e ? `NEW: ${e.name.toUpperCase()}` : l!.title, x + 5, y + 4, C.gold);
+      if (e) ui.textR(`${e.health} kJ`, x + w - 18, y + 4, C.steel);
       if (ui.button('x', x + w - 13, y + 3, 10, 9)) c.t = 14;
-      const m = drawFrame(ui.ctx, e.id, Math.floor(this.clock * 4), x + 6, y + 15, 1, 'lit', 0);
-      if (!m) ui.icon(e.id, x + 8, y + 16);
+      if (e) {
+        const m = drawFrame(ui.ctx, e.id, Math.floor(this.clock * 4), x + 6, y + 15, 1, 'lit', 0);
+        if (!m) ui.icon(e.id, x + 8, y + 16);
+      } else ui.icon(l!.icon, x + 8, y + 16);
       body.forEach((l, i) => ui.text(l, x + 38, y + 16 + i * LINE_H, C.mist));
       const ay = y + 16 + Math.max(body.length * LINE_H, 22) + 2;
       ans.forEach((l, i) => ui.text(l, x + 5, ay + i * LINE_H, C.amber));
