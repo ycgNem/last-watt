@@ -18,7 +18,7 @@ import { coneCatchers } from '../sim/systems/towers';
 import { windShade } from '../sim/systems/economy';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
 import { spacingOf, wavePay, roadsOf } from '../sim/systems/waves';
-import type { Building, GameEvent } from '../sim/types';
+import type { Building, GameEvent, LossCause } from '../sim/types';
 import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
 import type { Bot } from './bot';
@@ -1659,6 +1659,37 @@ export class Play {
     if (ui.button('x', x + w - 13, y + 3, 10, 10)) this.help = false;
   }
 
+  /** the run wave by wave (ROADMAP Milestone 3's production stats): each wave's column is the share
+   *  of what the wall asked that it got while enemies were on the field, a red pip for each light
+   *  it cost; hovering one says what that wave made, wasted and lost power to */
+  private drawWaveChart(ui: UI, g: Game, x: number, y: number, w: number, n: number) {
+    const s = g.stats;
+    ui.text('WAVE BY WAVE: the wall\'s share of power, lights lost', x, y, C.ash);
+    const col = Math.min(18, Math.floor(w / n)), barH = 18, by = y + 17;
+    const names: Record<LossCause, string> = { snuff: 'snuffed Burners', dry: 'dry Burners', cut: 'cut Nodes', siphon: 'Siphons', overcharge: 'your Overcharges', held: 'full Nodes', short: 'too little supply' };
+    for (let i = 1; i <= n; i++) {
+      const f = s.flowByWave[i];
+      const share = f && f.ask > 0 ? Math.min(1, f.got / f.ask) : 1;
+      const cx = x + (i - 1) * col;
+      ui.fill(cx, by, col - 3, barH, C.ink);
+      const bh = Math.max(1, Math.round(barH * share));
+      ui.fill(cx, by + barH - bh, col - 3, bh, share < RULES.starvedBelow.v ? C.violet : share < 0.75 ? C.amber : C.lime);
+      const lost = s.lightsByWave[i] ?? 0;
+      for (let k = 0; k < Math.min(lost, 6); k++) ui.fill(cx + (k % 3) * 3, by - 3 - Math.floor(k / 3) * 3, 2, 2, C.red);
+      ui.textC(`${i}`, cx + (col - 3) / 2, by + barH + 2, C.steel);
+      if (ui.hover(cx, by - 8, col - 1, barH + 18)) {
+        const led = s.lossByWave[i] ?? {};
+        const top = (Object.entries(led) as [LossCause, number][]).sort((a, b) => b[1] - a[1])[0];
+        ui.tooltip([
+          { text: `Wave ${i}: the wall got ${Math.round(share * 100)}% of what it asked (${Math.round(f?.got ?? 0)} of ${Math.round(f?.ask ?? 0)} kJ)` },
+          { text: `Made ${Math.round(f?.made ?? 0)} kJ while the dark was on the field, wasted ${Math.round(f?.wasted ?? 0)}.` },
+          { text: lost ? `Lost ${lost} light${lost > 1 ? 's' : ''} (${s.leaksByWave[i] ?? 0} got through).` : 'Lost no light.', color: lost ? C.ember : C.lime },
+          ...(top && top[1] >= 1 ? [{ text: `The most power lost: ${Math.round(top[1])} kJ to ${names[top[0]]}.`, color: C.amber }] : []),
+        ]);
+      }
+    }
+  }
+
   private drawEnd(ui: UI, g: Game) {
     ui.layer = 8;
     const win = g.over === 'win';
@@ -1689,7 +1720,9 @@ export class Play {
     if (best) rows.push([`Best on ${g.map.name}`, best.won ? `won with ${best.lights} lights${best.endless ? `, endless wave ${best.endless}` : ''}` : `wave ${best.wave}`]);
     const w = Math.min(ui.w - 12, Math.max(276, ...rows.map(([k, v]) => textWidth(k) + textWidth(v) + 40)));
     const whyLines = why ? wrapText(why, w - 28) : [];
-    const h = 34 + rows.length * 10 + (whyLines.length ? whyLines.length * LINE_H + 6 : 0) + 26;
+    const waves = Math.min(g.wave, s.flowByWave.length - 1);
+    const chartH = waves > 0 ? 50 : 0;
+    const h = 34 + rows.length * 10 + (whyLines.length ? whyLines.length * LINE_H + 6 : 0) + chartH + 26;
     const x = ui.w / 2 - w / 2, y = ui.h / 2 - h / 2;
     ui.panel(x, y, w, h, { border: win ? C.gold : C.ember, alpha: 0.96 });
     ui.big(win ? 'THE LIGHTS HELD' : 'THE HEARTH WENT DARK', ui.w / 2, y + 8, 2, win ? C.gold : C.ember);
@@ -1698,6 +1731,7 @@ export class Play {
       ui.textR(v, x + w - 14, y + 32 + i * 10, C.mist);
     });
     whyLines.forEach((l, i) => ui.text(l, x + 14, y + 32 + rows.length * 10 + 4 + i * LINE_H, C.gold));
+    if (waves > 0) this.drawWaveChart(ui, g, x + 14, y + 32 + rows.length * 10 + (whyLines.length ? whyLines.length * LINE_H + 6 : 0) + 2, w - 28, waves);
     if (win) {
       if (ui.button('KEEP GOING: ENDLESS', ui.w / 2 - 158, y + h - 22, 120, 15, { color: C.gold, tip: ['Endless', 'Waves keep coming, each 14% heavier. How long can the Hearth hold?'] })) {
         this.cmd({ k: 'endless' });

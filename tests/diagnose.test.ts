@@ -38,4 +38,18 @@ describe('why a run was lost (the sixth review M1)', () => {
     for (let i = 0; i < 60; i++) g.step();
     expect(g.stats.lossByWave[1].snuff).toBeCloseTo(20, 0);
   });
+
+  it("the end screen's wave-by-wave record: what the wall asked and got while enemies were on the field", () => {
+    const g = new Game();
+    const lamp = put(g, 'lamp', 24, 13);
+    park(g, 'moth', 35);
+    g.wave = 1;
+    for (let i = 0; i < 120; i++) g.step();
+    const f = g.stats.flowByWave[1];
+    expect(lamp.demand).toBe(12);
+    // a firing Lamp on the Hearth's 8 kW: 12 asked, 8 got, for two seconds
+    expect(f.ask).toBeCloseTo(24, 0);
+    expect(f.got).toBeCloseTo(16, 0);
+    expect(f.made).toBeCloseTo(16, 0);
+  });
 });

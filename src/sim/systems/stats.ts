@@ -47,6 +47,11 @@ export function statsSystem(g: Game) {
     const oc = [...g.buildings.values()].some((b) => b.overcharge > 0);
     add(oc ? 'overcharge' : 'short', oc ? short : Math.max(0, short - g.grid.held));
     g.stats.wastedLiveKj += g.grid.wasted * DT;
+    const f = (g.stats.flowByWave[g.wave] ??= { made: 0, ask: 0, got: 0, wasted: 0 });
+    f.made += g.grid.gen * DT;
+    f.ask += g.grid.wall.demand * DT;
+    f.got += g.grid.wall.served * DT;
+    f.wasted += g.grid.wasted * DT;
   }
   if (g.lights <= 0 && !g.over) {
     g.over = 'lose';

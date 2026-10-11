@@ -207,6 +207,9 @@ export interface RunStats {
   wastedLiveKj: number;
   /** per wave, kJ of supply or wall fire lost to each cause while enemies were on the field */
   lossByWave: Partial<Record<LossCause, number>>[];
+  /** per wave, while enemies were on the field: kJ made, kJ the wall asked and got, kJ wasted
+   *  (ROADMAP Milestone 3's production stats: the end screen's wave-by-wave read-out) */
+  flowByWave: { made: number; ask: number; got: number; wasted: number }[];
   brownoutSeconds: number;
   overcharges: number;
   pulses: number;

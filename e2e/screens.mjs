@@ -203,6 +203,35 @@ const STATES = {
     p.selectedId = [...g.buildings.values()].find((b) => b.def.id === 'brazier').id;
   }),
   lose: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'lose'; p.game.lights = 0; }),
+  // a lost run's end screen with its wave-by-wave chart, wave 9 hovered (ROADMAP M3 production stats)
+  losechart: async (page) => {
+    const at = await page.evaluate(() => {
+      const p = window.__app.newGame();
+      const g = p.game, s = g.stats;
+      g.wave = 9;
+      const share = [1, 1, 0.9, 0.95, 0.8, 1, 0.97, 0.7, 0.3];
+      const lost = [0, 0, 1, 0, 3, 0, 0, 2, 14];
+      for (let i = 1; i <= 9; i++) {
+        s.flowByWave[i] = { made: 900 * i, ask: 700 * i, got: 700 * i * share[i - 1], wasted: 60 * i };
+        s.lightsByWave[i] = lost[i - 1];
+        s.leaksByWave[i] = Math.ceil(lost[i - 1] / 2);
+      }
+      s.lossByWave[9] = { snuff: 1800, short: 600, siphon: 240 };
+      s.leakLog = [{ enemy: 'veil', wave: 9, lights: 8, wall: 0.2, overcharged: false }, { enemy: 'flit', wave: 9, lights: 6, wall: 0.15, overcharged: false }];
+      s.lightsLostBy = { veil: 8, flit: 6, pall: 3, moth: 3 };
+      g.lights = 0;
+      g.over = 'lose';
+      return null;
+    });
+    void at;
+    await page.waitForTimeout(150);
+    // hover wave 9's column: find it from the drawn texts
+    const pos = await page.evaluate(() => {
+      const a = window.__app, r = a.ui.lastRecs.filter((x) => x.s === '9' && x.y > 100).sort((p, q) => p.y - q.y)[0];
+      return r ? { x: (r.x + 3) * a.ui.scale, y: (r.y - 8) * a.ui.scale } : null;
+    });
+    if (pos) await page.mouse.move(pos.x, pos.y);
+  },
   paused: async (page) => page.evaluate(() => { window.__app.newGame().paused = true; }),
   pulse: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
