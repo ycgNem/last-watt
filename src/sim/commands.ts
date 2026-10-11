@@ -13,7 +13,7 @@ export type Command =
   | { k: 'off'; b: number }
   | { k: 'tier'; b: number; t: number }
   | { k: 'shedTier'; t: number }
-  | { k: 'up'; b: number }
+  | { k: 'up'; b: number; branch?: number }
   | { k: 'oc'; b: number }
   | { k: 'pulse' }
   | { k: 'reroute'; b: number }
@@ -50,7 +50,7 @@ function exec(g: Game, c: Command): Building | string | null {
     case 'shedTier':
       toggleTier(g, c.t);
       return null;
-    case 'up': return upgrade(g, b!);
+    case 'up': return upgrade(g, b!, c.branch ?? 0);
     case 'oc': return overcharge(g, b!);
     case 'pulse': return pulse(g);
     case 'reroute': return reroute(g, b!);

@@ -237,6 +237,13 @@ export function gridSystem(g: Game, dry = false) {
     }
     n.wall.sat = n.wall.demand > 0 ? n.wall.served / n.wall.demand : 1;
     for (const j of jars) {
+      const spin = g.spec(j).spinDown ?? 0;
+      if (spin > 0 && j.charge > 0) {
+        // a Flywheel spins down: its friction is power wasted (§3.2)
+        const lost = j.charge * spin;
+        if (!dry) j.charge = Math.max(0, j.charge - lost * DT);
+        n.wasted += lost;
+      }
       n.stored += j.charge;
       n.capacity += g.spec(j).capacity ?? 0;
     }

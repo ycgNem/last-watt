@@ -173,7 +173,7 @@ export class Renderer {
   }
 
   private spriteOf(b: Building): string {
-    if (b.level > 1 && SHEETS.has(`${b.def.id}2`)) return `${b.def.id}2`;
+    if (b.level > 1 && b.branch === 0 && SHEETS.has(`${b.def.id}2`)) return `${b.def.id}2`;
     return b.def.id;
   }
 
@@ -583,8 +583,22 @@ export class Renderer {
       else tag('NO FUEL', C.ember);
     }
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
+    // a Flywheel wears a wheel that spins with its charge
+    if (b.def.role === 'storage' && b.branch > 0) {
+      const cap = g.spec(b).capacity ?? 1;
+      const f = b.charge / cap;
+      const cx = Math.round(p.x + p.w / 2), cy = Math.round(p.y) - 1;
+      ctx.fillStyle = C.ink;
+      ctx.fillRect(this.sx(cx - 3), this.sy(cy - 3), 7 * z, 7 * z);
+      const spoke = Math.floor(this.time * (1 + 14 * f) + b.id) % 4;
+      ctx.fillStyle = f > 0.02 ? C.ice : C.steel;
+      for (let i = -2; i <= 2; i++) {
+        const [dx, dy] = spoke === 0 ? [i, 0] : spoke === 1 ? [i, i] : spoke === 2 ? [0, i] : [i, -i];
+        ctx.fillRect(this.sx(cx + dx), this.sy(cy + dy), z, z);
+      }
+    }
     // a tier-2 building with no tier-2 sprite of its own wears a brass pip
-    if (b.level > 1 && !SHEETS.has(`${b.def.id}2`)) {
+    else if (b.level > 1 && !SHEETS.has(`${b.def.id}2`)) {
       ctx.fillStyle = C.ink;
       ctx.fillRect(this.sx(Math.round(p.x + p.w / 2) - 2), this.sy(Math.round(p.y) - 1), 4 * z, 4 * z);
       ctx.fillStyle = C.gold;

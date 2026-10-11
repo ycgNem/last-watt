@@ -100,10 +100,13 @@ adds instead are new ways to make, store and carry watts, each a different energ
 | **Bellows** (Burner tier 2, 1000 kJ) | +50 | 30 kW at efficiency 0.6 | A rock gives 400 × 0.6 = 240 kJ (was 200) and lasts 8 s (was 10), so one Extractor (8 s a rock) feeds exactly one Bellows Burner. +50% output and +20% energy per rock. |
 | **Deep bit** (Extractor tier 2, 700 kJ) | +38 | 1 rock / 5 s, draws 4 kW | 1.6 rocks per 8 s for 2 kW more: feeds a Bellows Burner and most of another. |
 | **Bank** (Jar tier 2, 800 kJ) | +75 | 1500 kJ, charge 25 kW, discharge 45 kW | Late waves are long enough that one Jar's 600 kJ runs dry mid-wave. |
+| **Flywheel** (Jar tier 2 *instead of* Bank, 700 kJ) | +75 | 300 kJ, charge 60 kW, discharge 90 kW, **spins down 2% of its charge a second** | The other way to take a Jar's tier, chosen once (the first upgrade branch). A tier-2 Floodlight Overcharged asks 36 × 3 = 108 kW, 72 kW over its firing draw, for 4 s: 288 kJ. A Jar gives 30 kW (a Bank 45), so it takes two or three of them to carry that; one Flywheel gives 90 and holds 300 kJ, exactly one such Overcharge. It refills in 5 s of surplus at 60 kW where a Jar takes 20 s for the same 300 kJ. The spin-down (half gone in ln 2 / 0.02 ≈ 35 s; 6 kW of friction when full, shown as wasted) is what keeps it from being a better Bank: it is a wave tool, filled by the surplus between packs and spent on the next Overcharge, not a store for the breather. Bank or Flywheel is a real choice: a long wave wants depth, an Overcharge-heavy wall wants rate. |
 | **Long line** (Node tier 2, 500 kJ) | +13 | reach 6 tiles, **loses 1 kW** while it carries power | The first transmission loss: a longer reach pays in watts, so it is a choice, not a pure upgrade. Losses come off a network's generation before anyone sees it. |
 
 Tier costs follow §4's rule: base × 1.25. Still Milestone 3 and not built: belts and arms, the
-Refiner (coke), the tar still, node capacity, the Flywheel, production stats, blueprints.
+Refiner (coke), the tar still, node capacity, blueprints. The Lines view (V) is the production
+read-out: each network's kW in, its full-fire draw, and its worst bottleneck in this order: a
+Burner with no rock, no power in, a starved wall, a peak the Jars can't carry, waste, line loss.
 
 ## 4. Towers
 

@@ -40,14 +40,17 @@ describe('data validation', () => {
   it('every building stat has a derivation', () => {
     for (const b of Object.values(BUILDINGS)) {
       checkEntry(b.id, b as unknown as Record<string, unknown>, b.why);
-      for (const [i, u] of (b.upgrades ?? []).entries()) checkEntry(`${b.id}.upgrades[${i}]`, { cost: u.cost, ...u.stats }, u.why);
+      for (const [i, u] of (b.upgrades ?? []).entries()) {
+        checkEntry(`${b.id}.upgrades[${i}]`, { cost: u.cost, ...u.stats }, u.why);
+        for (const [j, alt] of (u.alts ?? []).entries()) checkEntry(`${b.id}.upgrades[${i}].alts[${j}]`, { cost: alt.cost, ...alt.stats }, alt.why);
+      }
     }
     checkWhy('SELL_REFUND', SELL_REFUND.why);
   });
 
   it('every upgrade node has a wattage column (an energy-side effect)', () => {
     for (const b of Object.values(BUILDINGS))
-      for (const u of b.upgrades ?? []) {
+      for (const u of (b.upgrades ?? []).flatMap((x) => [x, ...(x.alts ?? [])])) {
         const energy = ENERGY_KEYS.filter((k) => u.stats[k] !== undefined && u.stats[k] !== (b as any)[k]);
         expect(energy.length, `${b.id} upgrade changes nothing on the energy side`).toBeGreaterThan(0);
       }
@@ -97,7 +100,7 @@ describe('data validation', () => {
     for (const r of Object.values(RESEARCH)) if (r.requires) expect(RESEARCH[r.requires], `${r.id} requires unknown ${r.requires}`).toBeTruthy();
     for (const b of Object.values(BUILDINGS)) {
       if (b.research) expect(RESEARCH[b.research], `${b.id} needs unknown research ${b.research}`).toBeTruthy();
-      for (const u of b.upgrades ?? []) expect(RESEARCH[u.research]).toBeTruthy();
+      for (const u of (b.upgrades ?? []).flatMap((x) => [x, ...(x.alts ?? [])])) expect(RESEARCH[u.research]).toBeTruthy();
     }
     for (const id of BUILD_ORDER) expect(BUILDINGS[id]).toBeTruthy();
     for (const m of MAPS) {

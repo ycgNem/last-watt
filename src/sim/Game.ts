@@ -174,7 +174,7 @@ export class Game {
 
   addBuilding(def: BuildingDef, x: number, y: number): Building {
     const b: Building = {
-      id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, net: -1, demand: 0, sat: 0, satAvg: 1,
+      id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, branch: 0, net: -1, demand: 0, sat: 0, satAvg: 1,
       output: 0, fuel: 0, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
       overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0, fuse: 0, guard: 0,
     };
@@ -226,7 +226,7 @@ export class Game {
 
   /** a building's stats at its tier (upgrades applied) */
   spec(b: Building): BuildingDef {
-    return specOf(b.def, b.level);
+    return specOf(b.def, b.level, b.branch);
   }
 
   /** a tower's current firing draw and efficiency (tier upgrades apply) */

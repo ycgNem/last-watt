@@ -146,6 +146,33 @@ const STATES = {
     p.paused = true;
     p.msgs = [];
   }),
+  flywheel: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('bank'); g.research.done.add('flywheel');
+    g.money = 300;
+    const j = window.__place(g, 'jar', 22, 18);
+    j.charge = 400;
+    const f = window.__place(g, 'jar', 21, 18);
+    window.__upgrade(g, f, 1);
+    f.charge = 200;
+    for (let i = 0; i < 3; i++) p.tick();
+    p.selectedId = j.id;
+    p.paused = true;
+    p.msgs = [];
+  }),
+  flywheelsel: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('flywheel');
+    const f = window.__place(g, 'jar', 21, 18);
+    window.__upgrade(g, f, 1);
+    f.charge = 250;
+    for (let i = 0; i < 3; i++) p.tick();
+    p.selectedId = f.id;
+    p.paused = true;
+    p.msgs = [];
+  }),
   reroute: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;

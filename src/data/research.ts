@@ -78,6 +78,11 @@ export const RESEARCH: Record<string, ResearchDef> = {
     blurb: 'Jars can be upgraded: 1500 kJ, charge 25 kW, discharge 45 kW.',
     why: { cost: '§7 Jar tier 2: 800 kJ' },
   },
+  flywheel: {
+    id: 'flywheel', name: 'Flywheel', branch: 'power', cost: 700,
+    blurb: 'Jars can become Flywheels instead of Banks: 300 kJ, but 60 kW in and 90 kW out. It spins down, so it is for the wave, not the gap.',
+    why: { cost: '§7 / §3.2 Flywheel: 700 kJ (the other Jar tier 2; Bank is 800 because it holds five times as much)' },
+  },
   pulse: {
     id: 'pulse', name: 'Pulse', branch: 'power', cost: 900,
     blurb: 'A gaffer verb (Q): every Jar empties at once; 60% of it lands, split across the enemies within 3 tiles of a lit tower.',
@@ -97,5 +102,5 @@ export const RESEARCH: Record<string, ResearchDef> = {
 
 export const RESEARCH_ORDER = [
   'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2',
-  'vane', 'bellows', 'deepbit', 'bank', 'pulse', 'reroute', 'longline',
+  'vane', 'bellows', 'deepbit', 'bank', 'flywheel', 'pulse', 'reroute', 'longline',
 ];

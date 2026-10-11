@@ -18,7 +18,7 @@ import { Game } from './sim/Game';
 import { Bot } from './app/bot';
 import { C } from './data/palette';
 import { drawText, textWidth, wrapText, LINE_H } from './ui/font';
-import { nextWave, overcharge, place } from './sim/actions';
+import { nextWave, overcharge, place, upgrade } from './sim/actions';
 
 class App {
   canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -316,4 +316,5 @@ const app = new App();
 };
 (window as any).__next = nextWave;
 (window as any).__overcharge = overcharge;
+(window as any).__upgrade = upgrade;
 void drawText;

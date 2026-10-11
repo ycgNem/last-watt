@@ -1,7 +1,7 @@
 // The play screen: input → actions, build mode, selection, camera, events → effects and
 // messages, the tutorial and intel cards, and the immediate-mode HUD. The sim is stepped by the
 // loop in main.ts.
-import { BUILDINGS, BUILD_CODES, BUILD_KEYS, BUILD_ORDER, specOf, type BuildingDef, type BuildingId, type Stats } from '../data/buildings';
+import { BUILDINGS, BUILD_CODES, BUILD_KEYS, BUILD_ORDER, specOf, upgradeAt, type BuildingDef, type BuildingId, type Stats } from '../data/buildings';
 import { C } from '../data/palette';
 import { RESEARCH, RESEARCH_ORDER } from '../data/research';
 import { RULES } from '../data/rules';
@@ -441,6 +441,7 @@ export class Play {
     // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
     if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
     if (k('KeyU') && target) this.act(this.cmd({ k: 'up', b: target.id }), 'place');
+    if (k('KeyY') && target?.def.upgrades?.[target.level - 1]?.alts) this.act(this.cmd({ k: 'up', b: target.id, branch: 1 }), 'place');
     if ((k('Delete') || k('Backspace')) && this.selected) {
       const s = this.selected;
       if (!this.act(this.cmd({ k: 'sell', b: s.id }))) this.selectedId = 0;
@@ -1006,7 +1007,8 @@ export class Play {
       case 'storage':
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });
         out.push({ text: b.flow > 0.1 ? `Charging ${b.flow.toFixed(0)} kW` : b.flow < -0.1 ? `Discharging ${(-b.flow).toFixed(0)} kW` : 'Idle', color: C.amber });
-        out.push({ text: 'An Overcharge drinks from the Jars on its network first, before the rest of the wall.' });
+        if (d.spinDown) out.push({ text: `Spins down ${(b.charge * d.spinDown).toFixed(1)} kW (${Math.round(d.spinDown * 100)}% of its charge a second): spend it in the wave.`, color: C.ice });
+        out.push({ text: `In ≤ ${d.maxCharge} kW, out ≤ ${d.maxDischarge} kW. An Overcharge drinks from the Jars on its network first.` });
         break;
       case 'lab': {
         const id = g.research.active;
@@ -1021,7 +1023,7 @@ export class Play {
   private hoverTip(ui: UI, g: Game, b: Building) {
     if (!b) return;
     const sw = this.stateWord(g, b);
-    ui.tooltip([{ text: `${b.def.name}${b.level > 1 ? ' (tier 2)' : ''}` }, { text: sw.text, color: sw.color }, ...this.infoLines(g, b), { text: 'Click for controls.', color: C.steel }]);
+    ui.tooltip([{ text: this.titleOf(b) }, { text: sw.text, color: sw.color }, ...this.infoLines(g, b), { text: 'Click for controls.', color: C.steel }]);
   }
 
   /** hovering an enemy: what it is */
@@ -1066,7 +1068,7 @@ export class Play {
     h += 4;
     ui.panel(x, y0, w, h, { border: C.steel });
     let y = y0 + 4;
-    ui.text(`${b.def.name}${b.level > 1 ? ' (tier 2)' : ''}`, x + 5, y, C.gold);
+    ui.text(this.titleOf(b), x + 5, y, C.gold);
     if (ui.button('x', x + w - 13, y - 1, 10, 10)) this.selectedId = 0;
     y += 10;
     const sw = this.stateWord(g, b);
@@ -1093,10 +1095,23 @@ export class Play {
       if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else: spare power first, then the Jars, then whatever the rest of the wall was getting. Big Overcharges with no Jars behind them starve the wall.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
       y += 16;
     }
-    if (up) {
+    if (up && up.alts?.length && b.branch === 0) {
+      // a tier with a choice: the main line on U, the other way on Y
+      const ways = [up, ...up.alts];
+      const bw = Math.floor((w - 10) / ways.length) - 1;
+      ways.forEach((u, i) => {
+        const why = upgradeProblem(g, b, i);
+        const next = specOf(b.def, b.level + 1, i);
+        const label = `${(u.name ?? 'TIER 2').toUpperCase()} (${i === 0 ? 'U' : 'Y'}) ${u.cost}`;
+        if (ui.button(label, x + 5 + i * (bw + 2), y, bw, 14, { disabled: !!why, tip: [`${u.name ?? 'Tier 2'}: one way or the other`, u.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] }))
+          this.act(this.cmd({ k: 'up', b: b.id, branch: i }), 'place');
+      });
+      y += 16;
+    } else if (up) {
+      const nu = upgradeAt(b.def, b.level, b.branch)!;
       const why = upgradeProblem(g, b);
-      const next = specOf(b.def, b.level + 1);
-      if (ui.button(`UPGRADE (U) ${up.cost}`, x + 5, y, w - 10, 14, { disabled: !!why, tip: ['Tier 2', up.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'up', b: b.id }), 'place');
+      const next = specOf(b.def, b.level + 1, b.branch);
+      if (ui.button(`UPGRADE (U) ${nu.cost}`, x + 5, y, w - 10, 14, { disabled: !!why, tip: [nu.name ?? 'Tier 2', nu.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'up', b: b.id }), 'place');
       y += 16;
     }
     if (b.def.role === 'lab') {
@@ -1115,12 +1130,19 @@ export class Play {
     }
   }
 
+  /** a building's name with its tier, or the name of the way it was upgraded */
+  private titleOf(b: Building) {
+    if (b.level <= 1) return b.def.name;
+    const u = upgradeAt(b.def, b.level - 1, b.branch);
+    return u?.name ? `${b.def.name} (${u.name})` : `${b.def.name} (tier 2)`;
+  }
+
   /** "Firing draw 12 → 18 kW" lines for an upgrade's tooltip */
   private statDiff(a: Stats, b: Stats): string[] {
     const names: Partial<Record<keyof Stats, string>> = {
       firingDraw: 'Firing draw (kW)', perEnemyDraw: 'kW per body', chargeDraw: 'Charge draw (kW)', constantDraw: 'Draw (kW)', workDraw: 'Draw (kW)',
       efficiency: 'Efficiency', output: 'Output (kW)', capacity: 'Capacity (kJ)', maxCharge: 'Charge (kW)', maxDischarge: 'Discharge (kW)',
-      nodeRadius: 'Reach (tiles)', lineLoss: 'Line loss (kW)', rockInterval: 'Seconds per rock', slow: 'Slow',
+      nodeRadius: 'Reach (tiles)', lineLoss: 'Line loss (kW)', spinDown: 'Spin-down (per s)', rockInterval: 'Seconds per rock', slow: 'Slow',
     };
     const out: string[] = [];
     for (const k of Object.keys(names) as (keyof Stats)[]) {

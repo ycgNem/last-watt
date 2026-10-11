@@ -1,5 +1,5 @@
 // Everything the player (or the bot) can do. Each returns null on success or a short reason.
-import { BUILDINGS, SELL_REFUND, type BuildingId } from '../data/buildings';
+import { BUILDINGS, SELL_REFUND, type BuildingId, upgradeAt } from '../data/buildings';
 import { RESEARCH } from '../data/research';
 import { RULES } from '../data/rules';
 import { LAST_WAVE } from '../data/waves';
@@ -36,7 +36,7 @@ export function place(g: Game, id: BuildingId, x: number, y: number, free = fals
 /** money a sale pays back: half of everything spent on it (§3 selling) */
 export function sellValue(b: Building): number {
   let spent = b.def.cost;
-  for (let l = 2; l <= b.level; l++) spent += b.def.upgrades?.[l - 2]?.cost ?? 0;
+  for (let l = 2; l <= b.level; l++) spent += upgradeAt(b.def, l - 1, b.branch)?.cost ?? 0;
   return Math.floor(spent * SELL_REFUND.v);
 }
 
@@ -68,20 +68,26 @@ export function toggleTier(g: Game, tier: number) {
   if (tier >= 1 && tier <= 4) g.tierOff[tier] = !g.tierOff[tier];
 }
 
-export function upgradeProblem(g: Game, b: Building): string | null {
-  const up = b.def.upgrades?.[b.level - 1];
+/** branch: which way to take a tier that has a choice (0 the main line); a building already on a
+ *  branch stays on it */
+export function upgradeProblem(g: Game, b: Building, branch = 0): string | null {
+  const up = upgradeAt(b.def, b.level, b.branch || branch);
   if (!up) return b.def.upgrades?.length ? 'Fully upgraded' : 'No upgrades';
+  if (branch && b.branch && branch !== b.branch) return 'It went the other way';
   if (!g.research.done.has(up.research)) return `Research ${RESEARCH[up.research].name} first (Lab)`;
   if (g.money < up.cost) return `Need ${up.cost} money`;
   return null;
 }
 
-export function upgrade(g: Game, b: Building): string | null {
-  const why = upgradeProblem(g, b);
+export function upgrade(g: Game, b: Building, branch = 0): string | null {
+  const why = upgradeProblem(g, b, branch);
   if (why) return why;
-  const up = b.def.upgrades![b.level - 1];
+  if (!b.branch && branch && b.def.upgrades?.[b.level - 1]?.alts?.[branch - 1]) b.branch = branch;
+  const up = upgradeAt(b.def, b.level, b.branch)!;
   g.money -= up.cost;
   b.level++;
+  // a smaller store keeps only what fits
+  if (b.def.role === 'storage') b.charge = Math.min(b.charge, g.spec(b).capacity ?? 0);
   g.netDirty = true; // a Long line reaches further
   g.emit({ t: 'upgrade', id: b.id, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });
   return null;

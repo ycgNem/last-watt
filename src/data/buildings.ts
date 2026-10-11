@@ -48,6 +48,8 @@ export interface Stats {
   capacity?: number;
   maxCharge?: number;
   maxDischarge?: number;
+  /** storage: fraction of its charge lost each second (a Flywheel spins down) */
+  spinDown?: number;
   /** cone: half-angle in degrees, and the fraction of the beam one enemy catches */
   halfAngle?: number;
   catch?: number;
@@ -58,6 +60,8 @@ export interface Stats {
 }
 
 export interface UpgradeDef {
+  /** its name on the panel, when the tier has a choice (Bank or Flywheel) */
+  name?: string;
   /** money to reach this tier */
   cost: number;
   /** research project that unlocks it */
@@ -66,6 +70,8 @@ export interface UpgradeDef {
   blurb: string;
   stats: Stats;
   why: Record<string, string>;
+  /** the other ways to take this tier: a branch, chosen once (ROADMAP Milestone 4) */
+  alts?: UpgradeDef[];
 }
 
 export interface BuildingDef extends Stats {
@@ -152,9 +158,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     blurb: 'Stores wasted power and gives it back when demand beats supply. Pays for Overcharge.',
     capacity: 600, maxCharge: 15, maxDischarge: 30,
     upgrades: [{
-      cost: 75, research: 'bank', blurb: 'Bank: 1500 kJ, charges at 25 kW, gives back 45 kW.',
+      name: 'Bank', cost: 75, research: 'bank', blurb: 'Bank: 1500 kJ, charges at 25 kW, gives back 45 kW. Deep and slow: carries a long wave.',
       stats: { capacity: 1500, maxCharge: 25, maxDischarge: 45 },
       why: { cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 bank: 600 → 1500 kJ', maxCharge: '§3.2 bank: 15 → 25 kW', maxDischarge: '§3.2 bank: 30 → 45 kW' },
+      alts: [{
+        name: 'Flywheel', cost: 75, research: 'flywheel', blurb: 'Flywheel: only 300 kJ, but charges at 60 kW and gives back 90 kW. It spins down: 2% of its charge a second.',
+        stats: { capacity: 300, maxCharge: 60, maxDischarge: 90, spinDown: 0.02 },
+        why: {
+          cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 Flywheel: 300 kJ, one tier-2 Floodlight Overcharge (72 kW × 4 s = 288 kJ)',
+          maxCharge: '§3.2 Flywheel: charges at 60 kW, full in 5 s of surplus', maxDischarge: '§3.2 Flywheel: gives 90 kW, a tier-2 Floodlight Overcharge (+72 kW) alone',
+          spinDown: '§3.2 Flywheel: loses 2% of its charge a second (half gone in 35 s): a wave tool, not a bank',
+        },
+      }],
     }],
     why: {
       size: '§3 Jar; STYLE.md (1x1)', cost: '§3 Jar: 60', capacity: '§3 Jar: 600 kJ',
@@ -278,19 +293,25 @@ export const SELL_REFUND = { v: 0.5, why: '§3 selling: half back, so a placemen
 /** stat keys that count as the energy side of an upgrade (CLAUDE.md: every node has a wattage column) */
 export const ENERGY_KEYS: (keyof Stats)[] = [
   'output', 'idleDraw', 'firingDraw', 'constantDraw', 'workDraw', 'perEnemyDraw', 'chargeDraw', 'efficiency',
-  'lineLoss', 'capacity', 'maxCharge', 'maxDischarge',
+  'lineLoss', 'capacity', 'maxCharge', 'maxDischarge', 'spinDown',
 ];
+
+/** the upgrade that takes a building from `level` to `level + 1` on its branch (0 = the main line) */
+export function upgradeAt(def: BuildingDef, level: number, branch = 0): UpgradeDef | undefined {
+  const u = def.upgrades?.[level - 1];
+  return branch > 0 && u?.alts?.[branch - 1] ? u.alts[branch - 1] : u;
+}
 
 const specCache = new Map<string, BuildingDef>();
 
 /** a building's stats at a tier: the base def with every upgrade up to that tier applied */
-export function specOf(def: BuildingDef, level: number): BuildingDef {
+export function specOf(def: BuildingDef, level: number, branch = 0): BuildingDef {
   if (level <= 1 || !def.upgrades?.length) return def;
-  const key = `${def.id}:${level}`;
+  const key = `${def.id}:${level}:${branch}`;
   let s = specCache.get(key);
   if (!s) {
     s = { ...def };
-    for (let l = 2; l <= level; l++) Object.assign(s, def.upgrades[l - 2]?.stats ?? {});
+    for (let l = 2; l <= level; l++) Object.assign(s, upgradeAt(def, l - 1, branch)?.stats ?? {});
     specCache.set(key, s);
   }
   return s;

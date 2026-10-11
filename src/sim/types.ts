@@ -14,6 +14,8 @@ export interface Building {
   off: boolean;
   /** tier (1 or 2) */
   level: number;
+  /** which way it was upgraded where a tier has a choice: 0 the main line, 1.. the alternatives */
+  branch: number;
   /** network id this tick, -1 = off every network (dark) */
   net: number;
   /** kW asked of the grid this tick */
