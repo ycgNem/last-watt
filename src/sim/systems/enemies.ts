@@ -3,17 +3,29 @@
 import { DT, type Game } from '../Game';
 import { pointRectDist } from '../geom';
 import { SKILL_RULES } from '../../data/skills';
+import { branchLight, forkChoice } from '../fork';
 
 export function enemiesSystem(g: Game) {
   let removed = false;
   // Slow Fuse (§9): a Node is cut only once a Shade has been in reach this long without a break
   const fuse = g.skills.has('slowFuse') ? SKILL_RULES.slowFuse.v : 0;
   const pressed = new Set<number>();
+  const fork = g.map.fork;
+  let light: [number, number] | null = null;
   for (const e of g.enemies) {
-    const path = g.paths[e.route];
-    const len = path.length;
     const speed = e.def.speed * (1 - e.slow);
     e.dist += speed * DT;
+    // at a fork it chooses its branch by the light down each (the roads share the trunk, so it
+    // carries on from the same spot)
+    if (fork && !e.forked && e.dist >= fork.at) {
+      e.forked = true;
+      light ??= branchLight(g);
+      const r = forkChoice(g, e, light);
+      if (e.def.lean) g.emit({ t: 'fork', enemy: e.def.id, branch: r, turned: r !== e.route });
+      e.route = r;
+    }
+    const path = g.paths[e.route];
+    const len = path.length;
     const p = path.at(e.dist);
     if (p.dx !== 0) e.face = p.dx;
     e.x = p.x;

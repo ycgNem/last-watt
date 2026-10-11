@@ -13,7 +13,7 @@ import { ENEMIES } from './data/enemies';
 import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
 import { clearRun, loadRun, type RunSave } from './app/runsave';
 import { drawSettings } from './app/settings';
-import { replay } from './sim/commands';
+import { replay, run } from './sim/commands';
 import { Game } from './sim/Game';
 import { Bot } from './app/bot';
 import { C } from './data/palette';
@@ -328,7 +328,12 @@ const app = new App();
   if (typeof b === 'string') throw new Error(`${id} at ${x},${y}: ${b}`);
   return b;
 };
-(window as any).__next = nextWave;
+// the harness sets a wave number by hand, then calls the next one at once (as if in the breather)
+(window as any).__next = (g: Game) => {
+  if (g.wave > 0 && g.waveTimer <= 0) g.waveTimer = 1;
+  return nextWave(g);
+};
 (window as any).__overcharge = overcharge;
 (window as any).__upgrade = upgrade;
+(window as any).__run = run;
 void drawText;

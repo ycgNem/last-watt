@@ -51,6 +51,9 @@ export class Game {
   /** bumped every time the networks are rebuilt (the renderer caches wires on it) */
   netVersion = 0;
   grid: GridStats = { gen: 0, demand: 0, supply: 0, wasted: 0, stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, peak: 0 };
+  /** Dark Bait (§8): the branch whose towers are put out (-1: none), and the towers it put out */
+  bait = -1;
+  baitIds: number[] = [];
   /** whole tiers shed from the HUD (index 1..4) */
   tierOff = [false, false, false, false, false];
   /** waves started so far (0 = before wave 1) */

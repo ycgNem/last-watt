@@ -78,6 +78,8 @@ export interface Enemy {
   seen: boolean;
   /** a Siphon: the building whose line it drinks from this tick (0 or absent: none) */
   tap?: number;
+  /** past the fork: its branch is chosen (§11 The Fork) */
+  forked?: boolean;
 }
 
 /** a Starshell in the air */
@@ -156,6 +158,8 @@ export type GameEvent =
   | { t: 'overcharge'; id: number; x: number; y: number }
   | { t: 'pulse'; at: { x: number; y: number }[]; kj: number; hit: number }
   | { t: 'reroute'; id: number; x: number; y: number }
+  | { t: 'fork'; enemy: string; branch: number; turned: boolean }
+  | { t: 'bait'; branch: number; towers: number }
   | { t: 'shoot'; id: number; x: number; y: number }
   | { t: 'burst'; x: number; y: number; r: number; hit: number }
   | { t: 'research'; id: string }

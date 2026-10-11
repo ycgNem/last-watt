@@ -6,6 +6,7 @@ import { LAST_WAVE } from '../data/waves';
 import type { Game } from './Game';
 import { goEndless, startNextWave } from './systems/waves';
 import type { Building } from './types';
+import { baitable } from './fork';
 
 export function placeProblem(g: Game, id: BuildingId, x: number, y: number, free = false): string | null {
   const def = BUILDINGS[id];
@@ -198,6 +199,37 @@ export function reroute(g: Game, b: Building): string | null {
   b.fuse = 0;
   b.guard = RULES.rerouteTime.v;
   g.emit({ t: 'reroute', id: b.id, x: b.x + 0.5, y: b.y + 0.5 });
+  return null;
+}
+
+/** Dark Bait (§8): put out every tower that lights only this branch of the fork, so the light-drawn
+ *  turn to the other; the same branch again lights them back */
+export function baitProblem(g: Game, branch: number): string | null {
+  const f = g.map.fork;
+  if (!f) return 'No fork on this map';
+  if (g.bait === branch) return null;
+  if (baitable(g, branch).length === 0) return `No tower lights only the ${f.names[branch]}`;
+  return null;
+}
+export function bait(g: Game, branch: number): string | null {
+  const why = baitProblem(g, branch);
+  if (why) return why;
+  const was = g.bait;
+  for (const id of g.baitIds) {
+    const b = g.buildings.get(id);
+    if (b) b.off = false;
+  }
+  g.baitIds = [];
+  g.bait = -1;
+  if (was === branch) {
+    g.emit({ t: 'bait', branch: -1, towers: 0 });
+    return null;
+  }
+  const towers = baitable(g, branch);
+  for (const b of towers) b.off = true;
+  g.baitIds = towers.map((b) => b.id);
+  g.bait = branch;
+  g.emit({ t: 'bait', branch, towers: towers.length });
   return null;
 }
 

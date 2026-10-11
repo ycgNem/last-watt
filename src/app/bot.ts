@@ -195,9 +195,58 @@ export const TWO_ROADS_PLAN: BotPlan = {
   headroom: 1.8,
 };
 
+/** The Fork: the first Lamps where both branches come down as one, then more light on the Loop's
+ *  last leg than on the Cut, so the Moths take the long way round; Nodes 4.5 tiles back from every
+ *  road. The bot never baits. */
+export const FORK_PLAN: BotPlan = {
+  opening: [
+    { b: 'extractor', x: 16, y: 25 }, { b: 'burner', x: 16, y: 23 },
+    { b: 'lamp', x: 17, y: 17 }, { b: 'lamp', x: 20, y: 17 },
+  ],
+  wall: [
+    { b: 'node', x: 24, y: 20 },
+    { b: 'lamp', x: 23, y: 16 },
+    { b: 'lamp', x: 25, y: 16 },
+    { b: 'node', x: 14, y: 20 },
+    { b: 'lamp', x: 14, y: 16 },
+    { b: 'floodlight', x: 17, y: 19, wave: 3 },
+    { b: 'brazier', x: 20, y: 19, wave: 4 },
+    { b: 'lamp', x: 27, y: 16 },
+    { b: 'starshell', x: 22, y: 18, wave: 5 },
+    { b: 'searchlight', x: 25, y: 18, wave: 6 },
+    { b: 'node', x: 28, y: 20 },
+    { b: 'floodlight', x: 29, y: 16 },
+    { b: 'lamp', x: 12, y: 16 },
+    { b: 'beacon', x: 15, y: 18 },
+    { b: 'starshell', x: 27, y: 18, wave: 7 },
+    { b: 'floodlight', x: 10, y: 16 },
+    { b: 'starshell', x: 12, y: 18 },
+    { b: 'searchlight', x: 29, y: 18 },
+  ],
+  power: [
+    [{ b: 'extractor', x: 15, y: 25 }, { b: 'burner', x: 13, y: 26 }],
+    [{ b: 'extractor', x: 14, y: 24 }, { b: 'burner', x: 12, y: 24 }],
+    [{ b: 'extractor', x: 15, y: 24 }],
+    [{ b: 'extractor', x: 14, y: 25 }],
+    [{ b: 'vane', x: 23, y: 26 }],
+    [{ b: 'vane', x: 11, y: 21 }],
+    [{ b: 'vane', x: 26, y: 23 }],
+    [{ b: 'vane', x: 30, y: 22 }],
+  ],
+  extras: [
+    { b: 'jar', x: 22, y: 22, wave: 3 },
+    { b: 'lab', x: 22, y: 24, wave: 3 },
+    { b: 'jar', x: 22, y: 23, wave: 5 },
+    { b: 'lab', x: 18, y: 26, wave: 6 },
+  ],
+  research: ['brazier', 'starshell', 'lamp2', 'bellows', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  headroom: 1.8,
+};
+
 /** the bot's plan for a map */
 export function planFor(mapId: string): BotPlan {
-  return mapId === 'switchback' ? SWITCHBACK_PLAN : mapId === 'tworoads' ? TWO_ROADS_PLAN : BOT_PLAN;
+  return mapId === 'switchback' ? SWITCHBACK_PLAN : mapId === 'tworoads' ? TWO_ROADS_PLAN : mapId === 'fork' ? FORK_PLAN : BOT_PLAN;
 }
 
 export class Bot {

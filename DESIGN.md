@@ -641,9 +641,14 @@ from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pa
   not a whole wave of them. It is §8's "temporarily bridge a gap" made simple: the gap is the
   cut Node itself. Research 600 kJ, cheaper than Pulse: it saves a branch, not a wave.
 
-Milestone 6, still to build: **Dark Bait** (brown out a sector on purpose so light-seeking
-enemies turn toward a lit kill zone). It needs enemies that choose between roads, which no map
-has yet.
+- **Dark Bait** (B, or a click on a branch of the fork sign; Milestone 6, on The Fork, §11): put
+  out every tower whose reach touches only that branch, so the light-drawn take the other way;
+  the same again lights them. It costs nothing and *saves* the kW those towers drew: its price is
+  the light itself, since those towers don't fire while they are out, and the Veils (who keep to
+  the dark) now take the baited branch. It only moves towers the player hasn't shed, and gives
+  back only those. The play it makes: bait the Cut as a Flit clump reaches the fork so it goes
+  round the Loop past the Floodlights, light it back for the Veils behind; or bait the Loop to pull
+  a Moth pack onto a Cut that is Overcharged and waiting. No research: the map is the unlock.
 
 ## 9. The gaffer's skill tree (embers, between runs)
 
@@ -690,13 +695,14 @@ Milestone 3 or later.
 
 Every map is 40 × 30 and plays the same twelve waves (§5); what changes is the road, the
 deposits, the wind and the **pace** (every wave's spacing × pace). A map opens when the player
-has reached its wave on any map: the station always, the Switchback at wave 4, Two Roads at
-wave 8 (lenient on purpose: the owner wants to see the content).
+has reached its wave on any map: the station always, the Switchback at wave 4, The Fork at
+wave 6, Two Roads at wave 8 (lenient on purpose: the owner wants to see the content).
 
 | Map | Roads | Deposits | Wind | Pace | Its decision |
 |---|---|---|---|---|---|
 | **The Last Station** | one, 41 tiles, two bends facing the Hearth | two near, one far | 0.55 | 1.0 | the slice: bends vs straights (§6) |
 | **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | **0.9** | the strip between the legs is rich ground, and every Node in it is within a Shade's reach; only a Floodlight, a Searchlight or a Starshell placed in it reaches both legs (a Lamp at the middle sits 3.5 from each: 2√(3.5² − 3.5²) = 0 tiles of beam; the first version of this row said a Lamp reaches both, and was wrong). A windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW). Its late waves are heavier (two more Palls in wave 8, waves 10–12 half again with more Palls): the long road kills by exposure, so without them no verb mattered |
+| **The Fork** | one road in from the west that **forks** after 8.5 tiles: the **Loop** (54 tiles round the north) or the **Cut** (12 tiles straight on); they meet above the Hearth and come down 6.4 tiles together (69 or 27 in all) | one safe south-west, one rich *inside* the Loop (a Snuffer on its top leg reaches it), one far east | 0.55 | 1.0 | **which way the enemies go is the player's light.** At the fork the light-drawn (Moths, Flits, Siphons) take the branch with more lit towers on it, the Veil the one with fewer; everything else keeps the road the spawner gave it. Light the Loop's last leg and the Moths walk 54 tiles past it; light the Cut and they take 12. Dark Bait (§8) turns them mid-wave |
 | **Two Roads** | two, 34 and 35 tiles, from the west and the east; they **meet at a junction** 7.4 tiles above the Hearth and come down as one | one safe south, one north of the junction (4.5 tiles from both roads), one far west | 0.55 | **1.4** | cover each road on its way in, or wait at the junction and on the shared stretch, where every enemy passes: the stretch is on the Hearth's own power, the junction hangs off Nodes a Shade can reach. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road |
 
 Why those paces. **Exposure, not inflow, sets the pace on a long road.** The Switchback was first
@@ -730,6 +736,22 @@ one stretch); at **1.4** the human profile wins with 10 and no verbs loses. Enem
 in (6 on the station, 4 on the Switchback, whose first leg is 6.5 long). The Switchback moved to
 **0.9** and heavier late waves (above); before them its plan won 16 with 1,000 money left whether
 it used a verb or not.
+
+**The Fork: the lean rule and its numbers.** A branch's light is the number of lit towers (on a
+line, not shed, at or above the starved line, 0.6) whose reach touches that branch's own stretch,
+fork to rejoin; a tower over both counts for both, so towers at the rejoin never decide anything.
+A count, not a sum of kW, so it is readable from the map and does not swing with firing draw
+(an idle Lamp asks 1 kW, a firing one 12: a sum would send the Moths wherever the last pack was
+being shot). The light-drawn are the three things whose blurbs already said they go to light or
+lines (the Moth, its swarm the Flit, and the Siphon); the Veil, the thing that hides in dim
+light, keeps to the dark; the Shade, the Snuffer and the Pall walk on, so the player cannot steer
+the heavy hitters with a lamp. Measured with `design/forkcheck.mts` (the bot plan lights the
+Loop's last leg): 203 of 217 Moths, 119 of 124 Flits and all 10 Siphons take the Loop; 25 of 26
+Veils take the Cut. The same plan with its Loop towers left out (the Cut the brighter way) ends
+with 9 lights where the plan ends with 15: the 42 tiles of extra walk are worth 6 lights. Its bar
+(§6, `design/verbs.mts`): the plan wins with 15, the human profile with 8, no verbs loses wave 8,
+two extra Jars end on 15. The bot never baits. The Nodes in the plan sit 4.5 tiles back from every
+road, so no Shade cuts them: on this map the Shade's threat is the walk, not the line.
 
 Per-kind alternation (not per-spawn): with one counter, a wave whose sequence puts its Palls on
 odd indices sends both down the same road, and the player learns a sequence quirk rather than

@@ -289,7 +289,7 @@ const STATES = {
   tworoads: async (page) => page.evaluate(() => {
     const a = window.__app;
     a.profile.best.wave = 12;
-    a.pickMap(window.__maps[2]);
+    a.pickMap(window.__maps.find((m) => m.id === 'tworoads'));
     const p = a.newGame();
     const g = p.game;
     window.__place(g, 'extractor', 18, 25); window.__place(g, 'burner', 16, 25).fuel = 5;
@@ -302,6 +302,28 @@ const STATES = {
     p.msgs = [];
   }),
 };
+
+function forkGame(bait) {
+  {
+    const a = window.__app;
+    a.profile.best.wave = 12;
+    a.pickMap(window.__maps.find((m) => m.id === 'fork'));
+    const p = a.newGame();
+    const g = p.game;
+    window.__place(g, 'extractor', 16, 25); window.__place(g, 'burner', 16, 23).fuel = 5;
+    window.__place(g, 'lamp', 17, 17); window.__place(g, 'lamp', 20, 17);
+    window.__place(g, 'node', 24, 20); window.__place(g, 'node', 14, 20);
+    window.__place(g, 'lamp', 23, 16); window.__place(g, 'lamp', 25, 16); window.__place(g, 'lamp', 14, 16);
+    g.wave = 2;
+    window.__next(g);
+    if (bait) window.__run(g, { k: 'bait', branch: 0 });
+    for (let i = 0; i < 60 * 12; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+    a.r.cam.x = 15 * 16; a.r.cam.y = 13 * 16;
+  }
+}
+STATES.fork = async (page) => page.evaluate(forkGame, false);
+STATES.forkbait = async (page) => page.evaluate(forkGame, true);
 
 function audit(recs, uw, uh) {
   const issues = [];

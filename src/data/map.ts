@@ -35,6 +35,9 @@ export interface MapDef {
   waves?: Record<number, string>;
   /** a short name for each road, when there are several (the NEXT strip says what takes which) */
   roadNames?: string[];
+  /** a fork (§11 The Fork): roads 0 and 1 run together for `at` tiles, split, and meet again at
+   *  `until[i]` along each; enemies choose their branch at the fork by its light (sim/fork.ts) */
+  fork?: { at: number; until: [number, number]; names: [string, string] };
   why: Record<string, string>;
 }
 
@@ -161,7 +164,53 @@ export const TWO_ROADS: MapDef = {
   },
 };
 
-export const MAPS: MapDef[] = [SLICE_MAP, SWITCHBACK, TWO_ROADS];
+// The Fork: one road in from the west splits at a fork. The Loop runs a long way round the north
+// and comes back along the same line; the Cut goes straight on. They meet above the Hearth and
+// come down together.
+const FORK_TRUNK: [number, number][] = [[-1, 15.5], [7.5, 15.5]];
+const FORK_LOOP: [number, number][] = [[7.5, 6.5], [31.5, 6.5], [31.5, 15.5], [19.5, 15.5]];
+const FORK_CUT: [number, number][] = [[19.5, 15.5]];
+const FORK_DOWN: [number, number][] = [[19.5, 21.9]];
+
+export const THE_FORK: MapDef = {
+  id: 'fork',
+  name: 'The Fork',
+  blurb: 'The road splits: a long Loop round the north, or the short Cut. Moths take the branch with more light on it, Veils the darker. B darkens a branch to turn them.',
+  w: 40,
+  h: 30,
+  hearth: { x: 18, y: 22 },
+  paths: [
+    [...FORK_TRUNK, ...FORK_LOOP, ...FORK_DOWN],
+    [...FORK_TRUNK, ...FORK_CUT, ...FORK_DOWN],
+  ],
+  fork: { at: 8.5, until: [62.5, 20.5], names: ['LOOP', 'CUT'] },
+  deposits: [
+    // south-west of the Hearth, safe
+    [[14, 24], [15, 24], [14, 25], [15, 25], [16, 25]],
+    // inside the Loop: rich, and a Snuffer on the Loop can reach it
+    [[18, 9], [19, 9], [20, 9], [18, 10], [19, 10], [20, 10]],
+    // far east, past the Loop's last leg
+    [[35, 22], [36, 22], [35, 23], [36, 23]],
+  ],
+  focus: [17, 16],
+  firstLamps: 'Two Lamps (1) by the Cut above the Hearth (a Node, 7, carries power). Moths take the branch with more lit towers',
+  jarSpot: [22, 24],
+  windMean: 0.55,
+  pace: 1,
+  unlockWave: 6,
+  spawnAt: 3,
+  why: {
+    w: '§11: 40 × 30 tiles', h: '§11: 40 × 30 tiles',
+    hearth: '§11 The Fork: the Hearth under the shared last stretch',
+    paths: '§11 The Fork: a trunk of 8.5 tiles, the Loop 54 and the Cut 12, then 6.4 shared down to the Hearth (69 or 27 tiles in all)',
+    fork: '§11 The Fork: the roads share the trunk (8.5) and split; the Loop rejoins at 62.5, the Cut at 20.5',
+    deposits: '§11 The Fork: one safe south-west, one rich inside the Loop, one far east',
+    windMean: '§3.2 wind: 0.55', pace: '§11 The Fork: the table\'s spacing (the bot sweep in §11)',
+    unlockWave: '§11: reach wave 6 anywhere', spawnAt: '§11 The Fork: 3 tiles in, 5.5 before the fork',
+  },
+};
+
+export const MAPS: MapDef[] = [SLICE_MAP, SWITCHBACK, THE_FORK, TWO_ROADS];
 
 export function mapById(id: string): MapDef {
   return MAPS.find((m) => m.id === id) ?? SLICE_MAP;

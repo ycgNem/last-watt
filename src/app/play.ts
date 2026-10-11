@@ -26,6 +26,7 @@ import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
 import { lineReports } from '../sim/lines';
+import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
 import { embersFor } from '../data/skills';
@@ -280,6 +281,19 @@ export class Play {
         r.fx.push({ kind: 'ring', x: e.x, y: e.y, t: 0, life: 0.5, color: C.cyan });
         a.sfx('upgrade');
         break;
+      case 'fork': {
+        const f = g.map.fork!;
+        if (e.enemy === 'veil') this.sayOnce('forkveil', 60, `A Veil took the ${f.names[e.branch]}: Veils keep to the darker way. Light it, or bait the other way dark as it comes.`, C.violet, 7);
+        else this.sayOnce('fork', 60, `The Moths took the ${f.names[e.branch]}: it has more lit towers on it. The fork sign says who goes where; B (or a click on a branch) puts its towers out so they turn.`, C.amber, 9);
+        break;
+      }
+      case 'bait': {
+        const f = g.map.fork!;
+        if (e.branch < 0) this.say('Dark Bait lifted: the towers are lit again.', C.amber, 2);
+        else this.say(`Dark Bait: ${e.towers} tower${e.towers === 1 ? '' : 's'} on the ${f.names[e.branch]} put out. The light-drawn turn to the ${f.names[1 - e.branch]}.`, C.violet, 3);
+        a.sfx(e.branch < 0 ? 'recovered' : 'dry');
+        break;
+      }
       case 'knock':
         r.burst(e.x, e.y, 14, C.ice, 2, 0.5, 'spark');
         a.sfx('knock');
@@ -465,6 +479,12 @@ export class Play {
     if (k('KeyE') && target) this.act(this.cmd({ k: 'oc', b: target.id }));
     if (k('KeyQ') && g.research.done.has('pulse')) this.act(this.cmd({ k: 'pulse' }));
     if (k('KeyG') && target?.def.role === 'node') this.act(this.cmd({ k: 'reroute', b: target.id }));
+    // Dark Bait (§8): B puts out the branch the Moths take, so they turn; B again lights it
+    if (k('KeyB') && g.map.fork) {
+      const branch = g.bait >= 0 ? g.bait : mothsGo(g);
+      if (branch < 0) this.act('The fork is even: everything keeps its road. Light one way more than the other first.');
+      else this.act(this.cmd({ k: 'bait', branch }));
+    }
     // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
     if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
     if (k('KeyU') && target) this.act(this.cmd({ k: 'up', b: target.id }), 'place');
@@ -714,6 +734,7 @@ export class Play {
     const ui = this.ui, g = this.game;
     this.drawTop(ui, g);
     this.drawNextWave(ui, g);
+    this.drawFork(ui, g);
     this.drawBuildBar(ui, g);
     if (this.selected) this.drawSelected(ui, g, this.selected);
     else if (this.hoverId && !this.buildId && !g.over && !this.help) this.hoverTip(ui, g, g.buildings.get(this.hoverId)!);
@@ -753,6 +774,39 @@ export class Play {
     }
     if (g.over) this.drawEnd(ui, g);
     ui.end();
+  }
+
+  /** the fork's sign (§11 The Fork): lit towers down each branch and who takes it; a click on a
+   *  branch is Dark Bait on it (§8), and B baits the one the Moths take */
+  private drawFork(ui: UI, g: Game) {
+    const f = g.map.fork;
+    if (!f || g.over) return;
+    const s = ui.scale;
+    const at = g.paths[0].at(f.at);
+    const ax = this.r.sx(at.x * TILE) / s, ay = this.r.sy(at.y * TILE) / s;
+    if (ax < -40 || ay < 0 || ax > ui.w + 120 || ay > ui.h) return;
+    ui.layer = 1;
+    const light = branchLight(g), go = mothsGo(g, light);
+    const w = 116, h = 35;
+    // below and left of the fork, kept on screen
+    const x = Math.round(Math.max(2, Math.min(ui.w - w - 2, ax - w - 6)));
+    const y = Math.round(Math.max(HUD_H + 2, Math.min(ui.h - BAR_H - TAB_H - h - 2, ay + 12)));
+    ui.panel(x, y, w, h, { alpha: 0.9, border: g.bait >= 0 ? C.violet : C.steel });
+    ui.text('THE FORK', x + 4, y + 3, C.ash);
+    ui.textR('B DARK BAIT', x + w - 4, y + 3, C.steel);
+    for (const i of [0, 1]) {
+      const baited = g.bait === i;
+      const who = baited ? 'BAITED' : go < 0 ? 'EVEN' : go === i ? 'MOTHS' : 'VEILS';
+      const color = baited ? C.bone : go < 0 ? C.ash : go === i ? C.amber : C.violet;
+      const n = baitable(g, i).length;
+      const tip = [
+        `${f.names[i]}: ${light[i]} lit tower${light[i] === 1 ? '' : 's'} reach it`,
+        go < 0 ? 'Both ways are as bright: everything keeps the road it came on.' : go === i ? 'Moths, Flits and Siphons take the brighter way: this one.' : 'Veils keep to the darker way: this one. Moths take the other.',
+        baited ? `Dark Bait: ${g.baitIds.length} tower${g.baitIds.length === 1 ? '' : 's'} put out. Click (or B) to light them again.`
+          : n ? `Click for Dark Bait: put out the ${n} tower${n === 1 ? '' : 's'} lighting only the ${f.names[i]}, so the light-drawn turn the other way.` : `No tower lights only the ${f.names[i]}: nothing to put out.`,
+      ];
+      if (ui.button(`${f.names[i]} ${light[i]} LIT  ${who}`, x + 3, y + 13 + i * 11, w - 6, 10, { color, active: baited, tip })) this.act(this.cmd({ k: 'bait', branch: i }));
+    }
   }
 
   private drawTop(ui: UI, g: Game) {
@@ -1430,6 +1484,7 @@ export class Play {
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],
       ['G', 'Reroute: a cut Node back at once (100 kJ)'],
+      ['B', 'Dark Bait (The Fork): turn the Moths the other way'],
       ['U / Y', 'upgrade (Y: the other way, at a choice)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],

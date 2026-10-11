@@ -32,12 +32,15 @@ export interface EnemyDef {
   shadow?: boolean;
   /** fraction of a single (narrow) beam's damage that lands; the rest is drunk */
   narrowBeam?: number;
+  /** where a road forks (§11 The Fork): 'light' takes the branch with more lit towers, 'dark'
+   *  the one with fewer; without a lean it keeps the road the spawner gave it */
+  lean?: 'light' | 'dark';
   why: Record<string, string>;
 }
 
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
   moth: {
-    id: 'moth', name: 'Moth', code: 'M', blurb: 'Drawn to light. Walks the path.',
+    id: 'moth', name: 'Moth', code: 'M', blurb: 'Drawn to light. Walks the path; where it forks, takes the brighter way.', lean: 'light',
     answer: 'Lamps at the inside of the bends.',
     health: 30, speed: 1.5, bounty: 5, leak: 1,
     why: {
@@ -45,7 +48,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   flit: {
-    id: 'flit', name: 'Flit', code: 'F', blurb: 'Tiny and fast; comes in clumps of eight.',
+    id: 'flit', name: 'Flit', code: 'F', blurb: 'Tiny and fast; comes in clumps of eight. Drawn to light like a Moth.', lean: 'light',
     answer: 'A Floodlight looking down a straight, a Starshell burst, or Lamps behind a Beacon. A Brazier needs a Beacon or tier 2.',
     health: 14, speed: 2.6, bounty: 2, leak: 1, packGap: 0.3,
     why: {
@@ -63,7 +66,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   veil: {
-    id: 'veil', name: 'Veil', code: 'V', blurb: 'Hidden in dim light: only a tower above 60% power can find it.',
+    id: 'veil', name: 'Veil', code: 'V', blurb: 'Hidden in dim light: only a tower above 60% power can find it. Where a road forks, it keeps to the dark.', lean: 'dark',
     answer: 'Keep the wall out of brownout. Overcharged towers and Braziers always find it.',
     health: 70, speed: 1.3, bounty: 11, leak: 2, veiled: true,
     why: {
@@ -80,7 +83,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   siphon: {
-    id: 'siphon', name: 'Siphon', code: 'D', blurb: 'Taps any powered building within 2 tiles as it walks and drinks 12 kW from that line, ahead of every tower.',
+    id: 'siphon', name: 'Siphon', code: 'D', blurb: 'Taps any powered building within 2 tiles as it walks and drinks 12 kW from that line, ahead of every tower.', lean: 'light',
     answer: 'Kill it where it drinks: Overcharge it, or burn it in a Brazier. Spare kW or a charged Jar on that line shrugs it off; a tight line browns out.',
     health: 120, speed: 0.9, bounty: 18, leak: 2, drainRadius: 2, drainKw: 12,
     why: {
