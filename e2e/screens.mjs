@@ -192,6 +192,22 @@ const STATES = {
     p.paused = true;
     p.msgs = [];
   }),
+  siphon: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+    window.__place(g, 'node', 21, 10);
+    window.__place(g, 'lamp', 24, 7); window.__place(g, 'lamp', 24, 13);
+    const E = window.__enemies, path = g.paths[0];
+    for (const [k, d] of [['siphon', 30.5], ['moth', 26], ['siphon', 36]]) {
+      const q = path.at(d);
+      g.enemies.push({ id: g.nextId++, def: E[k], hp: E[k].health * 0.7, dist: d, x: q.x, y: q.y, slow: 0, face: 1, hit: 0, wave: 6, seen: false, route: 0 });
+    }
+    g.wave = 6;
+    for (let i = 0; i < 4; i++) p.tick();
+    p.paused = true;
+    p.msgs = [];
+  }),
   reroute: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;

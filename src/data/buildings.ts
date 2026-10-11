@@ -155,7 +155,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   },
   jar: {
     id: 'jar', name: 'Jar', role: 'storage', group: 'power', size: 1, cost: 60,
-    blurb: 'Stores wasted power and gives it back when demand beats supply. Pays for Overcharge.',
+    blurb: 'Stores spare power and gives it back when your towers ask more than you make. Pays for Pulse and Reroute; never for an Overcharge.',
     capacity: 600, maxCharge: 15, maxDischarge: 30,
     upgrades: [{
       name: 'Bank', cost: 75, research: 'bank', blurb: 'Bank: 1500 kJ, charges at 25 kW, gives back 45 kW. Deep and slow: carries a long wave.',

@@ -67,6 +67,11 @@ export function enemiesSystem(g: Game) {
         g.emit({ t: 'tap', id: best, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });
       }
       e.tap = best;
+      // it turns to drink: its tube toward the line
+      if (best) {
+        const b = g.buildings.get(best)!;
+        e.face = b.x + b.def.size / 2 >= e.x ? 1 : -1;
+      }
     }
     if (e.dist >= len) {
       e.hp = -Infinity;

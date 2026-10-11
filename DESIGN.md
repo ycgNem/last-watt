@@ -147,7 +147,7 @@ only: 18 kW firing, 0.60 eff → 10.8 kJ/s, cost 25. Branches (wide-dim vs narro
 Milestone 4 and are expressed as different (draw, efficiency, range, targets) tuples.
 
 Tier 2 for every tower (second session), all from the rule: Floodlight 36 kW at 0.72 → 25.9 kJ/s
-(100); Searchlight 45 kW at 0.72 → 32.4 (88); Brazier 12 kW a body at 0.6 → 7.2 each (75);
+(100); Searchlight 45 kW at 0.72 → 32.4 (88); Brazier 12 kW a body at 0.78 → 9.4 each (75; 0.65 and 0.78 since the second review, §4.1);
 Starshell charges at 15 kW at 0.96 (113). The Beacon's "damage" is its slow: an enemy in range
 spends 1 / (1 − s) as long there, 1.67× at s = 0.4; tier 2 multiplies that by 1.5 → 2.5× → **s =
 0.6** at 6 kW (63). Tier 3, with its branches, is §4.2.

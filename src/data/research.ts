@@ -32,7 +32,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   starshell: {
     id: 'starshell', name: 'Starshell', branch: 'light', cost: 1200,
-    blurb: 'Stores a 60 kJ shell and lobs it at crowds 2–7 tiles away.',
+    blurb: 'Charges three 70 kJ shells on spare power and lobs them at crowds 2–7 tiles away.',
     why: { cost: '§7 unlocks: 1200 kJ (the strongest crowd answer costs the most)' },
   },
   lamp3: {
@@ -62,7 +62,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   brazier2: {
     id: 'brazier2', name: 'Brazier tier 2', branch: 'light', cost: 900, requires: 'brazier',
-    blurb: 'Braziers can be upgraded: 12 kW per body at 0.6 → 7.2 kJ/s each.',
+    blurb: 'Braziers can be upgraded: 12 kW per body at 0.78 → 9.4 kJ/s each.',
     why: { cost: '§7 tier 2: 900 kJ' },
   },
   star2: {

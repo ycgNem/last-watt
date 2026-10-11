@@ -221,6 +221,7 @@ export function startResearch(g: Game, id: string): string | null {
 export function nextWave(g: Game): string | null {
   if (g.over) return 'The run is over';
   if (!g.endless && g.wave >= LAST_WAVE) return 'That was the last wave';
+  if (g.wave > 0 && g.waveTimer <= 0) return 'The next wave comes 20 s after this one is cleared (F speeds the game up)';
   startNextWave(g);
   return null;
 }

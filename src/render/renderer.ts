@@ -674,7 +674,8 @@ export class Renderer {
       if (!e.tap) continue;
       const b = g.buildings.get(e.tap);
       if (!b) continue;
-      const x0 = e.x * TILE, y0 = e.y * TILE - 4;
+      // from the tip of its drinking tube (frame pixel (22, 10) of 24 × 24, facing right)
+      const x0 = e.x * TILE + (e.face < 0 ? -11 : 10), y0 = e.y * TILE - 10;
       const x1 = (b.x + b.def.size / 2) * TILE, y1 = (b.y + b.def.size / 2) * TILE;
       const len = Math.hypot(x1 - x0, y1 - y0);
       const steps = Math.max(2, Math.floor(len / 2));

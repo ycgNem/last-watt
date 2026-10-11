@@ -12,8 +12,9 @@ import type { Input } from '../engine/input';
 import { TILE, type Renderer } from '../render/renderer';
 import { drawFrame } from '../render/art';
 import { overchargeProblem, pulseProblem, placeProblem, rerouteProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
-import { Game } from '../sim/Game';
+import { DT, Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
+import { coneCatchers } from '../sim/systems/towers';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
 import { wavePay } from '../sim/systems/waves';
 import type { Building, GameEvent } from '../sim/types';
@@ -129,6 +130,8 @@ export class Play {
   tick() {
     if (this.paused || this.game.over || this.holding || this.board || this.settingsOpen) return;
     if (this.bot && this.game.tick % 6 === 0) this.bot.act(this.game);
+    // a tutorial build step holds the breather, so the player isn't racing the next wave
+    if (this.tutorial?.step?.spot && this.game.waveTimer > 0) this.game.waveTimer += DT;
     this.game.step();
   }
 
@@ -222,7 +225,7 @@ export class Play {
         r.burst(e.x, e.y, 12, C.ember, 1.5, 0.6, 'spark');
         r.flash.red = 0.5;
         a.sfx('leak');
-        if (g.lights <= 5 && g.lights > 0) this.sayOnce('lowlights', 30, `Only ${g.lights} lights left. The Hearth makes ${g.hearthOutput().toFixed(1)} kW now.`, C.ember);
+        if (g.lights <= 5 && g.lights > 0) this.sayOnce('lowlights', 30, `Only ${g.lights} light${g.lights === 1 ? '' : 's'} left. The Hearth makes ${g.hearthOutput().toFixed(1)} kW now.`, C.ember);
         else this.sayOnce('leakdim', 90, 'Every light the Hearth loses dims it: 0.4 kW less supply each.', C.ember, 5);
         break;
       }
@@ -248,6 +251,9 @@ export class Play {
         a.sfx('newenemy');
         break;
       case 'brownout': {
+        // name an Overcharge when it is the cause (the third review)
+        const oc = [...g.buildings.values()].filter((b) => b.overcharge > 0);
+        if (oc.length) this.sayOnce('ocbrownout', 20, `BROWNOUT from your Overcharge: ${oc.length > 1 ? `${oc.length} towers ask` : `the ${oc[0].def.name} asks`} ${Math.round(oc.reduce((a, b) => a + b.demand, 0))} kW ahead of everything, so the rest of the wall gets what is left for 4 s. Jars don't pay for an Overcharge.`, C.violet, 8);
         this.sayOnce('brownout', 25, 'BROWNOUT: your towers ask for more watts than you make, so every one of them fires slower (the Wall bar, top). More Burners, a charged Jar, or shed something. V shows each power line and what it lacks.', C.violet, 8);
         a.sfx('brownout');
         break;
@@ -291,7 +297,7 @@ export class Play {
           r.flashes.push({ x: p.x, y: p.y, r: RULES.pulseRadius.v + 1, t: 0, life: 0.7 });
           r.fx.push({ kind: 'ring', x: p.x, y: p.y, t: 0, life: 0.5, color: C.bone });
         }
-        r.flash.white = 0.6;
+        r.flash.white = 0.3;
         a.sfx('pulse');
         this.say(`PULSE: ${Math.round(e.kj)} kJ out of the Jars through ${e.at.length} towers, ${e.hit} hits.`, C.bone, 4);
         break;
@@ -357,6 +363,11 @@ export class Play {
       const starved = feeders.filter((x) => x.sat < 0.3 && !x.off && x.stock === 0);
       if (feeders.length && starved.length === feeders.length) {
         const low = starved.some((x) => x.tier > 1 || g.tierOff[x.tier]);
+        const oc = bs.filter((x) => x.overcharge > 0);
+        if (oc.length) {
+          this.sayOnce('ocspiral', 25, `An Overcharge goes ahead of your Extractors: the ${oc[0].def.name}'s ${Math.round(oc[0].demand)} kW starved them, and the Burners are running out of rock. Fewer Overcharges at once, or more Burners.`, C.violet, 9);
+          break;
+        }
         this.sayOnce('spiral', 25, low
           ? 'Your Extractors are starved and the Burners are running out. Their tier is below the towers: select one and press T (or click tier 1).'
           : 'Your Extractors are starved even on the first tier: there is not enough power for anything. Shed some towers (X) so the Burners can refuel.', C.violet, 9);
@@ -607,7 +618,12 @@ export class Play {
     if (d.kind === 'beam' && t.def.narrowBeam) {
       catchK = t.def.narrowBeam;
       note = ` (a ${t.def.name} drinks ${Math.round((1 - catchK) * 100)}% of a narrow beam)`;
-    } else if (d.kind === 'cone' && !t.def.shadow) catchK = 0.4;
+    } else if (d.kind === 'cone' && !t.def.shadow) {
+      // the cone's catch: each of n catches min(0.4, 1/n), so the whole cone lands that × n
+      const n = coneCatchers(g, b, t).length;
+      catchK = Math.min(d.catch ?? 0.4, 1 / Math.max(1, n)) * n;
+      if (n > 1) return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ across the ${n} in its cone, at full service.`;
+    }
     return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ on the ${t.def.name}${note}, at full service.`;
   }
 
@@ -663,7 +679,7 @@ export class Play {
     if (this.tutorial?.step) this.drawTutorial(ui, g);
     else if (g.wave === 0 && !this.bot) this.drawFirstSteps(ui, g);
     this.drawIntel(ui);
-    this.drawMessages(ui);
+    if (!g.over) this.drawMessages(ui);
     if (this.board) this.drawBoard(ui, g);
     if (this.help) this.drawHelp(ui);
     if (this.settingsOpen && this.profile) {
@@ -975,7 +991,7 @@ export class Play {
         } else {
           out.push({ text: `Asks ${d.firingDraw} kW firing, ${d.idleDraw} kW idle.` });
           const full = (d.firingDraw ?? 0) * (d.efficiency ?? 0);
-          out.push({ text: b.target >= 0 ? `Landing ${b.dps.toFixed(1)} kJ/s now (${full.toFixed(1)} at full power${d.kind === 'cone' ? '; a lone enemy in the cone catches 40%' : ''}).` : `Would fire ${(full * p).toFixed(1)} of ${full.toFixed(1)} kJ/s.`, color: b.sat < RULES.starvedBelow.v && !oc ? C.violet : C.amber });
+          out.push({ text: b.target >= 0 ? `Landing ${b.dps.toFixed(1)} kJ/s now (${full.toFixed(1)} at full power${d.kind === 'cone' ? '; a lone enemy in the cone catches 40%' : ''}).` : `Would fire ${(full * p).toFixed(1)} of ${(full * (oc ? RULES.overchargeMult.v : 1)).toFixed(1)} kJ/s.`, color: b.sat < RULES.starvedBelow.v && !oc ? C.violet : C.amber });
           if (d.kind === 'cone') out.push({ text: 'Best where enemies line up in the cone: the outside of a bend, or looking down a straight.', color: C.ash });
           out.push({ text: `Range ${d.range}. ${d.targeting === 'heaviest' ? 'Locks onto the heaviest enemy in reach.' : 'Targets the enemy nearest the Hearth.'}` });
         }
@@ -1012,7 +1028,7 @@ export class Play {
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });
         out.push({ text: b.flow > 0.1 ? `Charging ${b.flow.toFixed(0)} kW` : b.flow < -0.1 ? `Discharging ${(-b.flow).toFixed(0)} kW` : 'Idle', color: C.amber });
         if (d.spinDown) out.push({ text: `Spins down ${(b.charge * d.spinDown).toFixed(1)} kW (${Math.round(d.spinDown * 100)}% of its charge a second): spend it in the wave.`, color: C.ice });
-        out.push({ text: `In ≤ ${d.maxCharge} kW, out ≤ ${d.maxDischarge} kW. An Overcharge drinks from the Jars on its network first.` });
+        out.push({ text: `In ≤ ${d.maxCharge} kW, out ≤ ${d.maxDischarge} kW. It carries the wall through a deficit and pays for Pulse and Reroute; it never pays for an Overcharge.` });
         break;
       case 'lab': {
         const id = g.research.active;
@@ -1096,7 +1112,7 @@ export class Play {
       const why = overchargeProblem(g, b);
       const ask = this.overchargeAsk(b);
       const label = `OVERCHARGE (E) ${ask} kW`;
-      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else: spare power first, then the Jars, then whatever the rest of the wall was getting. Big Overcharges with no Jars behind them starve the wall.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
+      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else, Extractors included: spare power first, then whatever the rest of the wall was getting. Jars don't pay for it, so with nothing spare the other towers dim for those ${RULES.overchargeTime.v} s.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
       y += 16;
     }
     if (up && up.alts?.length && b.branch === 0) {
@@ -1187,14 +1203,26 @@ export class Play {
     return { x, y };
   }
 
+  /** a tower whose reach covers a stretch of road (at least a tile of beam on it) */
+  private reachesRoad(b: Building): boolean {
+    const g = this.game, r = (g.spec(b).range ?? 0) - 0.5;
+    const cx = b.x + b.def.size / 2, cy = b.y + b.def.size / 2;
+    for (const p of g.paths)
+      for (let d = 0; d <= p.length; d += 0.5) {
+        const q = p.at(d);
+        if (Math.hypot(q.x - cx, q.y - cy) <= r) return true;
+      }
+    return false;
+  }
+
   private drawFirstSteps(ui: UI, g: Game) {
     ui.layer = 2;
     const bs = [...g.buildings.values()];
-    const lamps = bs.filter((b) => b.def.id === 'lamp').length;
+    const lamps = bs.filter((b) => b.def.id === 'lamp' && this.reachesRoad(b)).length;
     const ex = bs.some((b) => b.def.role === 'extractor');
     const burner = bs.some((b) => b.def.role === 'generator' && bs.some((x) => x.def.role === 'extractor' && touches(g.rect(x), g.rect(b))));
     const steps: [boolean, string][] = [
-      [lamps >= 2, 'Two Lamps (1) inside the two bends (a Node, 7, reaches the far one)'],
+      [lamps >= 2, g.map.firstLamps ?? 'Two Lamps (1) inside the two bends (a Node, 7, reaches the far one)'],
       [ex, 'An Extractor (8) on glowing emberrock near the Hearth'],
       [burner, 'A Burner (9) touching the Extractor: +20 kW'],
       [false, 'SPACE starts wave 1 when you are ready'],
@@ -1254,7 +1282,8 @@ export class Play {
       const ans = wrapText(e.answer, w - 10);
       const h = 14 + Math.max(body.length * LINE_H, 22) + ans.length * LINE_H + 8;
       const { x, y } = this.leftCard(ui, w, h);
-      ui.ctx.globalAlpha = Math.min(1, (14 - c.t) * 1.5);
+      // full alpha while paused, so a card never hangs half-faded over the map
+      ui.ctx.globalAlpha = this.paused || this.holding ? 1 : Math.min(1, (14 - c.t) * 1.5);
       ui.panel(x, y, w, h, { border: C.violet, alpha: 0.95 });
       ui.text(`NEW: ${e.name.toUpperCase()}`, x + 5, y + 4, C.gold);
       ui.textR(`${e.health} kJ`, x + w - 18, y + 4, C.steel);
@@ -1327,8 +1356,8 @@ export class Play {
       ['Click', 'place it / select a building'],
       ['Right-click, Esc', 'cancel / deselect'],
       ['X', 'shed (turn off) the building under the mouse'],
-      ['T', 'raise its priority one tier'],
-      ['E', 'Overcharge a tower (needs a charged Jar)'],
+      ['T / Shift+T', 'raise / lower its priority tier'],
+      ['E', 'Overcharge a tower: 3x for 4 s, ahead of all'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],

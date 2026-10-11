@@ -18,6 +18,8 @@ export interface MapDef {
   deposits: [number, number][][];
   /** where the camera starts, in tiles */
   focus: [number, number];
+  /** the FIRST STEPS card's first line, where this map's first Lamps go (the station's when left out) */
+  firstLamps?: string;
   /** where the Spare Jar skill builds its Jar (beside the Hearth, clear of the tutorial and bot spots) */
   jarSpot: [number, number];
   /** the wind's mean on this map (a Vane's share of its rating), §3.2 */
@@ -88,7 +90,8 @@ export const SWITCHBACK: MapDef = {
     // far, east past the third leg
     [[34, 15], [35, 15], [34, 16], [35, 16], [35, 17]],
   ],
-  focus: [21, 15],
+  focus: [21, 18.5],
+  firstLamps: 'Two Lamps (1) inside the bends by the Hearth (a Node, 7, carries power)',
   jarSpot: [22, 22],
   windMean: 0.7,
   pace: 1,
@@ -123,7 +126,8 @@ export const TWO_ROADS: MapDef = {
     // far west, past the west road
     [[2, 15], [3, 15], [2, 16], [3, 16]],
   ],
-  focus: [19.5, 15],
+  focus: [19.5, 18.5],
+  firstLamps: 'Two Lamps (1) on the ridge between the two last legs',
   jarSpot: [21, 22],
   windMean: 0.55,
   pace: 1.8,

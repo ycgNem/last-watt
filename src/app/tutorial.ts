@@ -60,7 +60,7 @@ export const STEPS: Step[] = [
   },
   {
     title: 'SHARE OF POWER',
-    text: 'You make 28 kW: 8 from the Hearth, 20 from the Burner (SUPPLY, top). A Lamp asks 12 kW only while it fires, so two firing ask 24. Hover the LAMP slot: the forecast says what one more would do. SPACE starts wave 1.',
+    text: 'Once the Burner has its first rock (about 8 s) you make 28 kW: 8 from the Hearth, 20 from the Burner (SUPPLY, top). A Lamp asks 12 kW only while it fires, so two firing ask 24. Hover the LAMP slot: the forecast says what one more would do. SPACE starts wave 1.',
     done: (g) => g.wave >= 1,
   },
   {
@@ -70,13 +70,13 @@ export const STEPS: Step[] = [
   },
   {
     title: 'A THIRD LAMP',
-    text: 'Wave 2 brings 12 Moths, closer together; two Lamps cannot keep up. Put a third on the gold spot. Three firing ask 36 kW of your 28, so each fires at 78%. Weaker, not broken.',
+    text: 'Wave 2 brings 12 Moths, closer together; two Lamps cannot keep up. Put a third on the gold spot. Three firing ask 36 kW of your 28, so each fires at about three quarters. Weaker, not broken.',
     spot: { x: 22, y: 16, size: 2 }, slot: 'lamp',
     done: (g) => count(g, 'lamp') >= 3,
   },
   {
     title: 'WATCH THE WALL',
-    text: 'When all three fire, the WALL bar (top) dips below 100%. Below 60% it turns violet and your towers flicker: a brownout. More Burners fix it, and so does a Jar.',
+    text: 'When all three fire, the WALL bar (top) dips below 100%. Below 60% it turns violet and your towers flicker: a brownout (you will see one if you Overcharge with nothing spare). More Burners fix it, and so does a Jar.',
     done: (g) => g.wavePaid.has(2),
   },
   {
@@ -87,8 +87,9 @@ export const STEPS: Step[] = [
   },
   {
     title: 'OVERCHARGE',
-    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of everything else and fires 3x as hard. The Jar pays what your Burner cannot; with no Jar, the other towers go dark for those 4 s.',
-    done: (g) => g.stats.overcharges >= 1,
+    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of everything else, even your Extractors, and fires 3x as hard. The extra comes from spare power, then from your other towers: watch them dim. Jars don\'t pay for it; they hold the wall.',
+    // done once the burst is over, so the player sees what it did before the next card holds the game
+    done: (g) => g.stats.overcharges >= 1 && ![...g.buildings.values()].some((b) => b.overcharge > 0),
   },
   {
     title: 'RESEARCH',

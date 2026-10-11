@@ -37,6 +37,7 @@ class App {
   /** the skill tree, or the settings, is open over the title */
   skillsOpen = false;
   settingsOpen = false;
+  titleT = 0;
   /** the run saved mid-way (CONTINUE), and a note when one could not be used */
   saved: RunSave | null = null;
   saveNote = '';
@@ -159,10 +160,11 @@ class App {
     if (ui.button('DONE (K)', x + w - 96, y + h - 20, 90, 14, { color: C.gold })) this.skillsOpen = false;
   }
 
+  /** the title looks at the Hearth, which sits between the subtitle and the buttons */
   private focusTitle() {
-    const [fx, fy] = this.title.map.focus;
-    this.r.cam.x = fx * TILE;
-    this.r.cam.y = fy * TILE;
+    const h = this.title.map.hearth;
+    this.r.cam.x = (h.x + 2) * TILE;
+    this.r.cam.y = (h.y + 1.5) * TILE;
   }
 
   resize() {
@@ -214,7 +216,9 @@ class App {
 
   private drawTitle(dt: number) {
     const r = this.r, ui = this.ui;
-    r.cam.x += dt * 3;
+    // a slow sway either side of the Hearth (it used to drift away for good)
+    this.titleT += dt;
+    r.cam.x = (this.title.map.hearth.x + 2) * TILE + Math.sin(this.titleT * 0.08) * 3 * TILE;
     r.clampCamera(this.title);
     r.dimAll = 0.35;
     r.draw(this.title, {});
@@ -248,7 +252,7 @@ class App {
     if (ui.button('SETTINGS (O)', ui.w - 78, 4, 74, 13, { tip: ['Settings', 'Volume, UI scale, screen flashes.'] })) this.settingsOpen = true;
     ui.textC('Things come out of the dark. Your towers are lights, and lights run on watts, not money.', ui.w / 2, ty, C.mist);
     ui.textC(`Build a grid, keep it fed, and keep the Hearth lit for ${LAST_WAVE} waves.`, ui.w / 2, ty + 12, C.mist);
-    const by = Math.round(ui.h * 0.58);
+    const by = Math.min(Math.round(ui.h * 0.7), ui.h - 100);
     if (this.saved) {
       const s = this.saved;
       const cw = 220;
