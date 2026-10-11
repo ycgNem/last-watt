@@ -172,7 +172,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       stats: { capacity: 1500, maxCharge: 25, maxDischarge: 45 },
       why: { cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 bank: 600 → 1500 kJ', maxCharge: '§3.2 bank: 15 → 25 kW', maxDischarge: '§3.2 bank: 30 → 45 kW' },
       alts: [{
-        name: 'Flywheel', cost: 75, research: 'flywheel', blurb: 'Flywheel: only 300 kJ, but charges at 60 kW and gives back 90 kW. It spins down: 2% of its charge a second.',
+        name: 'Flywheel', cost: 75, research: 'flywheel', blurb: 'Flywheel: not a Bank. A fifth of its store (300 kJ) but 60 kW in and 90 out, and it spins down 2% a second: for a branch behind a full Node, where a pack outruns the link.',
         stats: { capacity: 300, maxCharge: 60, maxDischarge: 90, spinDown: 0.02 },
         why: {
           cost: '§4 upgrade rule: 60 × 1.25 = 75', capacity: '§3.2 Flywheel: 300 kJ, a pack passing a full Node (40-60 kW short for 5-7 s; re-derived in the fourth review)',

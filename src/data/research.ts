@@ -112,7 +112,7 @@ export const RESEARCH: Record<string, ResearchDef> = {
   },
   flywheel: {
     id: 'flywheel', name: 'Flywheel', branch: 'power', cost: 700,
-    blurb: 'Jars can become Flywheels instead of Banks: 300 kJ, but 60 kW in and 90 kW out. It spins down, so it is for the wave, not the gap.',
+    blurb: 'Jars can become Flywheels instead of Banks: 300 kJ, but 60 kW in and 90 kW out. It spins down, so it is for a peak behind a full Node, not for carrying a wave: keep your Banks.',
     why: { cost: '§7 / §3.2 Flywheel: 700 kJ (the other Jar tier 2; Bank is 800 because it holds five times as much)' },
   },
   pulse: {
