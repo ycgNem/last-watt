@@ -109,10 +109,12 @@ export const SWITCHBACK: MapDef = {
   unlockWave: 4,
   spawnAt: 4,
   // the long road kills Palls by exposure alone, so its late waves bring more of them, and waves
-  // 10-12 half again (the third review: the plan won 20/20 with 930 left and no verb mattered)
+  // 9-12 half again (the third review: the plan won 20/20 with 930 left and no verb mattered; the
+  // sixth: wave 9 heavier and wave 10 a Pall lighter, so the step into wave 10 is not ×2.3)
   waves: {
     8: WAVES[7].seq + 'PP',
-    10: WAVES[9].seq + WAVES[9].seq.slice(0, WAVES[9].seq.length >> 1) + 'PP',
+    9: WAVES[8].seq + WAVES[8].seq.slice(0, WAVES[8].seq.length >> 1) + 'P',
+    10: WAVES[9].seq + WAVES[9].seq.slice(0, WAVES[9].seq.length >> 1) + 'P',
     11: WAVES[10].seq + WAVES[10].seq.slice(0, WAVES[10].seq.length >> 1) + 'PP',
     12: WAVES[11].seq + WAVES[11].seq.slice(0, WAVES[11].seq.length >> 1) + 'PPP',
   },
