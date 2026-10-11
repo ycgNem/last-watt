@@ -146,19 +146,22 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   },
   node: {
     id: 'node', name: 'Node', role: 'node', group: 'power', size: 1, cost: 10,
-    blurb: 'Carries power to anything within 4 tiles, at most 40 kW through it. Past that, a second route, a Jar or a Burner on the far side. A Shade passing within 3.5 tiles cuts it for 6 s.',
-    nodeRadius: 4, carryKw: 40,
+    blurb: 'Carries power to anything within 4 tiles, at most 60 kW through it. Past that: a second route, a Jar past it, Burners on the far side, or a Busbar. A Shade passing within 3.5 tiles cuts it for 6 s.',
+    nodeRadius: 4, carryKw: 60,
     upgrades: [{
-      name: 'Long line', cost: 13, research: 'longline', blurb: 'Long line: reaches 6 tiles, but the line loses 1 kW while it carries power. Still 40 kW through it.',
+      name: 'Long line', cost: 13, research: 'longline', blurb: 'Long line: reaches 6 tiles, but the line loses 1 kW while it carries power. Still 60 kW through it.',
       stats: { nodeRadius: 6, lineLoss: 1 },
       why: { cost: '§4 upgrade rule: 10 × 1.25 = 12.5 → 13', nodeRadius: '§3.2 long line: 4 → 6 tiles', lineLoss: '§3.2 long line: 1 kW lost per long Node' },
       alts: [{
-        name: 'Heavy line', cost: 13, research: 'longline', blurb: 'Heavy line: carries 80 kW instead of 40, over the same 4 tiles.',
-        stats: { carryKw: 80 },
-        why: { cost: '§4 upgrade rule: 10 × 1.25 = 12.5 → 13', carryKw: '§3.3 heavy line: 40 → 80 kW, a bend at full fire on tier 2 (two tier-2 Floodlights firing ask 72; the other way to take the tier: reach against weight)' },
+        name: 'Busbar', cost: 13, research: 'longline', blurb: 'Busbar: carries 120 kW instead of 60, but reaches only 2.5 tiles. Anything it alone reached past that loses power.',
+        stats: { carryKw: 120, nodeRadius: 2.5 },
+        why: {
+          cost: '§4 upgrade rule: 10 × 1.25 = 12.5 → 13', carryKw: '§3.3 Busbar: 60 → 120 kW, a late bend at full fire (three tier-2 Floodlights firing ask 108)',
+          nodeRadius: '§3.3 Busbar: 4 → 2.5 tiles (the fifth review: weight costs reach, so a Busbar feeding towers 1.5 off a road sits inside a Shade\'s 3.5 of it)',
+        },
       }],
     }],
-    why: { size: '§3 Node; STYLE.md (1x1 post)', cost: '§3 Node: 10', nodeRadius: '§3 Node: radius 4 tiles', carryKw: '§3.3 transmission: 40 kW through a Node, the output of two Burners' },
+    why: { size: '§3 Node; STYLE.md (1x1 post)', cost: '§3 Node: 10', nodeRadius: '§3 Node: radius 4 tiles', carryKw: '§3.3 transmission: 60 kW through a Node, the output of three Burners (the fifth review: at 40 the Busbar was bought on every Node, so capacity was a tax)' },
   },
   jar: {
     id: 'jar', name: 'Jar', role: 'storage', group: 'power', size: 1, cost: 60,

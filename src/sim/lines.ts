@@ -7,6 +7,31 @@ import { fullDraw } from './systems/grid';
 import { lineKey } from './systems/stats';
 import { RULES } from '../data/rules';
 import type { Building } from './types';
+import { covers } from './geom';
+
+/** the buildings that would lose power if this conductor reached `radius` instead: those only it
+ *  covers, and the conductors only it links (the Busbar's warning, §3.3) */
+export function strandedBy(g: Game, node: Building, radius: number): Building[] {
+  if (node.net < 0) return [];
+  const net = g.networks[node.net];
+  const cond = net.nodes.map((id) => g.buildings.get(id)!).filter((c) => c && c !== node && c.offline <= 0);
+  const reach = (c: Building) => g.spec(c).nodeRadius ?? 0;
+  const old = reach(node);
+  const out: Building[] = [];
+  for (const id of net.members) {
+    const b = g.buildings.get(id)!;
+    if (b === node) continue;
+    const isCond = b.def.role === 'node' || b.def.role === 'core';
+    const was = isCond ? covers(g.rect(node), old, g.rect(b)) || covers(g.rect(b), reach(b), g.rect(node)) : covers(g.rect(node), old, g.rect(b));
+    if (!was) continue;
+    const still = isCond ? covers(g.rect(node), radius, g.rect(b)) || covers(g.rect(b), reach(b), g.rect(node)) : covers(g.rect(node), radius, g.rect(b));
+    if (still) continue;
+    // something else carries it: another conductor covers it (or, for a conductor, links to it)
+    const other = cond.some((c) => c !== b && (covers(g.rect(c), reach(c), g.rect(b)) || (isCond && covers(g.rect(b), reach(b), g.rect(c)))));
+    if (!other) out.push(b);
+  }
+  return out;
+}
 
 /** kW more the links between a building and its line's root could carry into it now: the least
  *  room on its way (Infinity on the Hearth's own reach, §3.3) */
@@ -112,7 +137,7 @@ export function lineReports(g: Game): LineReport[] {
       const node = fullOnTheWay(g, held[0])!;
       neck = 'full';
       text = `A Node is full (${r(Math.abs(node.carry))} kW): towers past it at ${r(worst * 100)}%`;
-      fix = 'A second route, a Jar past it, or a Heavy line';
+      fix = 'A second route, a Jar past it, or a Busbar (120 kW, 2.5 tiles)';
     } else if (n.wall.sat < 0.99 && n.wall.demand > 0 && low < RULES.brownoutEnds.v) {
       neck = 'short';
       text = `Short ${r(n.demand - made - n.discharge)} kW: wall at ${r(n.wall.sat * 100)}%`;

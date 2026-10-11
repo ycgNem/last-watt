@@ -25,7 +25,7 @@ import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
-import { fullOnTheWay, lineReports, linkRoom } from '../sim/lines';
+import { fullOnTheWay, lineReports, linkRoom, strandedBy } from '../sim/lines';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -1168,7 +1168,7 @@ export class Play {
           const cap = d.carryKw ?? 0;
           const kw = Math.round(Math.abs(b.carry));
           out.push(b.full
-            ? { text: `FULL: carries all ${cap} kW it can${b.carry < 0 ? ' home from the Burners past it' : ' to what is past it'}. A second route, a Jar past it, or a Heavy line.`, color: C.violet }
+            ? { text: `FULL: carries all ${cap} kW it can${b.carry < 0 ? ' home from the Burners past it' : ' to what is past it'}. A second route, a Jar past it, or a Busbar.`, color: C.violet }
             : { text: `Carries ${kw} of ${cap} kW${b.carry < 0 ? ' home' : ''}.`, color: kw > cap * 0.75 ? C.gold : C.ash });
         }
         break;
@@ -1222,7 +1222,9 @@ export class Play {
     const lines = this.infoLines(g, b);
     // measure
     const inner = w - 10;
-    let h = 26;
+    // the state word wraps too (the fifth review: "WAITING FOR ROCK: its Extractor is di")
+    const sw = this.stateWord(g, b);
+    let h = 16 + wrapText(sw.text, inner).length * LINE_H;
     for (const l of lines) h += wrapText(l.text, inner).length * LINE_H;
     const isTower = b.def.role === 'tower';
     const up = b.def.upgrades?.[b.level - 1];
@@ -1239,9 +1241,7 @@ export class Play {
     ui.text(this.titleOf(b), x + 5, y, C.gold);
     if (ui.button('x', x + w - 13, y - 1, 10, 10)) this.selectedId = 0;
     y += 10;
-    const sw = this.stateWord(g, b);
-    ui.text(sw.text, x + 5, y, sw.color);
-    y += 12;
+    y += ui.wrap(sw.text, x + 5, y, inner, sw.color) + 2;
     for (const l of lines) y += ui.wrap(l.text, x + 5, y, inner, l.color ?? C.mist);
     y += 2;
     if (b.def.tier) {
@@ -1272,7 +1272,10 @@ export class Play {
         const why = upgradeProblem(g, b, i);
         const next = specOf(b.def, b.level + 1, i);
         const label = `${(u.name ?? 'TIER 2').toUpperCase()} (${i === 0 ? 'U' : 'Y'}) ${u.cost}`;
-        if (ui.button(label, x + 5 + i * (bw + 2), y, bw, 14, { disabled: !!why, tip: [`${u.name ?? 'Tier 2'}: one way or the other`, u.blurb, ...this.statDiff(g.spec(b), next), ...(why ? [why] : [])] }))
+        // a shorter reach strands what only this Node carried (the Busbar, §3.3): say so before the click
+        const lost = (next.nodeRadius ?? 0) < (g.spec(b).nodeRadius ?? 0) ? strandedBy(g, b, next.nodeRadius ?? 0) : [];
+        const strand = lost.length ? [`It would cut off ${lost.length}: ${lost.slice(0, 4).map((x) => x.def.name).join(', ')}${lost.length > 4 ? '...' : ''}. Another Node near them first.`] : [];
+        if (ui.button(label, x + 5 + i * (bw + 2), y, bw, 14, { disabled: !!why, tip: [`${u.name ?? 'Tier 2'}: one way or the other`, u.blurb, ...this.statDiff(g.spec(b), next), ...strand, ...(why ? [why] : [])] }))
           this.act(this.cmd({ k: 'up', b: b.id, branch: i }), 'place');
       });
       y += 16;
@@ -1331,7 +1334,9 @@ export class Play {
       const ls = wrapText(m.text, maxW);
       const h = ls.length * 10 + 5;
       const bw = Math.min(maxW, Math.max(...ls.map((l) => textWidth(l)))) + 10;
-      const x = 4, y = bottom - h;
+      // beside the card stack, not over it, when the stack reaches this far down (the fifth review)
+      const y = bottom - h;
+      const x = y < this.leftBottom + 2 && this.leftRight > 0 ? this.leftRight + 4 : 4;
       // over an enemy it fades, so what it is about stays visible
       const over = g.enemies.some((e) => {
         const ex = this.r.sx(e.x * TILE) / s, ey = this.r.sy(e.y * TILE) / s;
@@ -1384,7 +1389,11 @@ export class Play {
     const rows = wrapped.reduce((a, [, ls]) => a + ls.length, 0);
     const h = 16 + rows * 11 + 13;
     const { x, y } = this.leftCard(ui, w, h);
-    ui.panel(x, y, w, h);
+    // clicks go through it to the map, and it fades while something is being placed under it (the
+    // fifth review: on the Switchback it covers the bend it tells you to build in)
+    const under = !!this.buildId && ui.mx >= x && ui.mx < x + w && ui.my >= y && ui.my < y + h;
+    ui.ctx.globalAlpha = under ? 0.3 : 1;
+    ui.panel(x, y, w, h, { blocking: false });
     ui.text('FIRST STEPS', x + 5, y + 4, C.gold);
     let row = 0;
     for (const [done, ls] of wrapped) {
@@ -1392,6 +1401,7 @@ export class Play {
       for (const l of ls) ui.text(l, x + 13, y + 16 + row++ * 11, done ? C.steel : C.mist);
     }
     ui.text('New here? The title screen has a TUTORIAL.', x + 5, y + 16 + rows * 11 + 1, C.ash);
+    ui.ctx.globalAlpha = 1;
   }
 
   private drawTutorial(ui: UI, g: Game) {
@@ -1558,18 +1568,27 @@ export class Play {
     }
     const by = (k: string) => tail.filter((l) => l.enemy === k).reduce((a, l) => a + l.lights, 0);
     if (sum === 0) return 'More towers at the bends, and keep them fed.';
+    // "more Burners" only when power was short, not when it was being thrown away (the fifth review)
+    const wasteful = s.wastedKj > s.kjDelivered * 0.25;
+    const morePower = wasteful ? `Jars to carry the peaks (you wasted ${Math.round(s.wastedKj)} kJ)` : 'more Burners';
+    // the player's own bursts first: they take the rest of the wall (the fifth review M4)
+    const ocStarved = tail.filter((l) => l.overcharged && l.wall < 0.5).reduce((a, l) => a + l.lights, 0);
+    if (ocStarved >= sum / 2)
+      return `Your own Overcharges: ${ocStarved} of the last ${sum} lights got through while a burst held your wall under half. Each one takes the rest of the wall for 4 s; save them for a Pall.`;
+    const lostAll = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
+    if ((s.lightsLostBy.pall ?? 0) / lostAll >= 0.4 && by('pall') > 0) return `Palls took ${s.lightsLostBy.pall} of your ${lostAll} lights. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full), shell it (a Starshell burst lands on everything), or put a cone early on the road and Overcharge it there, on the Hearth's own reach where no Node caps the burst.`;
     const veilsStarved = tail.filter((l) => l.enemy === 'veil' && l.wall < RULES.veilSight.v);
     if (veilsStarved.length && by('veil') >= sum / 3)
       return veilsStarved.some((l) => l.overcharged)
         ? 'Veils walked past while your wall was under 60%: your Overcharges took the power their towers needed to see them.'
-        : 'Veils walked past while your wall was under 60%: more Burners, fewer towers firing at once, or Pulse less (it empties the Jars that carry the wall).';
+        : `Veils walked past while your wall was under 60%: ${morePower}, fewer towers firing at once, or Pulse less (it empties the Jars that carry the wall).`;
     if (by('pall') >= sum / 2) return 'Palls took the last of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
     if (by('siphon') >= sum / 3) return 'Siphons got through: kill them where they drink (an Overcharge, a Brazier), or have spare kW on the line they tap.';
     if (by('flit') >= sum / 3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
     if (by('shade') >= sum / 3) return 'Shades got through: their 90 kJ needs two towers on them, or an Overcharge as they pass.';
-    const lost = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
+    const lost = lostAll;
     if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it. A Pall drinks a beam and hides behind the Moths that overtake it in a cone: burn it (a Brazier burns every body in full, a Pall too), shell it (a Starshell burst lands on everything), or put a cone early on the road, before the Moths catch it up, and Overcharge it there.';
-    if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: more Burners, or Jars to carry the peaks.`;
+    if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: ${wasteful ? morePower : 'more Burners, or Jars to carry the peaks'}.`;
     if (s.wastedKj > s.kjDelivered) return 'You made more power than your towers used: fewer Burners, more towers (or Jars and Labs for the spare).';
     if ((s.lightsLostBy.flit ?? 0) / lost >= 0.3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
     return 'More towers at the bends, and keep them fed.';

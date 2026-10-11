@@ -319,7 +319,7 @@ const STATES = {
   }),
 };
 
-// a bend of tier-2 Lamps past one Node asks 54 kW: the Node carries its 40 and says so (§3.3)
+// a bend of tier-2 Lamps past one Node asks 72 kW: the Node carries its 60 and says so (§3.3)
 function nodeFull(select) {
   const a = window.__app;
   const p = a.newGame();
@@ -327,8 +327,8 @@ function nodeFull(select) {
   for (const [x, y] of [[16, 19], [15, 19]]) window.__place(g, 'extractor', x, y);
   for (const [x, y] of [[16, 20], [13, 18], [19, 18]]) window.__place(g, 'burner', x, y).fuel = 5;
   const node = window.__place(g, 'node', 21, 11);
-  for (const [x, y] of [[24, 7], [22, 7], [20, 7]]) window.__place(g, 'lamp', x, y).level = 2;
-  for (const d of [24, 22, 20]) {
+  for (const [x, y] of [[24, 7], [22, 7], [20, 7], [18, 7]]) window.__place(g, 'lamp', x, y).level = 2;
+  for (const d of [24, 22, 20, 18]) {
     const def = { ...window.__enemies.moth, speed: 0 };
     const q = g.paths[0].at(d);
     g.enemies.push({ id: g.nextId++, def, hp: 1e9, dist: d, x: q.x, y: q.y, slow: 0, face: 1, hit: 0, wave: 1, seen: true, route: 0 });

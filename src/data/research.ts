@@ -126,8 +126,8 @@ export const RESEARCH: Record<string, ResearchDef> = {
     why: { cost: '§7 / §8 Reroute: 600 kJ (a cheaper verb than Pulse: it saves a branch, not a wave)' },
   },
   longline: {
-    id: 'longline', name: 'Long line', branch: 'power', cost: 500,
-    blurb: 'Nodes can be upgraded: a Long line reaches 6 tiles (losing 1 kW), a Heavy line carries 80 kW.',
+    id: 'longline', name: 'Wiring', branch: 'power', cost: 500,
+    blurb: 'Nodes can be upgraded, one way or the other: a Long line reaches 6 tiles (losing 1 kW); a Busbar carries 120 kW but reaches only 2.5.',
     why: { cost: '§7 Node tier 2: 500 kJ' },
   },
 };

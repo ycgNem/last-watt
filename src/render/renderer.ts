@@ -288,6 +288,7 @@ export class Renderer {
     if (ov.coverage) this.drawCoverage(g, ov);
     this.drawWires(g);
     this.drawBeams(g);
+    this.tagRects = [];
     for (const b of bs) this.drawMarks(g, b);
     const es = [...g.enemies].sort((a, b) => a.y - b.y);
     this.drawTaps(g);
@@ -581,6 +582,9 @@ export class Renderer {
     }
   }
 
+  /** this frame's building tags, so neighbours' tags don't overlap */
+  private tagRects: { x: number; y: number; w: number }[] = [];
+
   /** small marks that read through the dark: the cold pixel, shed, knocked out, no fuel */
   private drawMarks(g: Game, b: Building) {
     const z = this.cam.z;
@@ -594,7 +598,14 @@ export class Renderer {
     }
     const tag = (text: string, color: string) => {
       const w = textWidth(text);
-      const x = Math.round(p.x + p.w / 2 - w / 2), y = Math.round(p.y - 9);
+      const x = Math.round(p.x + p.w / 2 - w / 2);
+      // tags of neighbours stack instead of printing over each other (the fifth review: "NO POWINO
+      // POWER"); one that still has no room is left out, its building's own state reads anyway
+      let y = Math.round(p.y - 9);
+      const hits = (yy: number) => this.tagRects.some((r) => x - 1 < r.x + r.w && r.x < x + w + 1 && yy - 1 < r.y + 9 && r.y < yy + 8);
+      if (hits(y)) y -= 9;
+      if (hits(y)) return;
+      this.tagRects.push({ x: x - 1, y: y - 1, w: w + 2 });
       ctx.fillStyle = 'rgba(9,10,20,0.75)';
       ctx.fillRect(this.sx(x - 1), this.sy(y - 1), (w + 2) * z, 9 * z);
       drawText(ctx, text, this.sx(x), this.sy(y), color, z);

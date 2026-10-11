@@ -7,9 +7,9 @@ import { loadArt } from './render/art';
 import { UI } from './ui/ui';
 import { Play, HUD_H, BAR_H } from './app/play';
 import { loadProfile, saveProfile, type Profile } from './app/save';
-import { LAST_WAVE } from './data/waves';
+import { LAST_WAVE, waveDef } from './data/waves';
 import { MAPS, mapById, type MapDef } from './data/map';
-import { ENEMIES } from './data/enemies';
+import { ENEMIES, ENEMY_BY_CODE } from './data/enemies';
 import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
 import { clearRun, loadRun, type RunSave } from './app/runsave';
 import { drawSettings } from './app/settings';
@@ -327,8 +327,10 @@ class App {
     const m = this.map;
     const names = m.fork?.names ?? m.roadNames;
     const roads = this.title.paths.map((p, i) => `${names ? names[i] + ' ' : ''}${Math.round(p.length)}`).join(' / ');
-    const pace = m.pace === 1 ? 'waves as written' : `waves ${Math.round(Math.abs(1 / m.pace - 1) * 100)}% ${m.pace < 1 ? 'denser' : 'looser'}`;
-    return `${this.title.paths.length > 1 ? 'Roads' : 'Road'} ${roads} tiles, wind ${Math.round(m.windMean * 100)}%, ${pace}`;
+    // the last wave in kJ, since a map may bring its own (the fifth review: the Switchback's is 1.7x the station's)
+    const last = [...(waveDef(LAST_WAVE, m)?.seq ?? '')].reduce((a, c) => a + (ENEMY_BY_CODE[c]?.health ?? 0), 0);
+    const pace = m.pace === 1 ? '' : `, enemies ${Math.round(Math.abs(1 / m.pace - 1) * 100)}% ${m.pace < 1 ? 'closer together' : 'further apart'}`;
+    return `${this.title.paths.length > 1 ? 'Roads' : 'Road'} ${roads} tiles, wind ${Math.round(m.windMean * 100)}%, last wave ${last.toLocaleString('en-US')} kJ${pace}`;
   }
 
   /** the picked map as a few pixels a tile: its roads, the Hearth, the deposits (M7) */

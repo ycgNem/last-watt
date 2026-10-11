@@ -8,7 +8,9 @@ import type { Game } from '../sim/Game';
 import type { Building } from '../sim/types';
 import { nextWave, overcharge, overchargeProblem, place, pulse, pulseProblem, setTier, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
 import { windShade } from '../sim/systems/economy';
-import { BUILDINGS } from '../data/buildings';
+import { BUILDINGS, specOf } from '../data/buildings';
+import { strandedBy } from '../sim/lines';
+import { covers } from '../sim/geom';
 import { RULES } from '../data/rules';
 import { LAST_WAVE } from '../data/waves';
 import { fullDraw } from '../sim/systems/grid';
@@ -34,8 +36,8 @@ export interface BotPlan {
   human?: boolean;
   /** no verbs at all: no Overcharge, no Pulse, no shedding (the third review's zero-verb control) */
   noVerbs?: boolean;
-  /** which way to take a building's tier where it has a choice (0 the main line; Nodes take the
-   *  Heavy line, 1) */
+  /** which way to take a building's tier where it has a choice (0 the main line; a Node the
+   *  Busbar, 1) */
   branches?: Partial<Record<BuildingId, number>>;
   /** raise this many towers (the first built from the wall list) to tier 1, and nothing else
    *  beyond what the plan does: the "one T press" player */
@@ -96,7 +98,7 @@ export const BOT_PLAN: BotPlan = {
     { b: 'lab', x: 19, y: 20, wave: 6 },
   ],
   research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
   branches: { node: 1 },
   headroom: 1.8,
 };
@@ -153,7 +155,7 @@ export const SWITCHBACK_PLAN: BotPlan = {
     { b: 'lab', x: 18, y: 18, wave: 6 },
   ],
   research: ['vane', 'longline', 'brazier', 'starshell', 'lamp2', 'bellows', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
   branches: { node: 1 },
   headroom: 1.8,
 };
@@ -201,7 +203,7 @@ export const TWO_ROADS_PLAN: BotPlan = {
     { b: 'lab', x: 13, y: 21, wave: 6 },
   ],
   research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
   branches: { node: 1 },
   headroom: 1.8,
 };
@@ -251,7 +253,7 @@ export const FORK_PLAN: BotPlan = {
     { b: 'lab', x: 18, y: 26, wave: 6 },
   ],
   research: ['brazier', 'starshell', 'lamp2', 'bellows', 'longline', 'vane', 'searchlight', 'flood2', 'brazier2', 'star2', 'bank', 'deepbit', 'search2'],
-  upgrades: ['burner', 'node', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
+  upgrades: ['burner', 'lamp', 'floodlight', 'brazier', 'starshell', 'searchlight', 'jar', 'extractor'],
   branches: { node: 1 },
   headroom: 1.8,
 };
@@ -310,8 +312,9 @@ export class Bot {
     const p = this.plan;
     while (this.opened < p.opening.length && this.build(g, p.opening[this.opened])) this.opened++;
     if (this.opened < p.opening.length) return;
-    // a full Node: a Heavy line on it before anything else, once the research allows it (it costs
-    // 13, and everything past it starves until it has it)
+    // a full Node: a Busbar on it before anything else, once the research allows it (it costs 13,
+    // and everything past it starves until it has it), unless its shorter reach would cut
+    // something off (the panel says so; a player would move or add a Node first)
     for (const b of g.buildings.values()) if (b.def.role === 'node' && b.full) this.sawFull.add(b.id);
     for (const id of this.sawFull) {
       const b = g.buildings.get(id);
@@ -320,7 +323,8 @@ export class Bot {
         continue;
       }
       if (!upgradeProblem(g, b, 1)) {
-        upgrade(g, b, 1);
+        const r = specOf(b.def, b.level + 1, 1).nodeRadius ?? 0;
+        if (strandedBy(g, b, r).length === 0 && !this.plannedNeeds(g, b, r)) upgrade(g, b, 1);
         this.sawFull.delete(id);
       }
     }
@@ -428,6 +432,20 @@ export class Bot {
     // sooner (callEarly) once the field is clear after a clean wave
     if (g.wave === 0) nextWave(g);
     else if (this.callEarly && g.wave < LAST_WAVE && g.waveTimer > 0 && (g.stats.leaksByWave[g.wave] ?? 0) === 0) nextWave(g);
+  }
+
+  /** a spot the plan has yet to build that only this conductor would reach at its present reach,
+   *  not at `radius` (another built conductor, or a Node still in the plan, counts) */
+  private plannedNeeds(g: Game, node: Building, radius: number): boolean {
+    const p = this.plan;
+    const rest = [...p.wall.slice(this.wallI), ...p.extras.slice(this.extraI), ...p.power.slice(this.powerI).flat()];
+    const rect = (s: Spot) => ({ x: s.x, y: s.y, w: BUILDINGS[s.b].size, h: BUILDINGS[s.b].size });
+    const others = [
+      ...[...g.buildings.values()].filter((c) => c !== node && (c.def.role === 'node' || c.def.role === 'core')).map((c) => ({ r: g.rect(c), reach: g.spec(c).nodeRadius ?? 0 })),
+      ...rest.filter((s) => s.b === 'node').map((s) => ({ r: rect(s), reach: BUILDINGS.node.nodeRadius ?? 0 })),
+    ];
+    const old = g.spec(node).nodeRadius ?? 0;
+    return rest.some((s) => s.b !== 'node' && covers(g.rect(node), old, rect(s)) && !covers(g.rect(node), radius, rect(s)) && !others.some((o) => covers(o.r, o.reach, rect(s))));
   }
 
   /** upgrade the first building of the listed kinds the research allows; true if it did */
