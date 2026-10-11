@@ -142,6 +142,7 @@ export type GameEvent =
   | { t: 'restore'; id: number }
   | { t: 'snuff'; id: number; x: number; y: number }
   | { t: 'overcharge'; id: number; x: number; y: number }
+  | { t: 'pulse'; at: { x: number; y: number }[]; kj: number; hit: number }
   | { t: 'shoot'; id: number; x: number; y: number }
   | { t: 'burst'; x: number; y: number; r: number; hit: number }
   | { t: 'research'; id: string }
@@ -164,6 +165,7 @@ export interface RunStats {
   wastedKj: number;
   brownoutSeconds: number;
   overcharges: number;
+  pulses: number;
   knocks: number;
   snuffs: number;
   researched: number;

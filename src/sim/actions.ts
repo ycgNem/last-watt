@@ -134,6 +134,54 @@ export function overcharge(g: Game, b: Building): string | null {
   return null;
 }
 
+/** each network with a lit tower and a Jar: its Jars, its lit towers, and the enemies inside their flashes */
+function pulseNets(g: Game) {
+  const r = RULES.pulseRadius.v;
+  return g.networks
+    .map((n) => {
+      const ms = n.members.map((id) => g.buildings.get(id)!);
+      const towers = ms.filter((b) => b.def.role === 'tower' && !b.off && b.sat > 0);
+      const lit = g.enemies.filter((e) => e.hp > 0 && towers.some((t) => Math.hypot(e.x - t.x - t.def.size / 2, e.y - t.y - t.def.size / 2) <= r));
+      return { jars: ms.filter((b) => b.def.role === 'storage'), towers, lit, stored: ms.reduce((a, b) => a + (b.def.role === 'storage' ? b.charge : 0), 0) };
+    })
+    .filter((p) => p.towers.length > 0 && p.jars.length > 0);
+}
+
+export function pulseProblem(g: Game): string | null {
+  if (!g.research.done.has('pulse')) return 'Research Pulse first (Lab)';
+  const nets = pulseNets(g);
+  const stored = nets.reduce((a, p) => a + p.stored, 0);
+  if (stored < RULES.pulseMin.v) return `Needs ${RULES.pulseMin.v} kJ stored where towers are lit (${Math.floor(stored)} now)`;
+  if (!nets.some((p) => p.lit.length > 0 && p.stored > 0)) return `Nothing is within ${RULES.pulseRadius.v} tiles of a lit tower`;
+  return null;
+}
+
+/** Pulse (§8): every Jar on a network whose lit towers have an enemy within 3 tiles empties at
+ *  once, and its kJ × 0.6 is split evenly across those enemies (a flash from every side: no
+ *  shadows, a Pall takes its share). A network with nothing in reach keeps its charge. */
+export function pulse(g: Game): string | null {
+  const why = pulseProblem(g);
+  if (why) return why;
+  const at: { x: number; y: number }[] = [];
+  let kj = 0, hit = 0;
+  for (const { jars, towers, lit, stored } of pulseNets(g)) {
+    if (!lit.length || stored <= 0) continue;
+    for (const j of jars) j.charge = 0;
+    kj += stored;
+    const each = (stored * RULES.pulseEff.v) / lit.length;
+    for (const t of towers) at.push({ x: t.x + t.def.size / 2, y: t.y + t.def.size / 2 });
+    for (const en of lit) {
+      g.stats.kjDelivered += Math.min(Math.max(0, en.hp), each);
+      en.hp -= each;
+      en.hit += each * 10;
+      hit++;
+    }
+  }
+  g.stats.pulses++;
+  g.emit({ t: 'pulse', at, kj, hit });
+  return null;
+}
+
 export function researchProblem(g: Game, id: string): string | null {
   const r = RESEARCH[id];
   if (!r) return 'No such project';

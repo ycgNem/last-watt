@@ -125,6 +125,7 @@ export class Audio {
       case 'snuff': this.hiss(0.5, 0.1, 500, 1); this.tone(180, 0.4, 'triangle', 0.05, 0.4); break;
       case 'shoot': this.tone(90, 0.15, 'square', 0.07, 0.6); this.hiss(0.12, 0.06, 1200, 1); break;
       case 'burst': this.hiss(0.35, 0.12, 2400, 0.8); this.tone(600, 0.2, 'triangle', 0.05, 2); break;
+      case 'pulse': this.tone(90, 0.9, 'sawtooth', 0.12, 8); this.hiss(0.8, 0.14, 3200, 0.5); this.tone(880, 0.5, 'triangle', 0.06, 0.5, 0.05); break;
       case 'win': [392, 494, 587, 784].forEach((f, i) => this.tone(f, 0.5, 'triangle', 0.07, 1, i * 0.15)); break;
       case 'lose': [220, 185, 147, 110].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.06, 1, i * 0.2)); break;
     }

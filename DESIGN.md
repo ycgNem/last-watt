@@ -487,8 +487,24 @@ satisfaction. No storage, no abilities; a Jar cut off by a Shade can't pay. Slic
 - **Shed** (free): toggle a tower, sector or building to off/another tier. This is a UI verb,
   but it is the most important one and gets a hotkey and a visible dimming.
 
-Milestone 6: **Pulse** (whole-grid flash, damage in a radius around every powered tower, drains
-every Jar), **Reroute** (temporarily bridge a gap between two nodes), **Dark Bait** (brown out
+- **Pulse** (research, Q; Milestone 6, second session): every Jar on a network whose lit towers
+  have an enemy within **3 tiles** empties at once, and **0.6** of it lands, split evenly across
+  those enemies. A flash comes from every side, so a Pall takes its share whole. It needs **300
+  kJ** stored where a tower is lit (half a Jar) and something in reach; a network with nothing in
+  reach keeps its charge. Numbers: 0.6 is the Floodlight's efficiency (light through glass); 3
+  tiles sits between the Brazier's 2.5 and the Lamp's 3.5, so the flash lands on the road beside
+  the wall, not across the map. One full Jar (600 kJ) is 360 kJ of light: a lone Pall at the wall
+  takes 360 of its 400, a crowd of twelve Moths takes 30 each (every one dies). Per kJ it is
+  worse than Overcharge (0.6 against 0.6 to 1.44) and it empties the Jars the wall leans on in a
+  brownout, so it is a decision, not a free button. The first version split each tower's share
+  by the cone rule (0.4 to a lone enemy) and was measured useless: 600 kJ through ten towers put
+  14 kJ on a Moth. The bot test (`design/pulsecheck.mts`): researched early (after the Lamp tier
+  2) it costs the station run (the research and the emptied Jars arrive when the wall needs
+  them); after the Vane it ends the station 10 lights down and the Switchback 5 lights up; after
+  the Bank it changes nothing. Its value is in the player's timing, which the bot does not have.
+  The default bot plans do not research it.
+
+Milestone 6, still to build: **Reroute** (temporarily bridge a gap between two nodes), **Dark Bait** (brown out
 a sector on purpose so light-seeking enemies turn toward a lit kill zone).
 
 ## 9. The gaffer's skill tree (embers, between runs)

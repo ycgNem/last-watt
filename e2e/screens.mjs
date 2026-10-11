@@ -97,6 +97,18 @@ const STATES = {
   }),
   lose: async (page) => page.evaluate(() => { const p = window.__app.newGame(); p.game.over = 'lose'; p.game.lights = 0; }),
   paused: async (page) => page.evaluate(() => { window.__app.newGame().paused = true; }),
+  pulse: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('pulse');
+    window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+    window.__place(g, 'lamp', 24, 13); window.__place(g, 'lamp', 22, 16);
+    window.__place(g, 'jar', 22, 18).charge = 600;
+    g.wave = 1;
+    window.__next(g);
+    for (let i = 0; i < 60 * 34; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+  }),
   titlemaps: async (page) => {
     await page.evaluate(() => {
       const a = window.__app;

@@ -1,7 +1,7 @@
 // The grid arithmetic of DESIGN.md §2 and the unit numbers of §3, §4, §6, §8.
 import { describe, expect, it } from 'vitest';
 import { Game, park, put, factory, settle } from './helpers';
-import { overcharge, toggleOff, setTier, toggleTier, upgrade } from '../src/sim/actions';
+import { overcharge, pulse, pulseProblem, toggleOff, setTier, toggleTier, upgrade } from '../src/sim/actions';
 import { startNextWave, wavePay } from '../src/sim/systems/waves';
 import { ENEMIES } from '../src/data/enemies';
 
@@ -387,5 +387,65 @@ describe('the factory half (§3.2)', () => {
     settle(g, 0.1);
     expect(lamp.net).toBeGreaterThanOrEqual(0);
     expect(g.grid.gen).toBeCloseTo(7);
+  });
+});
+
+describe('Pulse (§8)', () => {
+  // two Lamps lit by the Hearth, a full Jar: 600 kJ × 0.6 = 360 kJ split across what is in reach
+  const setup = () => {
+    const g = new Game();
+    g.research.done.add('pulse');
+    const jar = put(g, 'jar', 22, 18);
+    jar.charge = 600;
+    const near = put(g, 'lamp', 24, 13);
+    const far = put(g, 'lamp', 22, 16);
+    return { g, jar, near, far };
+  };
+
+  it('a lone enemy within 3 tiles of a lit tower takes all 360 kJ; the Jar is emptied', () => {
+    const { g, jar } = setup();
+    const m = park(g, 'moth', BEND_B_DIST, 1000);
+    const away = park(g, 'moth', 5, 1000); // far up the road: out of reach, untouched
+    settle(g, 0.05);
+    const hp0 = m.hp;
+    expect(pulse(g)).toBeNull();
+    expect(jar.charge).toBe(0);
+    expect(hp0 - m.hp).toBeCloseTo(360, 0);
+    expect(away.hp).toBe(1000);
+    expect(g.stats.pulses).toBe(1);
+  });
+
+  it('four in reach split it, 90 kJ each; a Pall takes its share (no shadow)', () => {
+    const { g } = setup();
+    const ms = [0, 0.3, 0.6, 0.9].map((d) => park(g, 'moth', BEND_B_DIST + d, 1000));
+    settle(g, 0.05);
+    const before = ms.map((m) => m.hp);
+    pulse(g);
+    for (let i = 0; i < 4; i++) expect(before[i] - ms[i].hp).toBeCloseTo(90, 0);
+    const h = setup();
+    const p = park(h.g, 'pall', BEND_B_DIST, 1000);
+    park(h.g, 'moth', BEND_B_DIST + 0.5, 1000);
+    settle(h.g, 0.05);
+    const p0 = p.hp;
+    pulse(h.g);
+    expect(p0 - p.hp).toBeCloseTo(180, 0);
+  });
+
+  it('needs research, 300 kJ where a tower is lit, and something in reach; otherwise the Jar keeps its charge', () => {
+    const { g, jar, near, far } = setup();
+    settle(g, 0.05);
+    g.research.done.delete('pulse');
+    expect(pulseProblem(g)).toMatch(/Research/);
+    g.research.done.add('pulse');
+    expect(pulse(g)).toMatch(/Nothing/);
+    park(g, 'moth', BEND_B_DIST, 1000);
+    jar.charge = 250;
+    expect(pulseProblem(g)).toMatch(/300 kJ/);
+    jar.charge = 600;
+    toggleOff(g, near);
+    toggleOff(g, far);
+    settle(g, 0.05);
+    expect(pulse(g)).toMatch(/300 kJ/);
+    expect(jar.charge).toBeGreaterThan(590);
   });
 });

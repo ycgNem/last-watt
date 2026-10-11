@@ -78,6 +78,11 @@ export const RESEARCH: Record<string, ResearchDef> = {
     blurb: 'Jars can be upgraded: 1500 kJ, charge 25 kW, discharge 45 kW.',
     why: { cost: '§7 Jar tier 2: 800 kJ' },
   },
+  pulse: {
+    id: 'pulse', name: 'Pulse', branch: 'power', cost: 900,
+    blurb: 'A gaffer verb (Q): every Jar empties at once; 60% of it lands, split across the enemies within 3 tiles of a lit tower.',
+    why: { cost: '§7 / §8 Pulse: 900 kJ (a verb that spends storage, priced like a tier 2)' },
+  },
   longline: {
     id: 'longline', name: 'Long line', branch: 'power', cost: 500,
     blurb: 'Nodes can be upgraded: reach 6 tiles, losing 1 kW on the line.',
@@ -87,5 +92,5 @@ export const RESEARCH: Record<string, ResearchDef> = {
 
 export const RESEARCH_ORDER = [
   'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2',
-  'vane', 'bellows', 'deepbit', 'bank', 'longline',
+  'vane', 'bellows', 'deepbit', 'bank', 'pulse', 'longline',
 ];

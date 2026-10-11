@@ -33,7 +33,8 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
     **Starshell** (charges a 60 kJ shell, lobs it at crowds, leads its target). Tier 2 for all.
   - Factory: Extractor (adjacency feed), Burner, **Vane** (wind 0.1–1, mean 0.55), Jar, Node, Lab;
     tier 2 for Burner (Bellows), Extractor (Deep bit), Jar (Bank), Node (Long line).
-  - Abilities: Overcharge (120 kJ, 3× for 4 s, any tower kind) with a **10 s cooldown**.
+  - Abilities: Overcharge (120 kJ, 3× for 4 s, any tower kind) with a **10 s cooldown**;
+    **Pulse** (research; Q): every Jar empties, 60% lands split across the enemies beside lit towers.
   - Research: fourteen projects (unlocks and tier 2s, three with prerequisites), Labs at 1:1.
   - Actions (`actions.ts`): place, sell, shed, set tier, shed a tier, upgrade, Overcharge,
     research, next wave, endless.
@@ -84,7 +85,7 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
   node capacity, production stats / Lines view, blueprints.
 - **M4**: towers 7–10, enemies 7–10, tier 3 and branches, walls and gates.
 - **M5**: multiple-Lab scheduling UI beyond "all Labs on one project"; the rest of the tree.
-- **M6**: Pulse, Reroute, Dark Bait.
+- **M6**: Pulse exists (research, Q); Reroute and Dark Bait do not.
 - **M7**: three maps exist (below); still missing: mid-run saves, per-map waves, a map preview on the picker.
 - **M8**: embers and the skill tree. **M9**: the jsfxr bank. **M10**: settings, keybinds, UI scale.
 - Milestone 0 leftovers: `Package for web.bat`, the PixelLab scripts and art importers.

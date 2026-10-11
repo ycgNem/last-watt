@@ -6,7 +6,7 @@
 import type { BuildingId } from '../data/buildings';
 import type { Game } from '../sim/Game';
 import type { Building } from '../sim/types';
-import { nextWave, overcharge, overchargeProblem, place, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
+import { nextWave, overcharge, overchargeProblem, place, pulse, pulseProblem, startResearch, toggleOff, upgrade, upgradeProblem } from '../sim/actions';
 import { BUILDINGS } from '../data/buildings';
 import { RULES } from '../data/rules';
 import { LAST_WAVE } from '../data/waves';
@@ -296,6 +296,12 @@ export class Bot {
       }
     }
     if (pick) overcharge(g, pick);
+    // Pulse: when the Jars are mostly full and a crowd (or a Pall) is inside the flashes
+    if (g.research.done.has('pulse') && g.grid.stored >= g.grid.capacity * 0.6 && !pulseProblem(g)) {
+      const lit = [...g.buildings.values()].filter((b) => b.def.role === 'tower' && !b.off && b.sat > 0);
+      const inFlash = g.enemies.filter((e) => lit.some((t) => Math.hypot(e.x - t.x - t.def.size / 2, e.y - t.y - t.def.size / 2) <= RULES.pulseRadius.v));
+      if (inFlash.length >= 8 || inFlash.some((e) => e.def.id === 'pall' && g.left(e) < 10)) pulse(g);
+    }
     // waves: start wave 1 once the opening is built; later waves come on the breather, or
     // sooner (callEarly) once the field is clear after a clean wave
     if (g.wave === 0) nextWave(g);

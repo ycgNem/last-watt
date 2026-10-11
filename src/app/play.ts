@@ -12,7 +12,7 @@ import type { Input } from '../engine/input';
 import { TILE, type Renderer } from '../render/renderer';
 import { drawFrame } from '../render/art';
 import {
-  endless, nextWave, overcharge, overchargeProblem, place, placeProblem, researchProblem, sell, sellValue, setTier, startResearch, toggleOff,
+  endless, nextWave, overcharge, overchargeProblem, pulse, pulseProblem, place, placeProblem, researchProblem, sell, sellValue, setTier, startResearch, toggleOff,
   toggleTier, upgrade, upgradeProblem,
 } from '../sim/actions';
 import { Game } from '../sim/Game';
@@ -237,6 +237,15 @@ export class Play {
         r.burst(e.x, e.y - 0.6, 5, C.gold, 1, 0.4, 'spark');
         a.sfx('shoot');
         break;
+      case 'pulse':
+        for (const p of e.at) {
+          r.flashes.push({ x: p.x, y: p.y, r: RULES.pulseRadius.v + 1, t: 0, life: 0.7 });
+          r.fx.push({ kind: 'ring', x: p.x, y: p.y, t: 0, life: 0.5, color: C.bone });
+        }
+        r.flash.white = 0.6;
+        a.sfx('pulse');
+        this.say(`PULSE: ${Math.round(e.kj)} kJ out of the Jars through ${e.at.length} towers, ${e.hit} hits.`, C.bone, 4);
+        break;
       case 'burst':
         r.flashes.push({ x: e.x, y: e.y, r: e.r + 1.2, t: 0, life: 0.5 });
         r.fx.push({ kind: 'ring', x: e.x, y: e.y, t: 0, life: 0.35, color: C.gold });
@@ -377,6 +386,7 @@ export class Play {
     const target = hb ?? this.selected;
     if (k('KeyX') && target) this.act(toggleOff(g, target));
     if (k('KeyE') && target) this.act(overcharge(g, target));
+    if (k('KeyQ') && g.research.done.has('pulse')) this.act(pulse(g));
     // T raises a building's priority one tier (1 wraps round to 4)
     if (k('KeyT') && target && target.def.tier) this.act(setTier(g, target, target.tier === 1 ? 4 : target.tier - 1), 'click');
     if (k('KeyU') && target) this.act(upgrade(g, target), 'place');
@@ -736,6 +746,15 @@ export class Play {
       const labs = [...g.buildings.values()].some((b) => b.def.role === 'lab');
       if (ui.button('RESEARCH [L]', bx, y0 + 13, side, 11, { active: this.board, color: labs ? C.cyan : C.bone, tip: ['Research board (L)', 'Labs turn spare power into new towers, generators and upgrades.'] })) this.board = !this.board;
       if (ui.button('HELP [H]', bx, y0 + 25, side, 10)) this.help = !this.help;
+      if (g.research.done.has('pulse')) {
+        const why = pulseProblem(g);
+        const stored = Math.round(g.grid.stored);
+        const lit = [...g.buildings.values()].filter((b) => b.def.role === 'tower' && !b.off && b.sat > 0).length;
+        const near = g.enemies.filter((e) => [...g.buildings.values()].some((t) => t.def.role === 'tower' && !t.off && t.sat > 0 && Math.hypot(e.x - t.x - t.def.size / 2, e.y - t.y - t.def.size / 2) <= RULES.pulseRadius.v)).length;
+        const tip = ['Pulse (Q)', `Every Jar empties at once in a flash from every lit tower. ${Math.round(RULES.pulseEff.v * 100)}% of the stored kJ lands, split evenly across every enemy within ${RULES.pulseRadius.v} tiles of a lit tower. No shadows: a Pall takes its share.`,
+          lit ? `Now: ${stored} kJ makes ${Math.round(stored * RULES.pulseEff.v)} kJ of light${near ? `, ${Math.round((stored * RULES.pulseEff.v) / near)} on each of the ${near} in reach` : ''}.` : 'No tower is lit.', ...(why ? [why] : ['Fewer enemies in reach, more on each: a Pall alone at the wall takes all of it.'])];
+        if (ui.button('PULSE [Q]', bx, y0 - TAB_H - 1, side, TAB_H + 1, { disabled: !!why, color: why ? C.steel : C.bone, active: !why, tip })) this.act(pulse(g));
+      }
     }
     if (this.buildId) {
       const d = BUILDINGS[this.buildId];
@@ -1112,6 +1131,7 @@ export class Play {
       ['X', 'shed (turn off) the building under the mouse'],
       ['T', 'raise its priority one tier'],
       ['E', 'Overcharge a tower (needs a charged Jar)'],
+      ['Q', 'Pulse: every Jar onto the enemies at the wall'],
       ['U', 'upgrade (after its research)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],
