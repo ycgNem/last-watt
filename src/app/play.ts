@@ -551,7 +551,9 @@ export class Play {
     if (!towers.length) return null;
     const reaches = (x: number, y: number) => towers.some((b) => Math.hypot(x - b.x - b.def.size / 2, y - b.y - b.def.size / 2) <= (g.spec(b).range ?? 0));
     let best = Infinity;
-    for (const e of g.enemies) {
+    // only the leaders can make first contact: the two with the least road left on each road
+    const leaders = g.paths.flatMap((_, r) => g.enemies.filter((e) => e.route === r).sort((a, b) => g.left(a) - g.left(b)).slice(0, 2));
+    for (const e of leaders) {
       if (reaches(e.x, e.y)) return null;
       const path = g.paths[e.route];
       for (let d = e.dist; d <= path.length; d += 0.5) {

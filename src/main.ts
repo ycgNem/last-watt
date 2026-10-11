@@ -9,6 +9,7 @@ import { Play, HUD_H, BAR_H } from './app/play';
 import { loadProfile, saveProfile, type Profile } from './app/save';
 import { LAST_WAVE } from './data/waves';
 import { MAPS, mapById, type MapDef } from './data/map';
+import { ENEMIES } from './data/enemies';
 import { SKILLS, SKILL_ORDER, skillProblem } from './data/skills';
 import { clearRun, loadRun, type RunSave } from './app/runsave';
 import { replay } from './sim/commands';
@@ -276,6 +277,7 @@ const app = new App();
 (window as any).__Game = Game;
 (window as any).__Bot = Bot;
 (window as any).__maps = MAPS;
+(window as any).__enemies = ENEMIES;
 (window as any).__skills = SKILL_ORDER;
 // hooks for the e2e harness and for debugging by hand (free placement, no money spent)
 (window as any).__place = (g: Game, id: any, x: number, y: number) => {

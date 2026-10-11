@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
+    "perf": "node e2e/perf.mjs",
     "continue": "node e2e/continue.mjs",
     "smoke": "node e2e/smoke.mjs",
     "shots": "node e2e/shots.mjs",

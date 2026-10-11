@@ -77,6 +77,9 @@ live build (link in the repo's About box). Title → TUTORIAL (first time) or PL
   and `sweep2.mts` (headroom × spacing), `probe.mts` (per-wave power trace), `tune.mts` (old
   per-wave tuner).
 - **Harness**: `npm run screens` (now 17 states × 4 sizes, incl. tutorial, research board, intel
+  `npm run continue` (save and CONTINUE in a browser) and `npm run perf` (Milestone 11's load: 302
+  buildings and 492 enemies at 1920×1080 run at 60 fps average, p95 21 ms, in headless Chrome; the
+  sim alone steps in 2.8 ms, `design/perf.mts`).
   card, a full late-game wall), `npm run shots`, `npm run smoke`; `e2e/peek.mjs` for quick looks.
 
 ## Stubbed or missing (by milestone)
