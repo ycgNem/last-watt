@@ -121,14 +121,14 @@ export const TWO_ROADS: MapDef = {
   ],
   focus: [19.5, 15],
   windMean: 0.55,
-  pace: 1.5,
+  pace: 1.8,
   unlockWave: 8,
   why: {
     w: '§11: 40 × 30 tiles', h: '§11: 40 × 30 tiles',
     hearth: '§11 Two Roads: the Hearth at the foot of the ridge, between the two last legs',
     paths: '§11 Two Roads: 34 and 33 tiles, four and three bends; the last legs run either side of a 3-wide ridge, so a tower on it sees both roads; spawns alternate roads per kind, a clump keeps to one',
     deposits: '§11 Two Roads: one safe south, one north of the ridge behind exposed Nodes, one far west',
-    windMean: '§3.2 wind: 0.55', pace: '§11 Two Roads: spacing × 1.5 (each road sees half the spawns; the bot wins with 5 lights, and slower does not help: the Palls are limited by exposure, not by inflow)',
+    windMean: '§3.2 wind: 0.55', pace: '§11 Two Roads: spacing × 1.8 (each road sees half the spawns; the Palls are limited by exposure, so the pace is set by the crowds of waves 8–12: the bot wins with 5 lights)',
     unlockWave: '§11: reach wave 8 anywhere',
   },
 };

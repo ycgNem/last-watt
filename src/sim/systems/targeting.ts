@@ -37,7 +37,7 @@ export function targetingSystem(g: Game) {
         b.target = first(g, inRange).id;
         break;
       case 'mortar': {
-        if (b.shell < (s.shellSize ?? 0) && b.overcharge <= 0) break;
+        if (b.shell < (s.shellSize ?? 0) || b.sweep > 0) break;
         // the thickest crowd: the enemy with the most others within a burst of it, then the furthest along
         let best: Enemy | null = null, bestN = -1;
         const br = s.burstRadius ?? 1;
@@ -54,9 +54,12 @@ export function targetingSystem(g: Game) {
       }
       default: {
         if (b.def.targeting === 'heaviest') {
-          // hold the lock while it lasts, else the enemy with the most health left
-          const held = inRange.find((e) => e.id === prev);
-          const t = held ?? inRange.reduce((a, e) => (e.hp > a.hp || (e.hp === a.hp && g.left(e) < g.left(a)) ? e : a));
+          // hold the lock while it lasts, else the enemy with the most health left; a Pall drinks
+          // a narrow beam, so it is the target only when nothing else is in reach
+          const clear = inRange.filter((e) => !e.def.narrowBeam);
+          const pool = clear.length ? clear : inRange;
+          const held = pool.find((e) => e.id === prev);
+          const t = held ?? pool.reduce((a, e) => (e.hp > a.hp || (e.hp === a.hp && g.left(e) < g.left(a)) ? e : a));
           if (t.id !== prev) b.sweep = s.sweepTime ?? 0;
           b.target = t.id;
         } else b.target = first(g, inRange).id;

@@ -1,8 +1,9 @@
-// Towers turn satisfaction into damage (§1, §4): kJ/s = draw × efficiency × satisfaction, or 3×
-// the draw at full power during an Overcharge (§8). Lamps and Searchlights are narrow beams (a Pall
-// drinks 3/4); a Floodlight's cone lands 40% on each enemy in it (three or more share all of it)
-// and a Pall shadows everyone behind it; a Brazier burns every body in its fire; a Starshell
-// charges a shell and lobs it. Beacons slow. Then the dead pay their bounty.
+// Towers turn satisfaction into damage (§1, §4): kJ/s = draw × efficiency × satisfaction; an
+// Overcharge triples the draw and is served ahead of every tier (§8). Lamps and Searchlights are
+// narrow beams (a Pall drinks 3/4); a Floodlight's cone lands 40% on each enemy in it (three or
+// more share all of it) and a Pall drinks the rest of the beam, shadowing everyone behind it; a
+// Brazier burns every body in its fire; a Starshell charges up to three shells and lobs them.
+// Beacons slow. Then the dead pay their bounty.
 import { RULES } from '../../data/rules';
 import { DT, type Game } from '../Game';
 import type { Building, Enemy } from '../types';
@@ -26,9 +27,9 @@ export function towersSystem(g: Game) {
     }
     if (d.role !== 'tower') continue;
     const oc = b.overcharge > 0;
-    const power = oc ? RULES.overchargeMult.v : b.sat;
+    const power = (oc ? RULES.overchargeMult.v : 1) * b.sat;
     if (d.kind === 'mortar') {
-      mortar(g, b, oc);
+      mortar(g, b);
       continue;
     }
     if (b.target < 0 || (d.kind === 'beam' && b.sweep > 0)) continue;
@@ -107,24 +108,26 @@ function cone(g: Game, b: Building, target: Enemy, dps: number) {
   let delivered = 0;
   lit.forEach((e, i) => {
     if (pall >= 0 && i > pall) return;
-    // the Pall drinks its own share and every share behind it
-    const k = pall === i ? share * (lit.length - i) : share;
+    // the Pall drinks what is left of the beam once those in front have caught theirs (§5)
+    const k = pall === i ? 1 - share * i : share;
     hurt(g, e, dps * k);
     delivered += dps * k;
   });
   b.dps = delivered;
 }
 
-/** a Starshell charges its shell from what the grid serves it (or 3× on an Overcharge) and fires when full */
-function mortar(g: Game, b: Building, oc: boolean) {
+/** a Starshell charges up to a magazine of shells from what the grid serves it (3× on an
+ *  Overcharge) and lobs one whenever it holds a full shell, a target, and has reloaded (§4.1) */
+function mortar(g: Game, b: Building) {
   const d = g.spec(b);
   const size = d.shellSize ?? 0;
-  if (b.shell < size) {
-    const kw = oc ? (d.chargeDraw ?? 0) * RULES.overchargeMult.v : b.demand * b.sat;
-    b.shell = Math.min(size, b.shell + kw * DT);
+  const cap = size * (d.magazine ?? 1);
+  if (b.shell < cap) {
+    const kw = b.demand * b.sat;
+    b.shell = Math.min(cap, b.shell + kw * DT);
     b.dps = kw * (d.efficiency ?? 0) * Math.min(1, d.catch ? d.catch * 3 : 1);
   }
-  if (b.shell < size || b.target < 0) return;
+  if (b.shell < size || b.target < 0 || b.sweep > 0) return;
   const t = g.enemyById(b.target);
   if (!t) return;
   const ft = d.flightTime ?? 1;
@@ -132,7 +135,8 @@ function mortar(g: Game, b: Building, oc: boolean) {
   const p = g.paths[t.route].at(t.dist + t.def.speed * (1 - t.slow) * ft);
   const cx = b.x + d.size / 2, cy = b.y + d.size / 2;
   g.shots.push({ from: b.id, x0: cx, y0: cy, x: p.x, y: p.y, t: 0, flight: ft, energy: size * (d.efficiency ?? 0), radius: d.burstRadius ?? 1, catch: d.catch ?? 1 });
-  b.shell = 0;
+  b.shell -= size;
+  b.sweep = d.reload ?? 0;
   g.emit({ t: 'shoot', id: b.id, x: cx, y: cy });
 }
 

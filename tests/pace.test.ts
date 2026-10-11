@@ -87,7 +87,7 @@ describe('pace tests (§6)', () => {
     expect(l3).toBeLessThan(l2);
   });
 
-  it('a Jar charges at its 15 kW limit in a breather: two Overcharges in one 20 s gap (§6)', () => {
+  it('a Jar charges at its 15 kW limit in a breather: two Lamp Overcharges (144 kJ each) in one 20 s gap (§6)', () => {
     // two Burners on the Hearth between waves: 48 kW, towers idle at a few kW, so the Jar
     // charges at 15 kW: 300 kJ in the 20 s breather, full in two
     const g = new Game();
@@ -97,7 +97,7 @@ describe('pace tests (§6)', () => {
     settle(g, 10);
     const jar = put(g, 'jar', 22, 18);
     settle(g, RULES.breather.v);
-    expect(jar.charge).toBeGreaterThanOrEqual(2 * RULES.overchargeCost.v);
+    expect(jar.charge).toBeGreaterThanOrEqual(2 * RULES.overchargeMult.v * 12 * RULES.overchargeTime.v);
     settle(g, RULES.breather.v);
     expect(jar.charge).toBeCloseTo(600, 0);
   });

@@ -27,6 +27,9 @@ export interface Stats {
   /** mortar: kW asked while the shell is charging, kJ in a full shell */
   chargeDraw?: number;
   shellSize?: number;
+  /** mortar: shells it can hold, and seconds between two lobs */
+  magazine?: number;
+  reload?: number;
   burstRadius?: number;
   minRange?: number;
   flightTime?: number;
@@ -230,22 +233,22 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   brazier: {
     id: 'brazier', name: 'Brazier', role: 'tower', group: 'light', kind: 'radial', targeting: 'first', size: 2, cost: 60, tier: 2, research: 'brazier',
     blurb: 'Burns every enemy within 2.5 tiles at once. Asks 8 kW for each body in the fire, so a crowd spikes your demand. Heat needs no sight: it burns Veils, and a Pall can\'t drink it.',
-    idleDraw: 1, perEnemyDraw: 8, maxBodies: 8, efficiency: 0.5, range: 2.5,
+    idleDraw: 1, perEnemyDraw: 8, maxBodies: 8, efficiency: 0.65, range: 2.5,
     upgrades: [{
-      cost: 75, research: 'brazier2', blurb: '12 kW per body at 0.6 → 7.2 kJ/s on each enemy in the fire.',
-      stats: { perEnemyDraw: 12, efficiency: 0.6 },
-      why: { cost: '§4 upgrade rule: 60 × 1.25 = 75', perEnemyDraw: '§4 tier rule: 8 × 1.5 = 12 kW per body', efficiency: '§4 tier rule: 0.5 × 1.2 = 0.6' },
+      cost: 75, research: 'brazier2', blurb: '12 kW per body at 0.78 → 9.4 kJ/s on each enemy in the fire.',
+      stats: { perEnemyDraw: 12, efficiency: 0.78 },
+      why: { cost: '§4 upgrade rule: 60 × 1.25 = 75', perEnemyDraw: '§4 tier rule: 8 × 1.5 = 12 kW per body', efficiency: '§4 tier rule: 0.65 × 1.2 = 0.78' },
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Brazier: 60', tier: '§2.3 default tiers: 2 Wall (towers)',
       idleDraw: '§4.1 Brazier: idle 1 kW', perEnemyDraw: '§4.1 Brazier: 8 kW per enemy in range', maxBodies: '§4.1 Brazier: at most 8 bodies (64 kW)',
-      efficiency: '§4.1 Brazier: 0.5 → 4 kJ/s on each', range: '§4.1 Brazier: range 2.5',
+      efficiency: '§4.1 Brazier: 0.65 → 5.2 kJ/s on each (a Flit crossing a bend fire for 2.7 s must take its 14 kJ)', range: '§4.1 Brazier: range 2.5',
     },
   },
   starshell: {
     id: 'starshell', name: 'Starshell', role: 'tower', group: 'light', kind: 'mortar', targeting: 'first', size: 2, cost: 90, tier: 2, research: 'starshell',
-    blurb: 'Charges a 60 kJ shell at 10 kW, holds it, and lobs it at the thickest crowd in reach (2–7 tiles). The burst lands on everything within 1.5 tiles. Charges on spare power between waves.',
-    chargeDraw: 10, shellSize: 60, efficiency: 0.8, range: 7, minRange: 2, burstRadius: 1.5, catch: 0.3, flightTime: 0.8,
+    blurb: 'Charges up to three 70 kJ shells at 10 kW and lobs them at the thickest crowd in reach (2–7 tiles). Each burst lands on everything within 1.5 tiles. It fills on spare power between waves, so each wave opens with three.',
+    chargeDraw: 10, shellSize: 70, magazine: 3, reload: 0.6, efficiency: 0.8, range: 7, minRange: 2, burstRadius: 1.5, catch: 0.3, flightTime: 0.8,
     upgrades: [{
       cost: 113, research: 'star2', blurb: 'Charges at 15 kW with 0.96 efficiency: half again as many shells, each 20% brighter.',
       stats: { chargeDraw: 15, efficiency: 0.96 },
@@ -253,8 +256,9 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Starshell: 90', tier: '§2.3 default tiers: 2 Wall (towers)',
-      chargeDraw: '§4.1 Starshell: charges at 10 kW', shellSize: '§4.1 Starshell: 60 kJ shell (6 s at full power)',
-      efficiency: '§4.1 Starshell: 0.8 → 48 kJ of light a shell', range: '§4.1 Starshell: range 7', minRange: '§4.1 Starshell: not within 2 tiles',
+      chargeDraw: '§4.1 Starshell: charges at 10 kW', shellSize: '§4.1 Starshell: 70 kJ shell (a four-Flit clump needs 4 × 14 = 56 kJ landed; 56 / 0.8 = 70)',
+      magazine: '§4.1 Starshell: holds three shells (210 kJ, 21 s at 10 kW: full inside the breather and the walk)', reload: '§4.1 Starshell: 0.6 s between lobs (a Flit clump spans 2.4 s)',
+      efficiency: '§4.1 Starshell: 0.8 → 56 kJ of light a shell', range: '§4.1 Starshell: range 7', minRange: '§4.1 Starshell: not within 2 tiles',
       burstRadius: '§4.1 Starshell: burst 1.5 tiles', catch: '§4.1 Starshell: each enemy catches 0.3 of a burst', flightTime: '§4.1 Starshell: 0.8 s in the air (it leads its target)',
     },
   },

@@ -28,6 +28,9 @@ export interface BotPlan {
   upgrades: BuildingId[];
   /** generation the bot keeps above the wall's full firing draw, as a fraction */
   headroom: number;
+  /** a slower, plainer player: acts once a second, Overcharges only a cone, a Brazier or a
+   *  Starshell, and only on a Pall (the 'human' check in tests/bot.test.ts) */
+  human?: boolean;
 }
 
 export const BOT_PLAN: BotPlan = {
@@ -56,6 +59,14 @@ export const BOT_PLAN: BotPlan = {
     { b: 'lamp', x: 29, y: 13 },
     { b: 'starshell', x: 29, y: 15 },
     { b: 'lamp', x: 29, y: 9 },
+    // late: the first straight (a Floodlight looking down it) behind a Node out of Shade reach,
+    // and long reach from the far side of bend B
+    { b: 'node', x: 17, y: 9 },
+    { b: 'brazier', x: 16, y: 7 },
+    { b: 'floodlight', x: 14, y: 7 },
+    { b: 'searchlight', x: 31, y: 12 },
+    { b: 'lamp', x: 12, y: 7 },
+    { b: 'starshell', x: 31, y: 9 },
   ],
   power: [
     [{ b: 'extractor', x: 15, y: 19 }, { b: 'burner', x: 13, y: 18 }],
@@ -290,12 +301,18 @@ export class Bot {
       const t = g.enemyById(b.target);
       if (!t) continue;
       const heavyLate = (t.def.id === 'shade' || t.def.id === 'snuffer' || t.def.id === 'veil') && g.left(t) < 14 && t.hp > 40;
-      if (t.def.id === 'pall' || heavyLate || (close >= 3 && b.def.kind !== 'beam') || close >= 5) {
+      if (this.plan.human ? t.def.id === 'pall' && b.def.kind !== 'beam' : t.def.id === 'pall' || heavyLate || (close >= 3 && b.def.kind !== 'beam') || close >= 5) {
         if (!pick || (pick.def.kind === 'beam' && b.def.kind !== 'beam')) pick = b;
         if (b.def.kind !== 'beam') break;
       }
     }
-    if (pick) overcharge(g, pick);
+    // an Overcharge pays in live power: only when spare kW or the Jars on its network can cover the
+    // extra for the whole burst, so it doesn't starve the rest of the wall
+    if (pick) {
+      const n = g.networkOf(pick)!;
+      const extra = (RULES.overchargeMult.v - 1) * fullDraw(g, pick);
+      if (n.wasted >= extra || n.stored >= extra * RULES.overchargeTime.v) overcharge(g, pick);
+    }
     // Pulse: when the Jars are mostly full and a crowd (or a Pall) is inside the flashes
     if (g.research.done.has('pulse') && g.grid.stored >= g.grid.capacity * 0.6 && !pulseProblem(g)) {
       const lit = [...g.buildings.values()].filter((b) => b.def.role === 'tower' && !b.off && b.sat > 0);
@@ -324,7 +341,7 @@ export class Bot {
 /** play a whole run headlessly; returns the final game */
 export function playRun(g: Game, bot = new Bot(), maxSeconds = 1800): Game {
   for (let t = 0; t < maxSeconds * 60 && !g.over; t++) {
-    if (t % 6 === 0) bot.act(g);
+    if (t % (bot.plan.human ? 60 : 6) === 0) bot.act(g);
     g.step();
     g.drainEvents();
   }

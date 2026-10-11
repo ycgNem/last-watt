@@ -96,38 +96,17 @@ export function storedFor(g: Game, b: Building): number {
 export function overchargeProblem(g: Game, b: Building): string | null {
   if (b.def.role !== 'tower') return 'Only towers overcharge';
   if (b.overcharge > 0) return 'Already overcharged';
-  if (b.cool > 0) return `The glass is cooling: ${Math.ceil(b.cool)} s`;
   if (b.net < 0) return 'Not on a network';
-  const n = g.networkOf(b)!;
-  if (n.capacity <= 0) return 'Needs a Jar on this network';
-  if (jarCharge(g, b) < RULES.overchargeCost.v) return `Needs ${RULES.overchargeCost.v} kJ stored`;
+  if (b.off) return 'It is shed (X)';
   return null;
 }
 
-function jarCharge(g: Game, b: Building): number {
-  let sum = 0;
-  for (const id of g.networkOf(b)?.members ?? []) {
-    const j = g.buildings.get(id)!;
-    if (j.def.role === 'storage') sum += j.charge;
-  }
-  return sum;
-}
-
-/** 120 kJ straight from the Jars: the tower runs at 3× its draw for 4 s at full power (§8) */
+/** for 4 s the tower asks 3× its draw, served before every tier: from spare power, then the
+ *  Jars (up to their discharge rate), then whatever the rest of the grid was getting (§8) */
 export function overcharge(g: Game, b: Building): string | null {
   const why = overchargeProblem(g, b);
   if (why) return why;
-  let need = RULES.overchargeCost.v;
-  const jars = (g.networkOf(b)?.members ?? []).map((id) => g.buildings.get(id)!).filter((j) => j.def.role === 'storage');
-  jars.sort((a, c) => c.charge - a.charge);
-  for (const j of jars) {
-    const take = Math.min(j.charge, need);
-    j.charge -= take;
-    need -= take;
-    if (need <= 0) break;
-  }
   b.overcharge = RULES.overchargeTime.v;
-  b.cool = RULES.overchargeTime.v + RULES.overchargeCool.v;
   g.stats.overcharges++;
   if (g.stats.firstOvercharge < 0) g.stats.firstOvercharge = g.tick;
   g.emit({ t: 'overcharge', id: b.id, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });

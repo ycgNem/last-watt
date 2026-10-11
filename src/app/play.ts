@@ -476,6 +476,29 @@ export class Play {
 
   // ---- power forecasts (the core idea, said in numbers) ----
 
+  /** kW a tower asks while Overcharged (3× its firing draw; a Brazier counts a crowd of three) */
+  private overchargeAsk(b: Building): number {
+    const d = this.game.spec(b);
+    const base = d.kind === 'radial' ? (d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * Math.max(1, b.bodies || 3) : d.kind === 'mortar' ? d.chargeDraw ?? 0 : d.firingDraw ?? 0;
+    return Math.round(base * RULES.overchargeMult.v);
+  }
+
+  /** about how much more an Overcharge would land on what the tower is aiming at, in 4 s */
+  private overchargeYield(b: Building): string {
+    const g = this.game, d = g.spec(b);
+    const t = b.target >= 0 ? g.enemyById(b.target) : undefined;
+    const extra = (RULES.overchargeMult.v - 1) * RULES.overchargeTime.v;
+    if (d.kind === 'mortar') return `Charges its shells ${RULES.overchargeMult.v}× as fast: about ${Math.floor((extra * (d.chargeDraw ?? 0)) / (d.shellSize ?? 1))} more shells.`;
+    if (!t) return 'No target now: it would idle at 3× its idle draw.';
+    const per = d.kind === 'radial' ? (d.perEnemyDraw ?? 0) * Math.max(1, b.bodies) : d.firingDraw ?? 0;
+    let catchK = 1, note = '';
+    if (d.kind === 'beam' && t.def.narrowBeam) {
+      catchK = t.def.narrowBeam;
+      note = ` (a ${t.def.name} drinks ${Math.round((1 - catchK) * 100)}% of a narrow beam)`;
+    } else if (d.kind === 'cone' && !t.def.shadow) catchK = 0.4;
+    return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ on the ${t.def.name}${note}, at full service.`;
+  }
+
   /** supply the grid makes now (without Jars), and what the wall and works would ask at full fire */
   budget(extra = 0) {
     const g = this.game;
@@ -578,7 +601,7 @@ export class Play {
       ui.icon('jar', tx - 3, 6);
       const jw = Math.max(ui.text(`${Math.round(gr.stored)}`, tx + 12, 6, C.gold), 22);
       ui.bar(tx + 12, 16, jw, 5, gr.stored / gr.capacity, C.gold);
-      if (ui.hover(tx - 3, 0, jw + 16, HUD_H)) ui.tooltip([{ text: `Stored: ${Math.round(gr.stored)} of ${gr.capacity} kJ` }, { text: `Jars fill from wasted power and give it back when demand beats supply. Overcharge (E) costs ${RULES.overchargeCost.v} kJ.` }]);
+      if (ui.hover(tx - 3, 0, jw + 16, HUD_H)) ui.tooltip([{ text: `Stored: ${Math.round(gr.stored)} of ${gr.capacity} kJ` }, { text: 'Jars fill from wasted power and give it back when demand beats supply. An Overcharge (E) drinks from them first.' }]);
       tx += 12 + jw + 8;
     }
     const pb = this.budget();
@@ -816,11 +839,12 @@ export class Play {
           out.push({ text: `Range ${d.minRange}-${d.range}. Aims at the thickest crowd.` });
         } else {
           out.push({ text: `Asks ${d.firingDraw} kW firing, ${d.idleDraw} kW idle.` });
-          out.push({ text: `${b.target >= 0 ? 'Firing' : 'Would fire'}: ${((d.firingDraw ?? 0) * (d.efficiency ?? 0) * p).toFixed(1)} of ${((d.firingDraw ?? 0) * (d.efficiency ?? 0)).toFixed(1)} kJ/s${d.kind === 'cone' ? ' over the cone' : ''}.`, color: b.sat < RULES.starvedBelow.v && !oc ? C.violet : C.amber });
+          const full = (d.firingDraw ?? 0) * (d.efficiency ?? 0);
+          out.push({ text: b.target >= 0 ? `Landing ${b.dps.toFixed(1)} kJ/s now (${full.toFixed(1)} at full power${d.kind === 'cone' ? '; a lone enemy in the cone catches 40%' : ''}).` : `Would fire ${(full * p).toFixed(1)} of ${full.toFixed(1)} kJ/s.`, color: b.sat < RULES.starvedBelow.v && !oc ? C.violet : C.amber });
+          if (d.kind === 'cone') out.push({ text: 'Best where enemies line up in the cone: the outside of a bend, or looking down a straight.', color: C.ash });
           out.push({ text: `Range ${d.range}. ${d.targeting === 'heaviest' ? 'Locks onto the heaviest enemy in reach.' : 'Targets the enemy nearest the Hearth.'}` });
         }
-        if (oc) out.push({ text: `OVERCHARGED ${b.overcharge.toFixed(1)}s`, color: C.bone });
-        else if (b.cool > 0) out.push({ text: `Glass cooling: ${Math.ceil(b.cool)} s before the next Overcharge.`, color: C.ash });
+        if (oc) out.push({ text: `OVERCHARGED ${b.overcharge.toFixed(1)}s: asking ${b.demand.toFixed(0)} kW ahead of everything, getting ${Math.round(b.sat * 100)}%`, color: C.bone });
         if (b.satAvg < RULES.veilSight.v && !oc && d.kind !== 'radial') out.push({ text: 'Below 60%: it cannot see Veils.', color: C.violet });
         break;
       }
@@ -852,7 +876,7 @@ export class Play {
       case 'storage':
         out.push({ text: `Stored ${Math.round(b.charge)}/${d.capacity} kJ.` });
         out.push({ text: b.flow > 0.1 ? `Charging ${b.flow.toFixed(0)} kW` : b.flow < -0.1 ? `Discharging ${(-b.flow).toFixed(0)} kW` : 'Idle', color: C.amber });
-        out.push({ text: `Overcharge costs ${RULES.overchargeCost.v} kJ from Jars on the tower's network.` });
+        out.push({ text: 'An Overcharge drinks from the Jars on its network first, before the rest of the wall.' });
         break;
       case 'lab': {
         const id = g.research.active;
@@ -933,8 +957,9 @@ export class Play {
     }
     if (isTower) {
       const why = overchargeProblem(g, b);
-      const label = b.cool > 0 && b.overcharge <= 0 ? `OVERCHARGE (E) ${Math.ceil(b.cool)}s` : `OVERCHARGE (E) ${RULES.overchargeCost.v} kJ`;
-      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `${RULES.overchargeCost.v} kJ straight from the Jars: 3× its draw for 4 s at full power, whatever the grid is doing. Then the glass cools ${RULES.overchargeCool.v} s.`, ...(why ? [why] : [])] })) this.act(overcharge(g, b));
+      const ask = this.overchargeAsk(b);
+      const label = `OVERCHARGE (E) ${ask} kW`;
+      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else: spare power first, then the Jars, then whatever the rest of the wall was getting. Big Overcharges with no Jars behind them starve the wall.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(overcharge(g, b));
       y += 16;
     }
     if (up) {

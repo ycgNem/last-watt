@@ -127,7 +127,15 @@ beam lands only partly on one body: against one enemy it delivers 0.4 × 14.4 = 
 target, so it almost never landed on Moths spaced 2–3 tiles apart and read as Mindustry's Arc minus
 the arc. A 30° cone 5 tiles long holds two or three spaced Moths on a straight, and the Pall's
 shadow becomes literal: everyone further from the glass than a Pall in the cone gets nothing, and
-the Pall takes their shares.
+the Pall drinks **what is left of the beam** once those in front have caught theirs (k = 1 −
+share × its place). A lone Pall takes all 14.4 kJ/s. *Second review:* the code had the Pall take
+only its own share plus the shares behind it, so a lone Pall caught 0.4 and the Floodlight that
+the intel card recommends could not kill one; this restores §5's text and §6's Pall sum.
+
+Where a cone works: at the **outside** of a bend or looking down a straight, where enemies line
+up inside 60°. At the inside of a bend the two legs are 90° or more apart from the tower and the
+cone covers one leg (the second review measured one kill from a Floodlight inside bend B against
+wave 5). The tooltip says so, and the ghost should show the wedge (backlog).
 
 **Upgrade tier rule**: each tier multiplies damage by **1.8** and firing draw by **1.5**
 (so efficiency rises by 1.2× per tier; upgrades are a slightly better use of watts, but they
@@ -149,8 +157,8 @@ and each unlocked by research (§7) so a first run starts with the slice's three
 | Tower | Cost | Draw | Eff. | Damage at full power | Range | Behavior |
 |---|---|---|---|---|---|---|
 | **Searchlight** | 70 | idle 2, firing **30** kW | 0.60 | 18 kJ/s | **7** | a narrow beam (a Pall drinks 3/4) that locks onto the enemy with the **most health left** in reach and holds it; **0.5 s** to swing onto a new target |
-| **Brazier** | 60 | idle 1 + **8 kW for each body** in range (up to 8) | 0.50 | 4 kJ/s on **each** | 2.5 | burns everything in range at once; heat needs no sight (it finds Veils) and a Pall can't drink it |
-| **Starshell** | 90 | **10 kW** while its shell charges, 0 when full | 0.80 | a 60 kJ shell bursts into 48 kJ; each enemy within 1.5 tiles catches **0.3** (four or more share it) | 2–7 | charges and holds one shell, lobs it at the thickest crowd, leading its target by its 0.8 s flight |
+| **Brazier** | 60 | idle 1 + **8 kW for each body** in range (up to 8) | **0.65** | 5.2 kJ/s on **each** | 2.5 | burns everything in range at once; heat needs no sight (it finds Veils) and a Pall can't drink it |
+| **Starshell** | 90 | **10 kW** while its magazine isn't full, 0 when full | 0.80 | a **70 kJ** shell bursts into 56 kJ; each enemy within 1.5 tiles catches **0.3** (four or more share it) | 2–7 | charges and holds up to **three** shells, lobs them **0.6 s** apart at the thickest crowd, leading its target by its 0.8 s flight |
 
 Why these numbers:
 - *Searchlight.* At range 7 beside a straight it covers 2√(49 − 2.25) = 13.7 tiles, more than
@@ -160,15 +168,22 @@ Why these numbers:
   reach and targeting, paid for in a 30 kW lump a small grid can't feed. The swing delay keeps it
   bad against Flit clumps, where a fresh target every half-second wastes it.
 - *Brazier.* Its draw scales with the bodies in its fire, so a crowd spikes demand: it is the
-  tower that most directly turns a wave into a brownout, which is the point (pillar 1). At 4 kJ/s
-  a body, a Moth crossing its ~4 tiles of path in 2.7 s takes 11 kJ; behind a Beacon (1.67×) 18;
-  a clump of eight Flits all burn at once. Heat is the light fiction's one non-beam: it is what
-  finds Veils and what a Pall can't shadow.
-- *Starshell.* It charges at 10 kW only while its shell isn't full, so it charges on spare power
-  between waves and opens every wave with a burst, a small storage consumer. At full power a shell
-  every 6 s is 8 kJ/s at full catch: weak on singles (14.4 kJ a burst), strong on clumps, and the
-  one wall answer that reaches 7 tiles over a crowd. The catch rule is the Floodlight's: area
-  light lands on what's in it.
+  tower that most directly turns a wave into a brownout, which is the point (pillar 1). **0.65**
+  (second review; was 0.5): a Flit crossing a bend's fire (about 7 tiles at 2.6 t/s = 2.7 s)
+  must take its 14 kJ, 14 / 2.7 = 5.2 kJ/s = 8 kW × 0.65. At 0.5 it took 10.8 and the review's
+  Brazier killed none of eight Flits. Tier 2 by the rule: 12 kW at 0.78. A Moth crossing its fire
+  takes 14 kJ; behind a Beacon (1.67×) 23. It is budgeted at a crowd of three (25 kW) but can ask
+  65 kW with eight bodies; the forecast names that worst case. Heat is the light fiction's one
+  non-beam: it is what finds Veils and what a Pall can't shadow.
+- *Starshell.* It charges at 10 kW only while its magazine isn't full, so it fills on spare power
+  between waves: storage you can shoot (pillar 2). **Second review:** with one 60 kJ shell it was
+  dominated by the Lamp (0.066 kJ/s per money against 0.103) and had a perverse threshold (four
+  Flits in a burst took 12 kJ each, none died; three took 14.4, all died). Now the shell is **70
+  kJ** (a four-Flit clump needs 4 × 14 = 56 kJ landed; 56 / 0.8 = 70) and it holds **three**
+  (210 kJ = 21 s at 10 kW, full inside the 20 s breather plus the walk), lobbed **0.6 s** apart
+  (a Flit clump spans 2.4 s), so every wave opens with three bursts, 168 kJ of light bought with
+  power that would otherwise be wasted. The catch rule is the Floodlight's: area light lands on
+  what's in it.
 
 
 ## 5. Enemies
@@ -220,18 +235,26 @@ the first time it appears. Flits come in clumps of eight, 0.3 s apart inside a c
 |---|---|---|---|---|---|
 | 1 | 8 Moth | 240 | 40 | 20 | 2.25 s |
 | 2 | 12 Moth | 360 | 60 | 25 | 1.9 s |
-| 3 | 10 Moth, 2 Shade | 480 | 78 | 30 | 3.0 s |
+| 3 | 10 Moth, 2 Shade | 480 | 78 | 30 | **2.4 s** |
 | 4 | 12 Moth, 3 Shade, 8 Flit (new) | 742 | 118 | 35 | 2.2 s |
 | 5 | 10 Moth, 1 Pall, 8 Flit | 812 | 126 | 40 | 1.6 s |
 | 6 | 16 Moth, 4 Shade, 16 Flit | 1,064 | 168 | 45 | 1.2 s |
 | 7 | 14 Moth, 6 Veil (new), 2 Shade | 1,020 | 164 | 50 | 1.4 s |
-| 8 | 18 Moth, 9 Shade, 2 Pall | 2,150 | 336 | 55 | 0.6 s |
-| 9 | 18 Moth, 3 Snuffer (new), 4 Veil, 16 Flit | 1,524 | 238 | 60 | 0.85 s |
-| 10 | 20 Moth, 4 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit | 2,184 | 340 | 65 | 0.65 s |
-| 11 | 30 Moth, 9 Shade, 4 Veil, 3 Pall, 16 Flit | 3,414 | 532 | 70 | 0.42 s |
-| 12 | 40 Moth, 8 Shade, 8 Veil, 4 Snuffer, 5 Pall, 24 Flit | 5,456 | 844 | 75 | 0.38 s |
+| 8 | 24 Moth, 12 Shade, 2 Pall | 2,600 | 408 | 55 | 0.6 s |
+| 9 | 20 Moth, 4 Snuffer (new), 4 Veil, 24 Flit | 1,856 | 290 | 60 | 0.85 s |
+| 10 | 26 Moth, 7 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit | 2,634 | 412 | 65 | 0.65 s |
+| 11 | 38 Moth, 13 Shade, 4 Veil, 3 Pall, 16 Flit | 4,014 | 628 | 70 | 0.42 s |
+| 12 | 46 Moth, 11 Shade, 8 Veil, 4 Snuffer, 5 Pall, 32 Flit | 6,018 | 932 | 75 | 0.38 s |
 
-Total: 3,044 bounty and 570 wave pay. A run is about 17 minutes.
+Total: about 3,400 bounty and 570 wave pay. A run is about 17 minutes.
+
+*Second review (waves 3 and 8–12).* Wave 3 was 3.0 s apart, looser than wave 2 (13.3 against
+15.8 kJ/s), so the money split only bit at wave 4, as a cliff (a one-Burner player leaked 10).
+At **2.4 s** it is 16.7 kJ/s, 1.2× a one-Burner wall's 14 kJ/s: §6's rule says that leaks 0–2,
+so the split bites a wave earlier and gently. Waves 8–12 gained about a fifth more kJ in Moths,
+Shades and Flits (not Palls: an extra Pall moves results in 5-light steps, see §6) after the
+model fixes below made the reference plan win untouched; spacing alone did nothing, because the
+late wall kills whatever arrives and only more kJ adds pressure.
 
 ### 5.1 The new things of the Dim (Milestone 4, as built)
 
@@ -317,11 +340,13 @@ its own, or five **Overcharges** (§8). By then the grid's spare power between w
 the Jar's 15 kW charge limit, so it fills in 40 s, inside one 45 s wave timer; the rest shows as
 **wasted** on the HUD, the nudge toward a second Jar or a Lab.
 
-**The Pall needs burst.** A Floodlight at the inside of a bend covers about 12.5 tiles of path, so
-a Pall (0.6 t/s) is in its beam for about 21 s and takes about 300 kJ of its 400. One Overcharge
-adds about 115 kJ over the Floodlight's normal output (43.2 − 14.4 kJ/s for 4 s): together, just
-enough. A Lamp at a bend gives a Pall about 93 kJ. No single tower stops a Pall on plain grid
-power; this is what the Jar is for.
+**The Pall needs burst.** A Floodlight that has the Pall alone in its cone gives it the whole
+beam, 14.4 kJ/s; at bend B that is about 18 s, 259 kJ. One Overcharge adds 115 kJ over the
+Floodlight's normal output (43.2 − 14.4 kJ/s for 4 s), and the bend Lamp's narrow beam 23: about
+397 of the Pall's 400, just enough. No single tower stops a Pall on plain grid power; burst is
+what the Jar is for. (Second review: the code gave a lone Pall only 0.4 of the cone, 5.8 kJ/s,
+and the review measured 91–120 kJ from a Floodlight; this paragraph is the arithmetic the fix
+restores, tested in `tests/grid.test.ts`.)
 
 **Every wave: the throughput check.** Spacing for wave n = average health per spawn ÷ (1.2 × the
 wall a player can afford by then). The affordable wall is 12 kJ/s at wave 1 plus about 0.1 kJ/s
@@ -398,7 +423,8 @@ full-fire draw would exceed generation × headroom. A sweep over headroom showed
 
 | Headroom (full-fire draw ÷ generation it allows) | 1.2 | 1.4 | 1.8 | 2.2 | 2.5 | 3.0 |
 |---|---|---|---|---|---|---|
-| Result (lights left) | lose w8 | win, 9 | win, 20 | win, 10 | lose w11 | lose w8 |
+| Result (lights left), first session's model | lose w8 | win, 9 | win, 20 | win, 10 | lose w11 | lose w8 |
+| Result (lights left), after the second review | win, 5 | win, 7 | **win, 15** | win, 6 | lose w12 | win, 1 |
 
 Too much factory (1.2) leaves the wall too small; too little (2.5+) browns out (106 s of brownout
 at 3.0) and Veils walk. The winning band is 1.4–2.2 (measured after the bot's plan was fixed to
@@ -414,6 +440,21 @@ and every headroom loses. Without Jars the plan loses in wave 11: storage is loa
 Pall leaks are the swing: at 5 lights each, one Pall is a quarter of the margin, so results jump
 in steps of 5. That is acceptable for a run whose climax is Palls; the critic should judge it.
 
+**After the second review** (Overcharge on live power, the Pall drinking a lone cone, the
+Brazier at 0.65, the Starshell's magazine, wave 3 at 2.4 s, waves 8–12 a fifth heavier). The
+review found the grid slack after wave 3 (wall share 1.00 in every wave, 0 s of brownout) and
+the 1.8 plan winning 20/20 on every seed. Now: the 1.8 plan wins with **15** and spends **44 s
+in brownout** (its Overcharges pull the rest of the wall down when the Jars can't cover them);
+the sweep's ends still cost most of the margin (1.2 ends on 5, 3.0 on 1, 2.5 loses); a "human"
+profile (acts once a second, Overcharges only a cone, a Brazier or a Starshell, only on a Pall)
+wins with 17; without Jars the plan ends on 9 (Jars are no longer required to Overcharge, so
+storage costs lights instead of the run). The bot's plan gained six late wall spots (a Node out
+of Shade reach on the first straight, a Floodlight looking down it, a Brazier, a Lamp, a
+Searchlight and a Starshell behind bend B): with the heavier waves it ran out of spots and ended
+some runs with 1,500 money unspent, which measured the plan, not the game. Tests: the plan wins
+with 10–16 lights and more than 10 s of brownout; the human profile wins with 6 or more; 1.2
+and 3.0 end with at most half the plan's lights; no Jars ends at least 5 lights worse.
+
 **The pace tests assert**, on the real slice map, with layouts named by where the Lamps stand:
 - wave 1: layout **A** (two Lamps at the inside of the bends, Burner fed) leaks ≤ 2; layout **S**
   (the same two Lamps on straights) leaks at least 2 more than A; layout **B** (four Lamps, no
@@ -422,13 +463,14 @@ in steps of 5. That is acceptable for a run whose climax is Palls; the critic sh
 - a Jar charges at its 15 kW limit in a breather: two Overcharges' worth in one 20 s gap, full in two;
 - a far Lamp fed by Nodes inside a Shade's reach loses ≥ 10 s of uptime in wave 3; fed from Nodes
   out of reach, none;
-- the bot wins the whole run with at least 8 lights; with no factory it loses by wave 4; with too
-  much factory (headroom 1.2) and with too little (3.0) it loses; without Jars it loses
+- the bot wins the whole run with 10–16 lights and some brownout; a slower "human" profile wins
+  with 6 or more; with no factory it loses by wave 4; with too much factory (headroom 1.2) and
+  with too little (3.0) it keeps at most half the plan's lights; without Jars, at least 5 fewer
   (`tests/bot.test.ts`);
 - the new mechanics' arithmetic (`tests/grid.test.ts`): the cone's 0.4 catch and the Pall's
   shadow, the Brazier's per-body draw, the Searchlight's lock and swing, the Starshell's shell and
   burst, the Veil's sight line, the Snuffer's reach, the Vane's average, Bellows, the Long line's
-  loss, wave pay, the dimming Hearth and Overcharge's cooling.
+  loss, wave pay, the dimming Hearth, Overcharge on live power, the Starshell's magazine, Pulse.
 
 If the real map's bends differ from the reference path, tune **wave 1's spacing** (2.0–2.4 s;
 at 2.5 s on the reference path the straights stop leaking too and the placement lesson is gone)
@@ -468,22 +510,26 @@ bank), refiners (emberrock → coke, 2.5× energy density), towers, gaffer abili
 
 ## 8. Gaffer abilities (stored energy, mid-wave)
 
-Abilities draw **directly from batteries** on the target's own network, ignoring tiers and
-satisfaction. No storage, no abilities; a Jar cut off by a Shade can't pay. Slice set:
+Abilities spend energy the grid has: an Overcharge pulls live power ahead of every tier, Jars
+first; Pulse empties the Jars. A Jar cut off by a Shade can't pay. Slice set:
 
-- **Overcharge** (flat 120 kJ from storage): one tower fires at 3× its firing draw for 4 s at
-  satisfaction 1.0 regardless of the grid. On a Lamp that is 72 kJ of damage (a panic button:
-  two Moths); on a Floodlight 173 kJ, shared across a crowd or all of it into a Pall
-  (a real play). It works on every tower kind by the same rule, 3× whatever it draws: a Brazier
-  burns each body at 3×, a Starshell charges its shell at 3× (a shell every 2 s), a Searchlight
-  fires at 90 kW. **Then the glass cools for 10 s** before it can take another (second session):
-  the first review counted about 55 Overcharges a run and the critic asked whether it had become
-  the dominant verb. A 14 s cycle per tower keeps it a choice of *which* tower, not a rhythm on
-  one; a run still fires about 55, spread over the wall. An Overcharged tower also blows away a
-  Veil's cover (§5.1).
-  The flat price is deliberate, and it is the one place the model gives energy away: the
-  tripled draw is 144 kJ on a Lamp and 288 kJ on a Floodlight, and the gaffer pays 120 either
-  way. It makes Overcharge scale with the tower, so upgrading towers also upgrades the gaffer.
+- **Overcharge** (second review: **live power, no flat price, no cooldown**): for 4 s one tower
+  asks **3× its draw** and is served in a tier of its own **ahead of Works**: from spare power,
+  then the Jars on its network (up to their discharge rate), then whatever the rest of the grid
+  was getting. It fires at 3× its draw × what it is served. On a Lamp that is 36 kW and 72 kJ of
+  damage; on a Floodlight 72 kW and 173 kJ, shared across a crowd or all of it into a Pall. Every
+  tower kind follows the same rule: a Brazier burns each body at 3×, a Starshell charges at 30 kW,
+  a Searchlight asks 90 kW. An Overcharged tower also blows away a Veil's cover (§5.1).
+  *Why it changed.* The second review measured the grid slack after wave 3 (wall share 1.00 in
+  every wave, 0 s of brownout), with Overcharge as the only verb that changed outcomes and tiers
+  and shed doing nothing. The flat 120 kJ was "the one place the model gave energy away", and
+  the 10 s cooldown pushed Overcharges onto whatever tower was ready (the bot put 30 of 73 into
+  Lamps on Palls: 18 kJ of damage for 120 stored). On live power the price is the rest of the
+  wall: Overcharging a tier-2 Floodlight (108 kW) with two Jars behind it (60 kW of discharge)
+  takes 48 kW from the other towers, Veils slip past them, and now *where the watts go* is the
+  decision mid-wave (pillar 1). A Jar is no longer required, but without one an Overcharge
+  starves the wall for its 4 s (tested). The bot now Overcharges only when spare power or its
+  network's Jars cover the extra; its brownout went from 0 to 44 s a run.
 - **Shed** (free): toggle a tower, sector or building to off/another tier. This is a UI verb,
   but it is the most important one and gets a hotkey and a visible dimming.
 
@@ -536,7 +582,7 @@ wave 8 (lenient on purpose: the owner wants to see the content).
 |---|---|---|---|---|---|
 | **The Last Station** | one, 41 tiles, two bends facing the Hearth | two near, one far | 0.55 | 1.0 | the slice: bends vs straights (§6) |
 | **The Switchback** | one, 72 tiles, five bends; the first and fourth legs run 7 tiles apart | one near, one *inside* the strip between those legs, one far | **0.7** | 1.0 | the strip is the best ground on the map (a Lamp there reaches both legs) and every Node in it is within a Shade's 2.5; a windy plateau makes Vanes worth 10.5 kW on average (4.8 money per average kW, still more than a Burner's 3.2) |
-| **Two Roads** | two, 34 and 33 tiles, from the west and the east; their last legs run down either side of a **3-wide ridge** to the Hearth | one safe south, one north of the ridge, one far west | 0.55 | **1.5** | the ridge is the only ground that sees both roads (a Lamp on it sits 1.5 from one road and 2.5 from the other: 6.3 + 4.9 tiles of beam), it holds one tower per two rows, and only its lower half is inside the Hearth's reach; the rest hangs off a ridge Node that every Shade on either road can cut. Everything off the ridge covers one road. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road, so each road sees half of every kind |
+| **Two Roads** | two, 34 and 33 tiles, from the west and the east; their last legs run down either side of a **3-wide ridge** to the Hearth | one safe south, one north of the ridge, one far west | 0.55 | **1.8** | the ridge is the only ground that sees both roads (a Lamp on it sits 1.5 from one road and 2.5 from the other: 6.3 + 4.9 tiles of beam), it holds one tower per two rows, and only its lower half is inside the Hearth's reach; the rest hangs off a ridge Node that every Shade on either road can cut. Everything off the ridge covers one road. Spawns alternate roads per kind (a Flit clump keeps to one), and each wave starts on the other road, so each road sees half of every kind |
 
 Why those paces. **Exposure, not inflow, sets the pace on a long road.** The Switchback was first
 set to 0.8 on the reasoning that 1.75× the road gives 1.75× the time on each enemy, so the waves
@@ -552,6 +598,10 @@ grazes a road at exactly 3.5 (zero tiles of beam). At 3 wide every ridge tower s
 the ridge the bot wins at 1.2–1.8 but always loses the wave-8 Palls (400 kJ each, 0.6 t/s): a
 Pall is limited by the burst on its own road, not by inflow, so slower waves do not help either
 (1.5 to 1.8 all end at 5 lights). Pace 1.5 is the fastest at which the bot keeps that margin.
+After the second review's heavier waves 8–12 the bot lost wave 8 at 1.5 and won with 5 lights
+at **1.8**, now the map's pace. The Switchback stays at 1.0 and is the forgiving map since the
+review's changes (the bot wins 20/20; at 0.9 it still wins with 18, at 0.8 the early waves
+outrun its opening).
 Two Roads is the hard map on purpose: it opens at wave 8.
 
 Per-kind alternation (not per-spawn): with one counter, a wave whose sequence puts its Palls on

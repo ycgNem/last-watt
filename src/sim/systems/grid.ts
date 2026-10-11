@@ -78,13 +78,15 @@ export function demandOf(g: Game, b: Building): number {
   if (b.off || g.tierOff[b.tier]) return 0;
   const d = g.spec(b);
   switch (d.role) {
-    case 'tower':
-      if (b.overcharge > 0) return 0; // Overcharge runs on storage, not the grid (§8)
+    case 'tower': {
+      // an Overcharge asks 3× whatever the tower would ask, ahead of every tier (§8)
+      const k = b.overcharge > 0 ? RULES.overchargeMult.v : 1;
       switch (d.kind) {
-        case 'radial': return (d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies;
-        case 'mortar': return b.shell < (d.shellSize ?? 0) ? d.chargeDraw ?? 0 : 0;
-        default: return b.target >= 0 && b.sweep <= 0 ? d.firingDraw ?? 0 : d.idleDraw ?? 0;
+        case 'radial': return k * ((d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies);
+        case 'mortar': return b.shell < (d.shellSize ?? 0) * (d.magazine ?? 1) ? k * (d.chargeDraw ?? 0) : 0;
+        default: return k * (b.target >= 0 && b.sweep <= 0 ? d.firingDraw ?? 0 : d.idleDraw ?? 0);
       }
+    }
     case 'beacon':
       return d.constantDraw ?? 0;
     case 'extractor':
@@ -102,6 +104,7 @@ export function fullDraw(g: Game, b: Building): number {
   const d = g.spec(b);
   switch (d.role) {
     case 'tower':
+      // a Brazier is budgeted at a crowd of three; the forecast names its worst case (maxBodies)
       if (d.kind === 'radial') return (d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * 3;
       if (d.kind === 'mortar') return d.chargeDraw ?? 0;
       return d.firingDraw ?? 0;
@@ -110,6 +113,11 @@ export function fullDraw(g: Game, b: Building): number {
     case 'lab': return g.research.active ? d.workDraw ?? 0 : 0;
     default: return 0;
   }
+}
+
+/** the tier a consumer is served in this tick: 0 while Overcharged (ahead of Works) */
+function tierOf(b: Building): number {
+  return b.overcharge > 0 ? 0 : b.tier;
 }
 
 export function isConsumer(b: Building) {
@@ -168,7 +176,7 @@ export function gridSystem(g: Game) {
         b.flow = 0;
       } else if (isConsumer(b)) {
         b.demand = demandOf(g, b);
-        n.tiers[b.tier].demand += b.demand;
+        n.tiers[tierOf(b)].demand += b.demand;
         n.demand += b.demand;
         consumers.push(b);
         if (b.def.role === 'tower' || b.def.role === 'beacon') total.peak += fullDraw(g, b);
@@ -206,9 +214,10 @@ export function gridSystem(g: Game) {
       n.discharge = dis;
       supply += dis;
     }
-    // tier by tier: tier 1 is served fully before tier 2 sees anything (§2.3)
+    // tier by tier: Overcharges (tier 0) first, then tier 1 is served fully before tier 2 sees
+    // anything (§2.3, §8)
     let rem = supply;
-    for (let t = 1; t <= 4; t++) {
+    for (let t = 0; t <= 4; t++) {
       const ts = n.tiers[t];
       ts.sat = ts.demand > 0 ? Math.min(1, rem / ts.demand) : 1;
       ts.served = ts.sat * ts.demand;
@@ -216,7 +225,7 @@ export function gridSystem(g: Game) {
     }
     n.wall = { demand: 0, served: 0, sat: 1 };
     for (const b of consumers) {
-      b.sat = b.off || g.tierOff[b.tier] ? 0 : n.tiers[b.tier].sat;
+      b.sat = b.off || g.tierOff[b.tier] ? 0 : n.tiers[tierOf(b)].sat;
       if (b.def.role === 'tower' || b.def.role === 'beacon') {
         n.wall.demand += b.demand;
         n.wall.served += b.demand * b.sat;
@@ -242,7 +251,7 @@ export function gridSystem(g: Game) {
   }
   // what a Veil's sight reads: satisfaction over the last half second, so it doesn't flicker
   const k = Math.min(1, DT / 0.5);
-  for (const b of g.buildings.values()) b.satAvg += ((b.net < 0 ? 0 : b.overcharge > 0 ? 1 : b.sat) - b.satAvg) * k;
+  for (const b of g.buildings.values()) b.satAvg += ((b.net < 0 ? 0 : b.sat) - b.satAvg) * k;
   total.wall.sat = total.wall.demand > 0 ? total.wall.served / total.wall.demand : 1;
   for (let t = 1; t <= 4; t++) {
     const ts = total.tiers[t];

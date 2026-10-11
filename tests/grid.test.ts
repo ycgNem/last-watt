@@ -153,7 +153,7 @@ describe('towers (§4, §8)', () => {
     expect(lamp.dps).toBeCloseTo(10.8);
   });
 
-  it('Overcharge: 120 kJ from the Jar, a Lamp delivers 72 kJ in 4 s (§8)', () => {
+  it('Overcharge: the Lamp asks 36 kW ahead of every tier; the Jar pays what the Hearth cannot, and it lands 72 kJ in 4 s (§8)', () => {
     const g = new Game();
     const jar = put(g, 'jar', 22, 18);
     jar.charge = 600;
@@ -162,9 +162,14 @@ describe('towers (§4, §8)', () => {
     settle(g, 0.05);
     const hp0 = m.hp, kj0 = jar.charge;
     expect(overcharge(g, lamp)).toBeNull();
-    expect(kj0 - jar.charge).toBeCloseTo(120);
-    settle(g, 4);
+    settle(g, 0.05);
+    expect(lamp.demand).toBeCloseTo(36);
+    expect(lamp.sat).toBeCloseTo(1);
+    settle(g, 3.95);
     expect(hp0 - m.hp).toBeCloseTo(72, 0);
+    // 36 kW for 4 s, 8 of it from the Hearth: the Jar paid about 28 × 4 = 112 kJ
+    expect(kj0 - jar.charge).toBeGreaterThan(100);
+    expect(kj0 - jar.charge).toBeLessThan(120);
   });
 
   it('Floodlight cone: each enemy catches 0.4 of 14.4 kJ/s, three or more share all of it; a Pall shadows those behind (§4)', () => {
@@ -195,6 +200,11 @@ describe('towers (§4, §8)', () => {
     const lone = park(s2.g, 'moth', 35.0, 1000);
     settle(s2.g, 1);
     expect(lone.hit).toBeCloseTo(14.4 * 0.4);
+    // a lone Pall drinks the whole beam (§5): this is what lets a Floodlight answer it
+    const s4 = setup();
+    const solo = park(s4.g, 'pall', 35.0, 1000);
+    settle(s4.g, 1);
+    expect(solo.hit).toBeCloseTo(14.4);
     // a Pall in second place takes its share and the one behind it; the Moth behind gets nothing
     const s3 = setup();
     const lead = park(s3.g, 'moth', 35.0, 1000);
@@ -247,23 +257,33 @@ describe('wave pay, lights and Overcharge (§3, §5.2, §8)', () => {
     expect(g.grid.gen).toBeCloseTo(6);
   });
 
-  it('Overcharge: the glass cools 10 s after the 4 s burst before another', () => {
+  it('Overcharge with no Jar behind it starves the rest of the wall for its 4 s, then can go again', () => {
+    // the Hearth and one Burner make 28 kW; two firing Lamps ask 24 and get all of it
     const g = new Game();
-    const jar = put(g, 'jar', 22, 18);
-    jar.charge = 600;
-    const lamp = put(g, 'lamp', 24, 13);
+    factory(g);
+    put(g, 'node', 21, 10);
+    const a = put(g, 'lamp', 24, 13);
+    const b = put(g, 'lamp', 24, 7);
     park(g, 'moth', BEND_B_DIST, 1e6);
-    settle(g, 0.05);
-    expect(overcharge(g, lamp)).toBeNull();
-    settle(g, 5);
-    expect(overcharge(g, lamp)).toMatch(/cooling/);
-    settle(g, 9.1);
-    expect(overcharge(g, lamp)).toBeNull();
+    park(g, 'moth', BEND_A_DIST, 1e6);
+    settle(g, 1);
+    expect(a.sat).toBeCloseTo(1);
+    expect(b.sat).toBeCloseTo(1);
+    // Lamp A asks 36 kW ahead of everything: it takes all 28, the other Lamp goes dark
+    expect(overcharge(g, a)).toBeNull();
+    settle(g, 0.1);
+    expect(a.sat).toBeLessThan(1);
+    expect(b.sat).toBe(0);
+    expect(g.grid.wall.sat).toBeLessThan(0.6);
+    settle(g, 4);
+    expect(b.sat).toBeGreaterThan(0.9);
+    // no cooldown: the price was the starved wall
+    expect(overcharge(g, a)).toBeNull();
   });
 });
 
 describe('the new wall (§4.1, §5.1)', () => {
-  it('Brazier asks 8 kW for each body in its fire and burns each at 4 kJ/s; a Pall takes all of it', () => {
+  it('Brazier asks 8 kW for each body in its fire and burns each at 5.2 kJ/s; a Pall takes all of it', () => {
     const g = new Game();
     factory(g);
     factory(g, 1);
@@ -275,7 +295,7 @@ describe('the new wall (§4.1, §5.1)', () => {
     settle(g, 1);
     expect(br.bodies).toBe(3);
     expect(br.demand).toBeCloseTo(1 + 3 * 8);
-    for (const e of [a, b, p]) expect(e.hit).toBeCloseTo(4);
+    for (const e of [a, b, p]) expect(e.hit).toBeCloseTo(8 * 0.65);
   });
 
   it('Searchlight locks onto the heaviest enemy in its 7 tiles and swings 0.5 s to a new one', () => {
@@ -294,7 +314,7 @@ describe('the new wall (§4.1, §5.1)', () => {
     expect(moth.hit).toBe(0);
   });
 
-  it('Starshell charges a 60 kJ shell at 10 kW and bursts 48 kJ over a crowd, 0.3 to each', () => {
+  it('Starshell charges a 70 kJ shell at 10 kW and bursts 56 kJ over a crowd, 0.3 to each', () => {
     const g = new Game();
     factory(g);
     factory(g, 1);
@@ -304,9 +324,27 @@ describe('the new wall (§4.1, §5.1)', () => {
     expect(ss.shell).toBeGreaterThan(50);
     expect(ss.shell).toBeLessThan(60);
     const crowd = [park(g, 'moth', 22, 1000), park(g, 'moth', 22.5, 1000), park(g, 'moth', 23, 1000)];
-    settle(g, 2);
+    settle(g, 2.5);
     expect(g.shots.length).toBe(0);
-    for (const e of crowd) expect(1000 - e.hp).toBeCloseTo(48 * 0.3);
+    for (const e of crowd) expect(1000 - e.hp).toBeCloseTo(56 * 0.3);
+  });
+
+  it('Starshell holds three shells (210 kJ) and lobs them 0.6 s apart: each wave opens with three bursts', () => {
+    const g = new Game();
+    factory(g);
+    factory(g, 1);
+    g.research.done.add('starshell');
+    const ss = put(g, 'starshell', 20, 9);
+    settle(g, 25);
+    expect(ss.shell).toBeCloseTo(210);
+    expect(ss.demand).toBe(0);
+    park(g, 'moth', 22, 1e6);
+    settle(g, 0.1);
+    expect(ss.shell).toBeLessThan(145); // one lobbed
+    settle(g, 0.6);
+    expect(ss.shell).toBeLessThan(80); // two (and 0.7 s of charging)
+    settle(g, 0.6);
+    expect(ss.shell).toBeLessThan(20); // three
   });
 
   it('a Veil is invisible to a starved tower and found by one above 60%', () => {
