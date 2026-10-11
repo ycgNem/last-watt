@@ -8,6 +8,21 @@ import { lineKey } from './systems/stats';
 import { RULES } from '../data/rules';
 import type { Building } from './types';
 
+/** kW more the links between a building and its line's root could carry into it now: the least
+ *  room on its way (Infinity on the Hearth's own reach, §3.3) */
+export function linkRoom(g: Game, b: Building): number {
+  const n = g.networks[b.net];
+  if (!n?.tree || !n.at) return Infinity;
+  let room = Infinity;
+  let i = n.at.get(b.id) ?? 0;
+  while (i > 0) {
+    const c = g.buildings.get(n.tree.ids[i]);
+    if (c) room = Math.min(room, Math.max(0, n.tree.cap[i] - c.carry));
+    i = n.tree.parent[i];
+  }
+  return room;
+}
+
 /** what holds a line back, worst first */
 export type Neck = 'siphon' | 'nopower' | 'fuel' | 'full' | 'short' | 'peak' | 'waste' | 'loss' | 'ok';
 

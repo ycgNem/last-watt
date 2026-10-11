@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { Game, put, settle } from './helpers';
 import { run } from '../src/sim/commands';
 import type { Building } from '../src/sim/types';
+import { linkRoom } from '../src/sim/lines';
 
 /** four fuelled Burners beside the Hearth: 80 kW + the Hearth's 8 */
 function strongHearth(g: Game) {
@@ -129,6 +130,20 @@ describe('Node capacity (§3.3)', () => {
     // a Flywheel: 40 + 40 = all of it
     expect(peak(true).sat).toBeCloseTo(1, 2);
     expect(peak(true).out).toBeCloseTo(40, 2);
+  });
+
+  it("linkRoom: what more the links on a building's way can carry (the Overcharge tip reads it)", () => {
+    const g = new Game();
+    strongHearth(g);
+    const { labs } = farLabs(g);
+    const near = put(g, 'lamp', 22, 10);
+    settle(g, 0.2);
+    expect(linkRoom(g, labs[0])).toBeCloseTo(0, 3);
+    expect(linkRoom(g, near)).toBe(Infinity);
+    for (const l of labs.slice(2)) run(g, { k: 'off', b: l.id });
+    settle(g, 0.2);
+    // two Labs on, 20 kW through a 40 kW link
+    expect(linkRoom(g, labs[0])).toBeCloseTo(20, 3);
   });
 
   it('a Shade that cuts one route sends the branch through the other', () => {

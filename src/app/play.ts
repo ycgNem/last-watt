@@ -25,7 +25,7 @@ import type { Bot } from './bot';
 import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
-import { fullOnTheWay, lineReports } from '../sim/lines';
+import { fullOnTheWay, lineReports, linkRoom } from '../sim/lines';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -689,7 +689,12 @@ export class Play {
     const extra = (RULES.overchargeMult.v - 1) * RULES.overchargeTime.v;
     if (d.kind === 'mortar') return `Charges its shells ${RULES.overchargeMult.v}× as fast: about ${Math.floor((extra * (d.chargeDraw ?? 0)) / (d.shellSize ?? 1))} more shells.`;
     if (!t) return 'No target now: it would idle at 3× its idle draw.';
-    const per = d.kind === 'radial' ? (d.perEnemyDraw ?? 0) * Math.max(1, b.bodies) : d.firingDraw ?? 0;
+    const per0 = d.kind === 'radial' ? (d.perEnemyDraw ?? 0) * Math.max(1, b.bodies) : d.firingDraw ?? 0;
+    // the extra has to come through the links on its way (§3.3): a full Node caps the burst
+    const room = linkRoom(g, b), extraKw = per0 * (RULES.overchargeMult.v - 1);
+    const capped = room < extraKw;
+    const per = capped ? (per0 * room) / extraKw : per0;
+    const cap = capped ? ` A Node on its way has room for only ${Math.round(room)} of the ${Math.round(extraKw)} kW more.` : '';
     let catchK = 1, note = '';
     if (d.kind === 'beam' && t.def.narrowBeam) {
       catchK = t.def.narrowBeam;
@@ -698,9 +703,9 @@ export class Play {
       // the cone's catch: each of n catches min(0.4, 1/n), so the whole cone lands that × n
       const n = coneCatchers(g, b, t).length;
       catchK = Math.min(d.catch ?? 0.4, 1 / Math.max(1, n)) * n;
-      if (n > 1) return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ across the ${n} in its cone, at full service.`;
+      if (n > 1) return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ across the ${n} in its cone, at full service.${cap}`;
     }
-    return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ on the ${t.def.name}${note}, at full service.`;
+    return `About +${Math.round(per * (d.efficiency ?? 0) * extra * catchK)} kJ on the ${t.def.name}${note}, at full service.${cap}`;
   }
 
   /** supply the grid makes now (without Jars), and what the wall and works would ask at full fire */
