@@ -30,6 +30,17 @@ function play(g: Game, script: [number, Command][], until: number) {
 }
 
 describe('commands and replay', () => {
+  it('a building placed while the game stands still shows the grid the next tick will (the fifth review C1)', () => {
+    const g = new Game();
+    g.money = 1000;
+    run(g, { k: 'place', id: 'extractor', x: 16, y: 19 });
+    run(g, { k: 'place', id: 'burner', x: 16, y: 20 });
+    const lamp = run(g, { k: 'place', id: 'lamp', x: 24, y: 13 }) as any;
+    // no tick has run: the Hearth's 8 kW is on the network and the idle Lamp is fully served
+    expect(g.networks[lamp.net].gen).toBeGreaterThan(0);
+    expect(lamp.sat).toBe(1);
+  });
+
   it('replaying the log rebuilds the same run, to the tick', () => {
     const g = new Game({ map: MAPS[0], seed: 7, skills: ['spareJar', 'kindling'] });
     const script: [number, Command][] = [

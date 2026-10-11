@@ -11,6 +11,8 @@ import { allocate, buildTree } from './flow';
 /** tier 4, Spare: served only from what would be wasted, after the Jars have charged; a Jar never
  *  pays for it (DESIGN.md §2.3) */
 const SPARE = 4;
+/** the order tiers are served in: the Works, Overcharges, the Wall, the Labs (Spare after the Jars) */
+const ORDER = [1, 0, 2, 3];
 
 /** a node-like building carries power: the Hearth always, a Node unless knocked out */
 function conducts(b: Building) {
@@ -150,7 +152,7 @@ export function demandOf(g: Game, b: Building): number {
   const d = g.spec(b);
   switch (d.role) {
     case 'tower': {
-      // an Overcharge asks 3× whatever the tower would ask, ahead of every tier (§8)
+      // an Overcharge asks 3× whatever the tower would ask, after the Works and ahead of the wall (§8)
       const k = b.overcharge > 0 ? ocMult(g) : 1;
       switch (d.kind) {
         case 'radial': return k * ((d.idleDraw ?? 0) + (d.perEnemyDraw ?? 0) * b.bodies);
@@ -298,31 +300,41 @@ export function gridSystem(g: Game, dry = false) {
     n.demand += n.drain;
     for (let i = 0; i < k; i++) first[i] += drainAt[i];
     const made = Math.max(0, n.gen - n.loss);
-    // live power first, tier by tier: Overcharges (tier 0), then tier 1 in full before tier 2
-    // sees anything (§2.3, §8), each along links that carry at most their capacity (§3.3); the
-    // Spare tier waits for the spill (below)
+    // live power first, tier by tier: the Works (tier 1) in full, then Overcharges (tier 0: after
+    // the Works since the fifth review, so a burst can't starve the factory), then the Wall and the
+    // Labs (§2.3, §8), each along links that carry at most their capacity (§3.3); the Spare tier
+    // waits for the spill (below)
     const src = gen.slice();
     const flow = zeros();
     const s1 = allocate(t, first, src, flow);
-    const sat = dem.map((d, tt) => (tt === SPARE ? d.map(() => 0) : allocate(t, d, src, flow)));
-    // then the Jars give for what live power couldn't reach, up to each one's discharge rate (§2.1);
-    // never for an Overcharge's extra, here or anything it starves: a Jar gives at most what each
-    // branch would lack with every Overcharge at its base draw (§8, the third review)
-    let noOc: { first: number[]; tiers: number[][] } | null = null;
+    const sat = dem.map((d) => d.map(() => 0));
+    for (const tt of ORDER) sat[tt] = allocate(t, dem[tt], src, flow);
+    // then the Jars give for what live power couldn't reach, up to each one's discharge rate
+    // (§2.1), in the same order. Never for an Overcharge's extra, here or in anything it starves:
+    // with an Overcharge on, each Jar gives at most what it would have given with every Overcharge
+    // at its base draw, and that budget goes to the real shortfalls tier by tier (§8, the third
+    // review; the fifth review C2: a cap per tier paid the Labs ahead of the wall)
+    const avail = jarsAt.map((js) => js.reduce((a, j) => a + (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)), 0));
+    let budget = avail;
     if (ocBase.some((x) => x > 0)) {
       const src0 = gen.slice(), flow0 = zeros();
-      const base = dem.map((d, tt) => (tt === 0 ? ocBase : tt === SPARE ? d.map(() => 0) : d));
+      const base = dem.map((d, tt) => (tt === 0 ? ocBase : d));
       const f0 = allocate(t, first, src0, flow0);
-      noOc = { first: first.map((d, i) => d * (1 - f0[i])), tiers: base.map((d) => allocate(t, d, src0, flow0)).map((sv, tt) => base[tt].map((d, i) => d * (1 - sv[i]))) };
+      const sat0 = base.map((d) => d.map(() => 0));
+      for (const tt of ORDER) sat0[tt] = allocate(t, base[tt], src0, flow0);
+      const j0 = avail.slice();
+      allocate(t, first.map((d, i) => d * (1 - f0[i])), j0, flow0);
+      for (const tt of ORDER) allocate(t, base[tt].map((d, i) => d * (1 - sat0[tt][i])), j0, flow0);
+      budget = avail.map((a, i) => a - j0[i]);
     }
-    const avail = jarsAt.map((js) => js.reduce((a, j) => a + (j.off ? 0 : Math.min(g.spec(j).maxDischarge ?? 0, j.charge / DT)), 0));
-    const jsrc = avail.slice();
-    const s1j = allocate(t, first.map((d, i) => Math.min(d * (1 - s1[i]), noOc ? noOc.first[i] : Infinity)), jsrc, flow);
-    // and never for the Spare tier: it runs on spill alone
-    const elig = dem.map((d, tt) => d.map((x, i) => (tt === SPARE ? 0 : Math.min(tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]), noOc ? noOc.tiers[tt][i] : Infinity))));
-    const satJ = elig.map((d) => allocate(t, d, jsrc, flow));
+    const jsrc = budget.slice();
+    const s1j = allocate(t, first.map((d, i) => d * (1 - s1[i])), jsrc, flow);
+    // an Overcharge's base draw only, and never the Spare tier: it runs on spill alone
+    const elig = dem.map((d, tt) => d.map((x, i) => (tt === SPARE ? 0 : tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]))));
+    const satJ = dem.map((d) => d.map(() => 0));
+    for (const tt of ORDER) satJ[tt] = allocate(t, elig[tt], jsrc, flow);
     for (let i = 0; i < k; i++) {
-      const used = avail[i] - jsrc[i];
+      const used = budget[i] - jsrc[i];
       if (used <= 0) continue;
       n.discharge += used;
       for (const j of jarsAt[i]) {
@@ -368,7 +380,7 @@ export function gridSystem(g: Game, dry = false) {
     }
     for (let i = 0; i < k; i++) {
       const un = first[i] * (1 - s1[i]);
-      const jarPart = Math.min(un, noOc ? noOc.first[i] : Infinity) * s1j[i];
+      const jarPart = un * s1j[i];
       const share = first[i] > 0 ? (first[i] * s1[i] + jarPart) / first[i] : 1;
       n.stolen += drainAt[i] * share;
     }

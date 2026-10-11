@@ -219,7 +219,7 @@ describe('towers (§4, §8)', () => {
     expect(kj0 - jar.charge).toBeCloseTo(16, 0);
   });
 
-  it('Overcharge takes spare power first, then everything below it, Extractors included (§8)', () => {
+  it('Overcharge comes after the Works: spare power first, then the rest of the wall, never the Extractors (§8, the fifth review)', () => {
     const g = new Game();
     const { extractor } = factory(g);
     const lamp = put(g, 'lamp', 24, 13);
@@ -230,10 +230,31 @@ describe('towers (§4, §8)', () => {
     const kj0 = jar.charge;
     expect(overcharge(g, lamp)).toBeNull();
     settle(g, 0.1);
-    // 28 kW made, 36 asked ahead of the Works: the Lamp gets 28, the Extractor nothing, the Jar nothing
-    expect(lamp.sat).toBeCloseTo(28 / 36);
-    expect(extractor.sat).toBe(0);
+    // 28 kW made: the Extractor's 2 first, then the Lamp's 36 gets the 26 left; the Jar pays nothing
+    expect(extractor.sat).toBe(1);
+    expect(lamp.sat).toBeCloseTo(26 / 36);
     expect(jar.charge).toBeCloseTo(kj0, 0);
+  });
+
+  it('during an Overcharge the Jars still serve the wall before the Labs (the fifth review C2)', () => {
+    const g = new Game();
+    factory(g);
+    const a = put(g, 'lamp', 24, 13);
+    const b = put(g, 'lamp', 22, 16);
+    const lab = put(g, 'lab', 19, 18);
+    g.research.active = 'vane';
+    const jar = put(g, 'jar', 22, 18);
+    jar.charge = 600;
+    park(g, 'moth', 39.5, 1e9);
+    settle(g, 0.2);
+    expect(overcharge(g, a)).toBeNull();
+    settle(g, 0.1);
+    // without the burst: Works 2 + two Lamps 24 of 28, the Lab short 8: the Jars' budget is 8.
+    // With it the Lamp's 36 takes the 26 after the Works; the 8 goes to the wall's Lamp, not the Lab
+    expect(b.sat).toBeCloseTo(8 / 12, 3);
+    expect(lab.sat).toBe(0);
+    expect(b.sat).toBeGreaterThanOrEqual(lab.sat);
+    expect(jar.flow).toBeCloseTo(-8, 3);
   });
 
   it('Floodlight cone: each enemy catches 0.4 of 14.4 kJ/s, three or more share all of it; a Pall shadows those behind (§4)', () => {

@@ -1,5 +1,5 @@
 // Towers turn satisfaction into damage (§1, §4): kJ/s = draw × efficiency × satisfaction; an
-// Overcharge triples the draw and is served ahead of every tier (§8). Lamps and Searchlights are
+// Overcharge triples the draw and is served after the Works, ahead of the wall (§8). Lamps and Searchlights are
 // narrow beams (a Pall drinks 3/4); a Floodlight's cone lands 40% on each enemy in it (three or
 // more share all of it) and a Pall drinks the rest of the beam, shadowing everyone behind it; a
 // Brazier burns every body in its fire; a Starshell charges up to three shells and lobs them.

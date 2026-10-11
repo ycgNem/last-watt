@@ -8,7 +8,7 @@ export const RULES = {
   breather: { v: 20, why: '§5 the next wave starts 20 s after the field clears (Space starts it sooner)' },
   wavePayBase: { v: 15, why: '§5.2 wave pay: 15 + 5 × wave, paid when a wave is cleared, leaks or not' },
   wavePayPer: { v: 5, why: '§5.2 wave pay: 15 + 5 × wave' },
-  overchargeMult: { v: 3, why: '§8 Overcharge: the tower asks 3× its draw, ahead of every tier: spare generation first, then the rest of the wall; Jars never pay for it' },
+  overchargeMult: { v: 3, why: '§8 Overcharge: the tower asks 3× its draw, after the Works and ahead of the rest (the fifth review): spare generation first, then the rest of the wall; Jars never pay for it' },
   overchargeTime: { v: 4, why: '§8 Overcharge: for 4 s' },
   pulseMin: { v: 300, why: '§8 Pulse: needs 300 kJ stored on a network (half a Jar)' },
   pulseEff: { v: 0.6, why: '§8 Pulse: 60% of the stored kJ lands (the efficiency of a Floodlight), split across the enemies in reach' },

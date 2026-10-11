@@ -5,7 +5,7 @@ import type { BuildingId } from '../data/buildings';
 import type { Game } from './Game';
 import type { Building } from './types';
 import { bait, endless, nextWave, overcharge, place, pulse, queueResearch, reroute, sell, setTier, startResearch, toggleOff, toggleTier, upgrade } from './actions';
-import { rebuildNetworks } from './systems/grid';
+import { gridSystem, rebuildNetworks } from './systems/grid';
 
 export type Command =
   | { k: 'place'; id: BuildingId; x: number; y: number }
@@ -30,13 +30,16 @@ export interface LogEntry {
 }
 
 /** run a command; on success it is logged. Returns the reason it was refused, or null (or the
- *  new Building for a place). Networks are rebuilt at once, so the next tick sees the same grid
- *  whether the game is played live or replayed. */
+ *  new Building for a place). Networks are rebuilt and the grid shared out at once (a dry pass:
+ *  no clocks, no Jar flow), so a paused game shows what the next tick will, and the next tick sees
+ *  the same grid whether the game is played live or replayed (the fifth review: building while
+ *  paused showed every tower as NO SUPPLY). */
 export function run(g: Game, c: Command): Building | string | null {
   const r = exec(g, c);
   if (typeof r !== 'string') {
     g.log.push({ t: g.tick, c });
     if (g.netDirty) rebuildNetworks(g);
+    gridSystem(g, true);
   }
   return r;
 }

@@ -87,7 +87,7 @@ export const STEPS: Step[] = [
   },
   {
     title: 'OVERCHARGE',
-    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of everything else, even your Extractors, and fires 3x as hard. The extra comes from spare power, then from your other towers: watch them dim. Jars don\'t pay for it; they hold the wall.',
+    text: 'Wave 3 brings two Shades (90 kJ each). When one walks into a Lamp, hover that Lamp and press E: for 4 s it asks 3x its watts ahead of the rest of the wall (after your Extractors) and fires 3x as hard. The extra comes from spare power, then from your other towers: watch them dim. Jars don\'t pay for it; they hold the wall.',
     // done once the burst is over, so the player sees what it did before the next card holds the game
     done: (g) => g.stats.overcharges >= 1 && ![...g.buildings.values()].some((b) => b.overcharge > 0),
   },

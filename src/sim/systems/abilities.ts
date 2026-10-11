@@ -1,5 +1,5 @@
 // Gaffer abilities (§8). Overcharge is started by an action (actions.ts: overcharge) and served by
-// the grid ahead of every tier (systems/grid.ts); here its clock runs down.
+// the grid after the Works and ahead of the wall (systems/grid.ts); here its clock runs down.
 import { DT, type Game } from '../Game';
 
 export function abilitiesSystem(g: Game) {

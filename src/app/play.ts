@@ -1134,7 +1134,7 @@ export class Play {
           if (d.kind === 'cone') out.push({ text: 'Best where enemies line up in the cone: the outside of a bend, or looking down a straight.', color: C.ash });
           out.push({ text: `Range ${d.range}. ${d.targeting === 'heaviest' ? 'Locks onto the heaviest enemy in reach.' : 'Targets the enemy nearest the Hearth.'}` });
         }
-        if (oc) out.push({ text: `OVERCHARGED ${b.overcharge.toFixed(1)}s: asking ${b.demand.toFixed(0)} kW ahead of everything, getting ${Math.round(b.sat * 100)}%`, color: C.bone });
+        if (oc) out.push({ text: `OVERCHARGED ${b.overcharge.toFixed(1)}s: asking ${b.demand.toFixed(0)} kW ahead of the wall, getting ${Math.round(b.sat * 100)}%`, color: C.bone });
         if (b.satAvg < RULES.veilSight.v && !oc && d.kind !== 'radial') out.push({ text: 'Below 60%: it cannot see Veils.', color: C.violet });
         break;
       }
@@ -1261,7 +1261,7 @@ export class Play {
       const why = overchargeProblem(g, b);
       const ask = this.overchargeAsk(b);
       const label = `OVERCHARGE (E) ${ask} kW`;
-      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served before everything else, Extractors included: spare power first, then whatever the rest of the wall was getting. Jars don't pay for it, so with nothing spare the other towers dim for those ${RULES.overchargeTime.v} s.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
+      if (ui.button(label, x + 5, y, w - 10, 14, { disabled: !!why, color: C.bone, tip: ['Overcharge', `For ${RULES.overchargeTime.v} s it asks ${RULES.overchargeMult.v}× its draw (${ask} kW) and is served right after your Extractors, ahead of the rest of the wall: spare power first, then whatever the other towers were getting. Jars don't pay for it, so with nothing spare the other towers dim for those ${RULES.overchargeTime.v} s.`, this.overchargeYield(b), ...(why ? [why] : [])] })) this.act(this.cmd({ k: 'oc', b: b.id }));
       y += 16;
     }
     if (up && up.alts?.length && b.branch === 0) {
@@ -1517,7 +1517,7 @@ export class Play {
       ['Right-click, Esc', 'cancel / deselect'],
       ['X', 'shed (turn off) the building under the mouse'],
       ['T / Shift+T', 'raise / lower its tier (4, Spare: wasted power only)'],
-      ['E', 'Overcharge a tower: 3x for 4 s, ahead of all'],
+      ['E', 'Overcharge a tower: 3x for 4 s, ahead of the wall'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],

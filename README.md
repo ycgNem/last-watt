@@ -41,7 +41,7 @@ expected; what you felt matters more than bugs.
 | Space | start the next wave now |
 | X | shed (turn off) the building under the mouse |
 | T / Shift+T | raise / lower its power priority tier (tier 4, Spare: wasted power only) |
-| E | Overcharge a tower: 3x for 4 s, ahead of everything (a Jar never pays for it) |
+| E | Overcharge a tower: 3x for 4 s, after the Works and ahead of the rest of the wall (a Jar never pays for it) |
 | Q | Pulse: every Jar at once onto the enemies near your lit towers (research) |
 | G | Reroute: a cut Node back at once (research, 100 kJ) |
 | B | Dark Bait on The Fork: turn the Moths down the other branch |

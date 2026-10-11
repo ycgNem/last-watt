@@ -706,14 +706,19 @@ bank), refiners (emberrock → coke, 2.5× energy density), towers, gaffer abili
 
 ## 8. Gaffer abilities (stored energy, mid-wave)
 
-Abilities spend energy the grid has: an Overcharge pulls live power ahead of every tier (never
-from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pay. Slice set:
+Abilities spend energy the grid has: an Overcharge pulls live power ahead of the wall (after
+the Works; never from a Jar); Pulse and Reroute spend the Jars. A Jar cut off by a Shade can't pay. Slice set:
 
 - **Overcharge** (second review: **live power, no flat price, no cooldown**): for 4 s one tower
-  asks **3× its draw** and is served in a tier of its own **ahead of Works**: from spare power,
-  then whatever the rest of the grid was getting. **Jars never pay for it** (third review): they
-  discharge only for the deficit the line would have without the Overcharge, so a burst is a pure
-  reallocation of live power. With two extra Jars the second-review rule made Overcharge free
+  asks **3× its draw** and is served in a tier of its own, **after the Works and ahead of the
+  wall** (the fifth review: ahead of the Works a burst starved the Extractors, the Burners ran dry
+  30–50 s later, and the first review's brownout spiral came back; the critic lost a whole station
+  run to it in wave 12): from spare power, then whatever the rest of the wall was getting. **Jars
+  never pay for it** (third review), as a budget: each Jar gives at most what it would have given
+  with every Overcharge at its base draw, and that budget goes to the real shortfalls in tier
+  order (the fifth review C2: a cap per tier let the Jars keep the Labs at 74–100% while the wall
+  sat at 0–49%). So a burst is still a pure reallocation of live power, and the tiers still mean
+  what the HUD says. With two extra Jars the second-review rule made Overcharge free
   again (the bot went to 20/20 with zero leaks); now the plan with two extra Jars ends on 16, the
   same as without them (tested: it must not reach 20). It fires at 3× its draw × what it is served. On a Lamp that is 36 kW and 72 kJ of
   damage; on a Floodlight 72 kW and 173 kJ, shared across a crowd or all of it into a Pall, when it
