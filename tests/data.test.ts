@@ -80,6 +80,12 @@ describe('data validation', () => {
       const h = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
       expect(h, `wave ${w.n} total health`).toBe(health[i]);
     });
+    // and bounty per wave (the balance audit found §5's wave 9 off by 2)
+    const bounty = [40, 60, 86, 118, 126, 174, 164, 250, 314, 428, 654, 948];
+    WAVES.forEach((w, i) => {
+      const b = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].bounty, 0);
+      expect(b, `wave ${w.n} total bounty`).toBe(bounty[i]);
+    });
   });
 
   it('endless waves grow by the §5.3 curve', () => {

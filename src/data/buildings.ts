@@ -140,7 +140,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   },
   vane: {
     id: 'vane', name: 'Vane', role: 'generator', group: 'power', size: 2, cost: 50, fuel: 'wind', research: 'vane',
-    blurb: 'Wind power: up to 15 kW, no fuel, goes anywhere on the grid. The wind comes and goes; a Jar evens it out. Each other Vane within 4 tiles steals 40% of its wind.',
+    blurb: 'Wind power: up to 15 kW, no fuel, goes anywhere on the grid. The wind comes and goes; a Jar evens it out. Each other Vane within 7 tiles takes 30% of its wind.',
     output: 15,
     why: { size: '§3.2 Vane (2x2 mast)', cost: '§3.2 Vane: 50 (6.1 money per average kW vs the Burner\'s 3.2)', output: '§3.2 Vane: 15 kW at full wind (average 0.55 → 8.2 kW)' },
   },
@@ -321,7 +321,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Brazier: 60', tier: '§2.3 default tiers: 2 Wall (towers)',
-      idleDraw: '§4.1 Brazier: idle 1 kW', perEnemyDraw: '§4.1 Brazier: 8 kW per enemy in range', maxBodies: '§4.1 Brazier: at most 8 bodies (64 kW)',
+      idleDraw: '§4.1 Brazier: idle 1 kW', perEnemyDraw: '§4.1 Brazier: 8 kW per enemy in range', maxBodies: '§4.1 Brazier: at most 8 bodies (64 kW, 65 with its idle 1)',
       efficiency: '§4.1 Brazier: 0.65 → 5.2 kJ/s on each (a Flit crossing a bend fire for 2.7 s must take its 14 kJ)', range: '§4.1 Brazier: range 2.5',
     },
   },

@@ -6,7 +6,9 @@
 //   maps: station,switchback,tworoads (default station); spacings: blank keeps the current one;
 //   "8:SEQ" replaces wave 8's sequence; "8:+D4" turns four of its Moths into Siphons.
 import { Game } from '../src/sim/Game';
-import { Bot, planFor, type BotPlan } from '../src/app/bot';
+import { Bot, planFor, type BotPlan, type Spot } from '../src/app/bot';
+import { BUILDINGS } from '../src/data/buildings';
+import { place } from '../src/sim/actions';
 import { WAVES } from '../src/data/waves';
 import { ENEMY_BY_CODE } from '../src/data/enemies';
 import { mapById } from '../src/data/map';
@@ -54,7 +56,28 @@ for (const m of (process.argv[2] ?? 'station').split(',')) {
   run('raise1', m, { ...p, noVerbs: true, raise: 1 });
   run('raise2', m, { ...p, noVerbs: true, raise: 2 });
   run('human', m, { ...p, human: true });
-  run('+2jars', m, { ...p, extras: [...p.extras, { b: 'jar', x: p.extras[0].x, y: p.extras[0].y + 2, wave: 3 }, { b: 'jar', x: p.extras[0].x + 1, y: p.extras[0].y + 2, wave: 3 }] });
+  run('+2jars', m, { ...p, extras: [...p.extras, ...twoJars(m, p)] });
+}
+
+/** two Jar spots near the plan's first Jar that no plan spot uses and that place on an empty map
+ *  (the balance audit: the old "two tiles below" landed under plan buildings on three maps) */
+function twoJars(mapId: string, p: BotPlan): Spot[] {
+  const g = new Game({ map: mapById(mapId) });
+  const used = new Set<string>();
+  for (const s of [...p.opening, ...p.wall, ...p.power.flat(), ...p.extras])
+    for (let dx = 0; dx < BUILDINGS[s.b].size; dx++) for (let dy = 0; dy < BUILDINGS[s.b].size; dy++) used.add(`${s.x + dx},${s.y + dy}`);
+  const j = p.extras.find((e) => e.b === 'jar') ?? p.extras[0];
+  const out: Spot[] = [];
+  for (let r = 1; r < 8 && out.length < 2; r++)
+    for (let dx = -r; dx <= r && out.length < 2; dx++)
+      for (let dy = -r; dy <= r && out.length < 2; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = j.x + dx, y = j.y + dy;
+        if (used.has(`${x},${y}`) || typeof place(g, 'jar', x, y, true) === 'string') continue;
+        used.add(`${x},${y}`);
+        out.push({ b: 'jar', x, y, wave: 3 });
+      }
+  return out;
 }
 const kj = WAVES.map((w) => [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0));
 console.log(`wave kJ: ${kj.join(' ')}`);

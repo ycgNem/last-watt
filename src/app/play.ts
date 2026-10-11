@@ -858,7 +858,7 @@ export class Play {
       ui.icon('jar', tx - 3, 6);
       const jw = Math.max(ui.text(`${Math.round(gr.stored)}`, tx + 12, 6, C.gold), 22);
       ui.bar(tx + 12, 16, jw, 5, gr.stored / gr.capacity, C.gold);
-      if (ui.hover(tx - 3, 0, jw + 16, HUD_H)) ui.tooltip([{ text: `Stored: ${Math.round(gr.stored)} of ${gr.capacity} kJ` }, { text: 'Jars fill from wasted power and give it back when demand beats supply. An Overcharge (E) drinks from them first.' }]);
+      if (ui.hover(tx - 3, 0, jw + 16, HUD_H)) ui.tooltip([{ text: `Stored: ${Math.round(gr.stored)} of ${gr.capacity} kJ` }, { text: 'Jars fill from wasted power and give it back when demand beats supply. They never pay for an Overcharge (E).' }]);
       tx += 12 + jw + 8;
     }
     const pb = this.budget();

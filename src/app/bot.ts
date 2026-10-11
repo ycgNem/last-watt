@@ -160,7 +160,7 @@ export const SWITCHBACK_PLAN: BotPlan = {
 
 /** Two Roads: the shared last stretch first (on the Hearth's own power), then the junction behind
  *  two Nodes 4.5 tiles from the roads, then each road's last leg; power from the safe south deposit
- *  and three Vanes spread out of each other's wake. */
+ *  and three Vanes ((24, 20) and (22, 26) are 6.3 apart, each at 70% in the other's wake). */
 export const TWO_ROADS_PLAN: BotPlan = {
   opening: [
     { b: 'extractor', x: 18, y: 25 }, { b: 'burner', x: 16, y: 25 },

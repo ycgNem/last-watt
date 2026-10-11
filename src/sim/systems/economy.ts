@@ -60,8 +60,8 @@ export function economySystem(g: Game) {
   }
 }
 
-/** a Vane's share of the wind after the wakes of the other Vanes near it (§3.2): 0.6 for each one
- *  within 4 tiles, centre to centre */
+/** a Vane's share of the wind after the wakes of the other Vanes near it (§3.2): × 0.7 for each
+ *  one within 7 tiles, centre to centre (RULES.windShadow, windShadowRadius) */
 export function windShade(g: Game, b: { x: number; y: number; id?: number; def: { size: number } }): number {
   let k = 1;
   const cx = b.x + b.def.size / 2, cy = b.y + b.def.size / 2;

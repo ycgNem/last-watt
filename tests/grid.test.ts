@@ -4,6 +4,7 @@ import { Game, park, put, factory, settle } from './helpers';
 import { overcharge, pulse, pulseProblem, reroute, rerouteProblem, toggleOff, setTier, toggleTier, upgrade } from '../src/sim/actions';
 import { startNextWave, wavePay } from '../src/sim/systems/waves';
 import { ENEMIES } from '../src/data/enemies';
+import { windShade } from '../src/sim/systems/economy';
 
 const BEND_B_DIST = 35; // (26.5, 14): 1.5 tiles from the bend-B Lamp's centre
 const BEND_A_DIST = 28.5; // (26.5, 7.5): 1.5 tiles from the bend-A Lamp's centre
@@ -428,19 +429,43 @@ describe('the new wall (§4.1, §5.1)', () => {
     expect(lamp.target).not.toBe(v.id);
   });
 
-  it('a Snuffer puts out a Burner within 3.5 tiles for 8 s and its burning rock is lost', () => {
+  it('a Snuffer puts out a Burner within 5 tiles for 8 s and its burning rock is lost', () => {
     const g = new Game();
     const { burner } = factory(g, 2); // the north deposit, Burner at (17, 10)
     settle(g, 1);
     expect(burner.output).toBe(20);
-    const s = park(g, 'snuffer', 18.5, 1e9); // on the first straight above it
-    s.def = { ...s.def, snuffRadius: 3.5, snuffTime: 8 };
+    // on the first straight at (12.5, 6.5): 5.7 tiles from the Burner, out of reach
+    park(g, 'snuffer', 13.5, 1e9);
+    settle(g, 0.1);
+    expect(burner.output).toBe(20);
+    // at (14.5, 6.5): 4.3 tiles, in reach (it was out of the old 3.5)
+    g.enemies = [];
+    park(g, 'snuffer', 15.5, 1e9);
     settle(g, 0.1);
     expect(burner.output).toBe(0);
     expect(burner.snuffed).toBeGreaterThan(7);
     g.enemies = [];
     settle(g, 8.1);
     expect(burner.output).toBe(20);
+  });
+
+  it('wind shadow: each other Vane within 7 tiles takes 30% of the wind, multiplied (§3.2)', () => {
+    const g = new Game();
+    g.research.done.add('vane');
+    const a = put(g, 'vane', 22, 18);
+    expect(windShade(g, a)).toBe(1);
+    const b = put(g, 'vane', 22 + 6, 18); // centres 6 apart: in each other's wake
+    expect(windShade(g, a)).toBeCloseTo(0.7, 6);
+    expect(windShade(g, b)).toBeCloseTo(0.7, 6);
+    put(g, 'vane', 25, 20);
+    expect(windShade(g, a)).toBeCloseTo(0.49, 6);
+    // two in a pair and a third 8 tiles from both: it takes the full wind
+    const g2 = new Game();
+    g2.research.done.add('vane');
+    put(g2, 'vane', 14, 14);
+    put(g2, 'vane', 14, 16);
+    const far = put(g2, 'vane', 22, 20);
+    expect(windShade(g2, far)).toBe(1);
   });
 });
 

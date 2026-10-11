@@ -1,5 +1,8 @@
 // Sequential per-wave spacing tuner: for wave 2..8 in turn, the smallest spacing (0.05 s grid)
 // at which the bot leaks at most `target` on that wave, earlier waves held at their tuned values.
+// The slice's tuner, kept for the record (DESIGN.md §6 cites it): the station only, waves 2-8, its
+// own bounty rule (health / 10 × the first argument). The late waves' spacings no longer bind
+// (§6, the balance audit); `verbs.mts` is the tool for the twelve-wave run.
 import { Game } from '../src/sim/Game';
 import { Bot, BOT_PLAN, playRun } from '../src/app/bot';
 import { WAVES } from '../src/data/waves';
@@ -14,7 +17,7 @@ for (let i = 1; i < 8; i++) {
   for (let s = 4.0; s >= 0.3; s = +(s - 0.05).toFixed(2)) {
     WAVES[i].spacing = s;
     const { g } = run();
-    const leaks = g.stats.leaksByWave[i + 1];
+    const leaks = g.stats.leaksByWave[i + 1] ?? 0;
     const lostBefore = g.over === 'lose' && g.wave <= i + 1;
     if (leaks <= target && !lostBefore) best = s; else break;
   }

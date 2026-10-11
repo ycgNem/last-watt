@@ -48,7 +48,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     },
   },
   flit: {
-    id: 'flit', name: 'Flit', code: 'F', blurb: 'Tiny and fast; comes in clumps of eight. Drawn to light like a Moth.', lean: 'light',
+    id: 'flit', name: 'Flit', code: 'F', blurb: 'Tiny and fast; comes in clumps (four at first, eight later). Drawn to light like a Moth.', lean: 'light',
     answer: 'A Floodlight looking down a straight, a Starshell burst, or Lamps behind a Beacon. A Brazier needs a Beacon or tier 2.',
     health: 14, speed: 2.6, bounty: 2, leak: 1, packGap: 0.3,
     why: {
@@ -79,7 +79,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     health: 160, speed: 0.8, bounty: 24, leak: 3, snuffRadius: 5, snuffTime: 8,
     why: {
       health: '§5.1 Snuffer: 160 kJ', speed: '§5.1 Snuffer: 0.8 t/s', bounty: '§1 bounty = round(160 × 0.15) = 24', leak: '§5.1 Snuffer: 3 lights',
-      snuffRadius: '§5.1 Snuffer: Burners within 5 tiles (the fourth review: at 3.5 it changed nothing; at 6 the human profile lost)', snuffTime: '§5.1 Snuffer: cold for 8 s',
+      snuffRadius: '§5.1 Snuffer: Burners within 5 tiles (the fourth review: 5 reaches the station north deposit and every map rich ground; at 6 the station south Burner, 3.35 from the road end, is in reach and the human profile loses)', snuffTime: '§5.1 Snuffer: cold for 8 s',
     },
   },
   siphon: {
@@ -94,7 +94,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
   pall: {
     id: 'pall', name: 'Pall', code: 'P', blurb: 'Slow, heavy dark. Drinks 3/4 of a narrow beam; in a Floodlight\'s cone it shadows everything behind it.',
-    answer: 'Fire and bursts: a Brazier burns it in full, a Starshell burst lands on it whole. A Floodlight works only while the Pall is alone in its cone (Moths overtake it), so early on the road; Overcharge it there. Lamps and Searchlights barely scratch it.',
+    answer: 'Fire and bursts: a Brazier burns it in full, a Starshell burst lands on it whole. In a Floodlight\'s cone it takes less for each thing in front of it (0.6 behind one Moth, 0.2 behind two), so cone it early on the road and Overcharge it there. Lamps and Searchlights barely scratch it.',
     health: 400, speed: 0.6, bounty: 60, leak: 5, shadow: true, narrowBeam: 0.25,
     why: {
       health: '§5 Pall: 400 kJ', speed: '§5 Pall: 0.6 t/s', bounty: '§1 bounty = round(health × 0.15) = 60 (§6 economy)', leak: '§5 Pall: 5 lights', narrowBeam: '§5 Pall: a single beam lands 1/4 (§6: the Pall needs burst)',

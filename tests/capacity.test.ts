@@ -84,21 +84,23 @@ describe('Node capacity (§3.3)', () => {
     expect(g.networks[0].wasted).toBeCloseTo(20, 1);
   });
 
-  it('a Heavy line carries 80 kW', () => {
+  it('a Heavy line carries 80 kW: eight Labs past two of them get all 80, and the link is full', () => {
     const g = new Game();
     strongHearth(g);
-    const { n1, n2, labs } = farLabs(g);
+    const { n1, n2 } = farLabs(g);
+    for (const [x, y] of [[32, 7], [32, 11], [30, 5]]) put(g, 'lab', x, y);
     g.research.done.add('longline');
     g.money = 1000;
     expect(run(g, { k: 'up', b: n1.id, branch: 1 })).toBeNull();
     expect(run(g, { k: 'up', b: n2.id, branch: 1 })).toBeNull();
     settle(g, 0.2);
-    for (const l of labs) expect(l.sat).toBe(1);
-    expect(n1.carry).toBeCloseTo(50, 3);
-    expect(n1.full).toBe(false);
+    for (const l of g.buildings.values()) if (l.def.id === 'lab') expect(l.sat).toBeCloseTo(1, 6);
+    // pinned at 80: any less and the Labs would starve, any more and the link would not be full
+    expect(Math.abs(n1.carry)).toBeCloseTo(80, 3);
+    expect(n1.full).toBe(true);
   });
 
-  it('past a full Node a Flywheel carries a peak a Jar cannot: 90 kW out against 30 (§3.2, the fourth review M5)', () => {
+  it('past a full Node a Flywheel carries a peak a Jar cannot: 40 kW short, a Jar gives 30 and a Flywheel all 40 (§3.2, the fourth review M5)', () => {
     const peak = (fly: boolean) => {
       const g = new Game();
       strongHearth(g);
