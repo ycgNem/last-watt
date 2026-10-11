@@ -101,8 +101,8 @@ export const RESEARCH: Record<string, ResearchDef> = {
     why: { cost: '§7 Burner tier 2: 1000 kJ' },
   },
   deepbit: {
-    id: 'deepbit', name: 'Deep bit', branch: 'power', cost: 700,
-    blurb: 'Extractors can be upgraded: a rock every 5 s for 4 kW.',
+    id: 'deepbit', name: 'Mining', branch: 'power', cost: 700,
+    blurb: 'Extractors can take a Deep bit (a rock every 5 s for 4 kW) or a Coker (coke, 2.5 rocks of heat each, for 10 kW: it pays with three Burners touching).',
     why: { cost: '§7 Extractor tier 2: 700 kJ' },
   },
   bank: {

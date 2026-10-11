@@ -616,9 +616,9 @@ export class Renderer {
     else if (b.def.role === 'node' && b.offline > 0) {
       tag(`CUT ${Math.ceil(b.offline)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
     } else if (b.snuffed > 0 && b.net >= 0) tag(`SNUFFED ${Math.ceil(b.snuffed)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
-    else if (b.def.role === 'generator' && b.def.fuel === 'rock' && b.net >= 0 && b.output <= 0 && b.fuel <= 0) {
-      const fed = [...g.buildings.values()].some((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
-      if (fed) tag('WAITING FOR ROCK', C.amber);
+    else if (b.def.role === 'generator' && b.def.fuel === 'rock' && b.net >= 0 && b.output <= 0 && b.fuel + b.coke <= 0) {
+      const fed = [...g.buildings.values()].filter((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
+      if (fed.length) tag(fed.every((x) => g.spec(x).makesCoke) ? 'WAITING FOR COKE' : 'WAITING FOR ROCK', C.amber);
       else tag('NO FUEL', C.ember);
     }
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
@@ -636,6 +636,22 @@ export class Renderer {
       for (let i = -2; i <= 2; i++) {
         const [dx, dy] = spoke === 0 ? [i, 0] : spoke === 1 ? [i, i] : spoke === 2 ? [0, i] : [i, -i];
         ctx.fillRect(this.sx(cx + dx), this.sy(cy + dy), z, z);
+      }
+    }
+    // a Coker wears its coke in place of a pip: a little heap that glows while it holds some (§3.2)
+    else if (b.def.role === 'extractor' && g.spec(b).makesCoke) {
+      const cx = Math.round(p.x + p.w / 2), cy = Math.round(p.y) - 1;
+      ctx.fillStyle = C.ink;
+      ctx.fillRect(this.sx(cx - 3), this.sy(cy - 2), 7 * z, 4 * z);
+      ctx.fillStyle = C.iron;
+      ctx.fillRect(this.sx(cx - 2), this.sy(cy - 1), 5 * z, 2 * z);
+      ctx.fillRect(this.sx(cx - 1), this.sy(cy - 2), 3 * z, z);
+      if (b.stock > 0) {
+        const on = Math.floor(this.time * 3 + b.id) % 2;
+        ctx.fillStyle = C.orange;
+        ctx.fillRect(this.sx(cx - 1 + on), this.sy(cy - 1), z, z);
+        ctx.fillStyle = C.gold;
+        ctx.fillRect(this.sx(cx + 1 - on), this.sy(cy), z, z);
       }
     }
     // a tier with no sprite of its own wears a brass pip: one for tier 2 without a tier-2

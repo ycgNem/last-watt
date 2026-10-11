@@ -15,6 +15,7 @@ export const RULES = {
   pulseRadius: { v: 3, why: '§8 Pulse: the flash reaches 3 tiles round each tower' },
   rerouteCost: { v: 100, why: '§8 Reroute: 100 kJ from the Jars, less than the 144 kJ two firing Lamps lose in a 6 s cut (one Lamp loses 72: reroute a branch, not a lone Lamp)' },
   rerouteTime: { v: 8, why: '§8 Reroute: guarded 8 s (a Shade at 1.0 t/s spends 2√(3.5² − 1²) + 1 = 7.7 s in reach of a Node 1 tile off the road, 5.9 s of one 2.5 off: one pass)' },
+  cokeDensity: { v: 2.5, why: '§3.2 Coker: coke holds 2.5× the heat of the rock it was made from (PLAN: refiners, emberrock → coke at 2.5× density): 1000 kJ, 25 s in a Burner, 20 s in a Bellows' },
   starvedBelow: { v: 0.6, why: 'STYLE.md rule 1: starved = satisfaction < 0.6' },
   starshellHeavy: { v: 3, why: '§4.1 Starshell aim: a body over 100 kJ counts as three in its crowd count (a burst spends its whole share on it, where a 30 kJ Moth often dies with most of its share unspent)' },
   veilSight: { v: 0.6, why: '§5.1 Veil: seen only by a tower above the starved line (0.6)' },

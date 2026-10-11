@@ -52,6 +52,8 @@ export interface Stats {
   maxDischarge?: number;
   /** storage: fraction of its charge lost each second (a Flywheel spins down) */
   spinDown?: number;
+  /** extractor: hands over coke (RULES.cokeDensity × a rock's heat) instead of rock (the Coker) */
+  makesCoke?: boolean;
   /** cone: half-angle in degrees, and the fraction of the beam one enemy catches */
   halfAngle?: number;
   catch?: number;
@@ -114,9 +116,14 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     blurb: 'Sits on emberrock. Digs 1 rock / 8 s at full power and hands it to a Burner touching it.',
     workDraw: 2, rockInterval: 8, stockCap: 3,
     upgrades: [{
-      cost: 38, research: 'deepbit', blurb: 'Deep bit: 1 rock / 5 s, asks 4 kW. One Extractor feeds a Bellows Burner and a half.',
+      name: 'Deep bit', cost: 38, research: 'deepbit', blurb: 'Deep bit: 1 rock / 5 s, asks 4 kW. Feeds two Burners touching it.',
       stats: { rockInterval: 5, workDraw: 4 },
       why: { cost: '§4 upgrade rule: 30 × 1.25 = 37.5 → 38', rockInterval: '§3.2 deep bit: 8 s → 5 s per rock', workDraw: '§3.2 deep bit: 2 → 4 kW (more rock costs watts)' },
+      alts: [{
+        name: 'Coker', cost: 38, research: 'deepbit', blurb: 'Coker: still 1 rock / 8 s, but each is coke, 2.5 rocks of heat (25 s in a Burner). Asks 10 kW. Pays only with three Burners touching it.',
+        stats: { workDraw: 10, makesCoke: true },
+        why: { cost: '§4 upgrade rule: 30 × 1.25 = 37.5 → 38', workDraw: '§3.2 Coker: 2 kW digging + 8 kW coking (with two Burners touching, a Deep bit nets more; with three, the Coker)' },
+      }],
     }],
     why: {
       size: '§3 slice map: one Extractor per deposit tile', cost: '§3 Extractor: 30', tier: '§2.3 default tiers: 1 Works (extractors)',

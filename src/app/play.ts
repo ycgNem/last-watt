@@ -388,7 +388,7 @@ export class Play {
     if (hot && g.brownout)
       this.sayOnce('brazier', 60, `A Brazier asked ${Math.round(hot.demand)} kW for ${hot.bodies} bodies and starved the wall. Put it on tier 3 (select it, Shift+T) so it burns only spare power.`, C.violet, 8);
     for (const b of bs) {
-      if (b.def.role !== 'generator' || b.def.fuel !== 'rock' || b.fuel > 1 || b.off || b.snuffed > 0) continue;
+      if (b.def.role !== 'generator' || b.def.fuel !== 'rock' || b.fuel + b.coke > 1 || b.off || b.snuffed > 0) continue;
       const feeders = bs.filter((x) => x.def.role === 'extractor' && touches(g.rect(x), g.rect(b)));
       if (feeders.length === 0 && b.net >= 0 && b.output <= 0) {
         this.sayOnce('nofeed', 25, 'A Burner has no Extractor touching it: put one on emberrock right next to it.', C.ember, 7);
@@ -1112,8 +1112,8 @@ export class Play {
     if (b.def.role === 'generator') {
       if (b.def.fuel === 'wind') return { text: `TURNING: ${b.output.toFixed(1)} kW (wind ${Math.round(g.wind() * 100)}%)`, color: C.gold };
       if (b.output > 0) return { text: 'LIT', color: C.gold };
-      const fed = [...g.buildings.values()].some((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
-      return fed ? { text: 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
+      const fed = [...g.buildings.values()].filter((x) => x.def.role === 'extractor' && x.net >= 0 && !x.off && touches(g.rect(x), g.rect(b)));
+      return fed.length ? { text: fed.every((x) => g.spec(x).makesCoke) ? 'WAITING FOR COKE: its Coker is digging' : 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
     }
     if (b.def.role === 'lab' && !g.research.active) return { text: 'IDLE: pick a project (L)', color: C.cyan };
     if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%${fullOnTheWay(g, b) ? ': a Node on its way is full' : ''}`, color: C.violet };
@@ -1153,10 +1153,12 @@ export class Play {
         out.push({ text: `Asks ${d.constantDraw} kW always.` }, { text: `Slows by ${Math.round((d.slow ?? 0) * b.sat * 100)}% (${Math.round((d.slow ?? 0) * 100)}% × its share of power).`, color: C.amber });
         break;
       case 'extractor': {
-        const feeds = [...g.buildings.values()].some((u) => u.def.role === 'generator' && u.def.fuel === 'rock' && touches(g.rect(u), g.rect(b)));
-        out.push({ text: `Asks ${d.workDraw} kW while digging. 1 rock / ${d.rockInterval} s at full power.` });
-        out.push({ text: `Holding ${b.stock}/${d.stockCap} rocks. Next ${Math.round(b.progress * 100)}%.` });
-        out.push(feeds ? { text: 'Feeding a Burner next to it.', color: C.amber } : { text: 'No Burner touching it: its rock goes nowhere.', color: C.ember });
+        const feeds = [...g.buildings.values()].filter((u) => u.def.role === 'generator' && u.def.fuel === 'rock' && touches(g.rect(u), g.rect(b))).length;
+        const what = d.makesCoke ? 'coke' : 'rock';
+        out.push({ text: `Asks ${d.workDraw} kW while digging. 1 ${what} / ${d.rockInterval} s at full power.` });
+        if (d.makesCoke) out.push({ text: `Each coke is ${RULES.cokeDensity.v} rocks of heat: it feeds ${(RULES.cokeDensity.v * 10 / (d.rockInterval ?? 8)).toFixed(1)} Burners, if that many touch it.`, color: C.amber });
+        out.push({ text: `Holding ${b.stock}/${d.stockCap} ${what}. Next ${Math.round(b.progress * 100)}%.` });
+        out.push(feeds ? { text: feeds > 1 ? `Feeding ${feeds} Burners next to it.` : 'Feeding a Burner next to it.', color: C.amber } : { text: `No Burner touching it: its ${what} goes nowhere.`, color: C.ember });
         break;
       }
       case 'generator': {
@@ -1169,7 +1171,7 @@ export class Play {
         const fed = [...g.buildings.values()].filter((u) => u.def.role === 'extractor' && touches(g.rect(u), g.rect(b))).length;
         const per = ((d.rockHeat ?? 0) * (d.efficiency ?? 0)) / (d.output ?? 1);
         out.push({ text: `Makes ${d.output} kW while lit. One rock lasts ${per.toFixed(0)} s.` });
-        out.push({ text: `Fuel: ${b.fuel}/${d.fuelCap} rocks${b.burnLeft > 0 ? ` + ${Math.ceil(b.burnLeft)}s burning` : ''}.` });
+        out.push({ text: `Fuel: ${b.fuel + b.coke}/${d.fuelCap}${b.coke ? ` (${b.coke} coke, ${(RULES.cokeDensity.v * per).toFixed(0)} s each)` : ' rocks'}${b.burnLeft > 0 ? ` + ${Math.ceil(b.burnLeft)}s burning` : ''}.` });
         out.push(fed ? { text: `Fed by ${fed} Extractor${fed > 1 ? 's' : ''}.`, color: C.amber } : { text: 'No Extractor touching it.', color: C.ember });
         break;
       }

@@ -27,8 +27,10 @@ export interface Building {
   satAvg: number;
   /** generator: kW put on the grid this tick */
   output: number;
-  /** burner: rocks held, seconds left on the burning rock, seconds it stays put out by a Snuffer */
+  /** burner: rocks held, coke held (a Coker's, §3.2), seconds left on the burning one, seconds it
+   *  stays put out by a Snuffer */
   fuel: number;
+  coke: number;
   burnLeft: number;
   snuffed: number;
   /** extractor: progress to the next rock (0..1), rocks waiting to hand over */

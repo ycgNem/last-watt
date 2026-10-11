@@ -103,7 +103,7 @@ export function lineReports(g: Game): LineReport[] {
         if (!b.off) peak += fullDraw(g, b);
         towers++;
       } else if (role === 'storage' && !b.off && b.charge > 0) jarKw += g.spec(b).maxDischarge ?? 0;
-      else if (role === 'generator' && b.def.fuel === 'rock' && !b.off && b.output <= 0 && b.fuel <= 0) rockOut++;
+      else if (role === 'generator' && b.def.fuel === 'rock' && !b.off && b.output <= 0 && b.fuel + b.coke <= 0) rockOut++;
     }
     // the rest of the demand (Labs, Extractors) asks what it asks now
     peak += Math.max(0, n.demand - n.wall.demand);

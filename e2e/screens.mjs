@@ -117,6 +117,20 @@ const STATES = {
     const at = await page.evaluate(() => { const a = window.__app; return { x: (a.play.stripLeft + 12) * a.ui.scale, y: 40 * a.ui.scale }; });
     await page.mouse.move(at.x, at.y);
   },
+  // a Coker with three Burners touching it, selected (§3.2)
+  coker: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('deepbit');
+    g.money = 400;
+    const ex = window.__place(g, 'extractor', 16, 19);
+    window.__app.play.cmd({ k: 'up', b: ex.id, branch: 1 });
+    for (const [x, y] of [[14, 19], [17, 18], [16, 20]]) window.__place(g, 'burner', x, y);
+    window.__place(g, 'lamp', 24, 13);
+    for (let i = 0; i < 60 * 40; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+    p.selectedId = ex.id;
+  }),
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
