@@ -30,15 +30,21 @@ function isLight(b: Building): boolean {
   return b.def.role === 'tower' || b.def.role === 'beacon';
 }
 
+/** a building's branches, kept until its reach changes (an upgrade) */
+const BITS = new WeakMap<Building, { r: number; bits: number }>();
+
 /** which branches a tower's reach touches (bit 0 the first, bit 1 the second) */
 export function branchesOf(g: Game, b: Building): number {
   if (!g.map.fork || !isLight(b)) return 0;
   const r = g.spec(b).range ?? 0;
+  const hit = BITS.get(b);
+  if (hit && hit.r === r) return hit.bits;
   const cx = b.x + b.def.size / 2, cy = b.y + b.def.size / 2;
   let bits = 0;
   samples(g).forEach((pts, i) => {
     if (pts.some(([x, y]) => Math.hypot(x - cx, y - cy) <= r)) bits |= 1 << i;
   });
+  BITS.set(b, { r, bits });
   return bits;
 }
 
