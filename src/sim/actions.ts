@@ -59,14 +59,14 @@ export function toggleOff(g: Game, b: Building): string | null {
 }
 
 export function setTier(g: Game, b: Building, tier: number): string | null {
-  if (!(b.def.tier && tier >= 1 && tier <= 4)) return 'Only consumers have a tier';
+  if (!(b.def.tier && tier >= 1 && tier <= 3)) return 'Only consumers have a tier';
   b.tier = tier;
   return null;
 }
 
 /** shed (or restore) a whole tier from the HUD */
 export function toggleTier(g: Game, tier: number) {
-  if (tier >= 1 && tier <= 4) g.tierOff[tier] = !g.tierOff[tier];
+  if (tier >= 1 && tier <= 3) g.tierOff[tier] = !g.tierOff[tier];
 }
 
 /** branch: which way to take a tier that has a choice (0 the main line); a building already on a

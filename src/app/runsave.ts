@@ -11,7 +11,7 @@ import { SKILLS, SKILL_RULES } from '../data/skills';
 import { WAVES } from '../data/waves';
 import type { LogEntry } from '../sim/commands';
 
-export const RUN_VERSION = 1;
+export const RUN_VERSION = 2;
 const KEY = 'lastwatt.run';
 
 export interface RunSave {

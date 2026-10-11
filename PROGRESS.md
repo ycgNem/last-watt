@@ -19,7 +19,7 @@ map once it is open; K skills; O settings; H in game lists every key.
   grid → towers → abilities → research → economy → stats.
   - Grid (`systems/grid.ts`): networks from the Hearth and Nodes, supply (the Hearth's 8 kW ×
     lights / 20, lit Burners, Vanes in each other's **wind shadow**), line losses, per-consumer
-    demand, priority tiers (0 Overcharge · 1 Works · 2 Wall · 3 Labs · 4 Spare), Jar and
+    demand, priority tiers (1 Works · 0 Overcharge · 2 Wall · 3 Labs), Jar and
     **Flywheel** charge/discharge (Jars never pay for an Overcharge's extra), **Siphon** drain
     served before every tier, wasted kW, brownout with hysteresis; a dry pass for building while
     paused. **Transmission** (`systems/flow.ts`, `DESIGN.md` §3.3): each network is a tree from

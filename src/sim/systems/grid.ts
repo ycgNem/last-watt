@@ -8,10 +8,7 @@ import { covers } from '../geom';
 import type { Building, Network } from '../types';
 import { allocate, buildTree } from './flow';
 
-/** tier 4, Spare: served only from what would be wasted, after the Jars have charged; a Jar never
- *  pays for it (DESIGN.md §2.3) */
-const SPARE = 4;
-/** the order tiers are served in: the Works, Overcharges, the Wall, the Labs (Spare after the Jars) */
+/** the order tiers are served in: the Works, Overcharges, the Wall, the Labs (DESIGN.md §2.3) */
 const ORDER = [1, 0, 2, 3];
 
 /** a node-like building carries power: the Hearth always, a Node unless knocked out */
@@ -255,7 +252,7 @@ export function gridSystem(g: Game, dry = false) {
     // per conductor: power made, what is served before every tier (line loss and Siphons), each
     // tier's demand, the part of an Overcharge a Jar may pay for (its base draw, §8), the Jars
     const gen = zeros(), first = zeros(), drainAt = zeros(), ocBase = zeros();
-    const dem = [0, 1, 2, 3, 4].map(zeros);
+    const dem = [0, 1, 2, 3].map(zeros);
     const jarsAt: Building[][] = t.ids.map(() => []);
     const consumers: Building[] = [];
     for (const id of n.members) {
@@ -302,8 +299,7 @@ export function gridSystem(g: Game, dry = false) {
     const made = Math.max(0, n.gen - n.loss);
     // live power first, tier by tier: the Works (tier 1) in full, then Overcharges (tier 0: after
     // the Works since the fifth review, so a burst can't starve the factory), then the Wall and the
-    // Labs (§2.3, §8), each along links that carry at most their capacity (§3.3); the Spare tier
-    // waits for the spill (below)
+    // Labs (§2.3, §8), each along links that carry at most their capacity (§3.3)
     const src = gen.slice();
     const flow = zeros();
     const s1 = allocate(t, first, src, flow);
@@ -329,8 +325,8 @@ export function gridSystem(g: Game, dry = false) {
     }
     const jsrc = budget.slice();
     const s1j = allocate(t, first.map((d, i) => d * (1 - s1[i])), jsrc, flow);
-    // an Overcharge's base draw only, and never the Spare tier: it runs on spill alone
-    const elig = dem.map((d, tt) => d.map((x, i) => (tt === SPARE ? 0 : tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]))));
+    // an Overcharge's base draw only
+    const elig = dem.map((d, tt) => d.map((x, i) => (tt === 0 ? Math.max(0, ocBase[i] - x * sat[0][i]) : x * (1 - sat[tt][i]))));
     const satJ = dem.map((d) => d.map(() => 0));
     for (const tt of ORDER) satJ[tt] = allocate(t, elig[tt], jsrc, flow);
     for (let i = 0; i < k; i++) {
@@ -366,14 +362,11 @@ export function gridSystem(g: Game, dry = false) {
         j.flow += share;
       }
     }
-    // the Spare tier: what is still left once the Jars have charged, as far as the links carry it
-    // (§2.3, the spill tier); only then is power wasted (§2.4)
-    sat[SPARE] = allocate(t, dem[SPARE], src, flow);
     for (let i = 0; i < k; i++) n.wasted += Math.max(0, src[i]);
     const supply = made + n.discharge;
     // what each conductor's tiers got, and what each consumer gets: its conductor's share of its tier
     const got = dem.map((d, tt) => d.map((x, i) => x * sat[tt][i] + elig[tt][i] * satJ[tt][i]));
-    for (let tt = 0; tt <= 4; tt++) {
+    for (let tt = 0; tt <= 3; tt++) {
       const ts = n.tiers[tt];
       ts.served = got[tt].reduce((a, b) => a + b, 0);
       ts.sat = ts.demand > 0 ? Math.min(1, ts.served / ts.demand) : 1;
@@ -398,8 +391,7 @@ export function gridSystem(g: Game, dry = false) {
       const i = at(b), tt = tierOf(b);
       const d = dem[tt][i];
       b.sat = b.off || g.tierOff[b.tier] ? 0 : d > 0 ? Math.min(1, got[tt][i] / d) : n.tiers[tt].sat;
-      // towers on Spare are a bonus on spill, not the wall a brownout is read from
-      if ((b.def.role === 'tower' || b.def.role === 'beacon') && tt !== SPARE) {
+      if (b.def.role === 'tower' || b.def.role === 'beacon') {
         n.wall.demand += b.demand;
         n.wall.served += b.demand * b.sat;
       }
@@ -422,7 +414,7 @@ export function gridSystem(g: Game, dry = false) {
     total.wasted += n.wasted;
     total.stored += n.stored;
     total.capacity += n.capacity;
-    for (let t = 1; t <= 4; t++) {
+    for (let t = 1; t <= 3; t++) {
       total.tiers[t].demand += n.tiers[t].demand;
       total.tiers[t].served += n.tiers[t].served;
     }
@@ -435,7 +427,7 @@ export function gridSystem(g: Game, dry = false) {
   const k = Math.min(1, DT / 0.5);
   for (const b of g.buildings.values()) b.satAvg += ((b.net < 0 ? 0 : b.sat) - b.satAvg) * k;
   total.wall.sat = total.wall.demand > 0 ? total.wall.served / total.wall.demand : 1;
-  for (let t = 1; t <= 4; t++) {
+  for (let t = 1; t <= 3; t++) {
     const ts = total.tiers[t];
     ts.sat = ts.demand > 0 ? ts.served / ts.demand : 1;
   }

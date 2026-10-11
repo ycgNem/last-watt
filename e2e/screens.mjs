@@ -355,28 +355,6 @@ function nodeFull(select) {
 }
 STATES.nodefull = async (page) => page.evaluate(nodeFull, true);
 
-// a Lamp on tier 4 (Spare) while a Jar charges: it gets the spill, and says so (§2.3)
-STATES.spare = async (page) => page.evaluate(() => {
-  const a = window.__app;
-  const p = a.newGame();
-  const g = p.game;
-  window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
-  window.__place(g, 'jar', 22, 18);
-  const lamp = window.__place(g, 'lamp', 24, 13);
-  window.__place(g, 'lamp', 22, 16);
-  window.__place(g, 'lab', 19, 18).tier = 4;
-  lamp.tier = 4;
-  g.research.active = 'vane';
-  for (const d of [36, 38]) {
-    const def = { ...window.__enemies.moth, speed: 0 };
-    const q = g.paths[0].at(d);
-    g.enemies.push({ id: g.nextId++, def, hp: 1e9, dist: d, x: q.x, y: q.y, slow: 0, face: 1, hit: 0, wave: 1, seen: true, route: 0 });
-  }
-  g.wave = 1;
-  for (let i = 0; i < 60 * 3; i++) { p.tick(); g.drainEvents(); }
-  p.msgs = [];
-  p.selectedId = lamp.id;
-});
 STATES.nodefulllines = async (page) => {
   await page.evaluate(nodeFull, false);
   await page.evaluate(() => { window.__app.play.lines = true; });

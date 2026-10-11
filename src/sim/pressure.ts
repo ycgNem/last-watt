@@ -43,7 +43,7 @@ export function wavePressure(g: Game, w: WaveDef): Pressure {
     kj += def.health;
     if (i < w.seq.length - 1) span += def.packGap && w.seq[i + 1] === w.seq[i] ? def.packGap : sp;
   }
-  // the wall: every tower firing, served after the Works (§2.3); Labs and the Spare tier wait
+  // the wall: every tower firing, served after the Works (§2.3); the Labs wait
   let works = 0, peak = 0, dealt = 0;
   for (const b of g.buildings.values()) {
     if (b.net < 0 || b.off) continue;

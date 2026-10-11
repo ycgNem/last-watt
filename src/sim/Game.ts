@@ -24,7 +24,7 @@ export const DT = 1 / TICK_RATE;
 export interface Spawner { wave: number; seq: string; i: number; next: number; spacing: number; /** the road each kind's next spawn takes, so every road sees its share of every kind */ routes: Record<string, number> }
 
 export function emptyTiers() {
-  return [0, 1, 2, 3, 4].map(() => ({ demand: 0, served: 0, sat: 1 }));
+  return [0, 1, 2, 3].map(() => ({ demand: 0, served: 0, sat: 1 }));
 }
 
 export class Game {
@@ -57,8 +57,8 @@ export class Game {
   /** Dark Bait (§8): the branch whose towers are put out (-1: none), and the towers it put out */
   bait = -1;
   baitIds: number[] = [];
-  /** whole tiers shed from the HUD (index 1..4) */
-  tierOff = [false, false, false, false, false];
+  /** whole tiers shed from the HUD (index 1..3) */
+  tierOff = [false, false, false, false];
   /** waves started so far (0 = before wave 1) */
   wave = 0;
   /** past the last wave, waves keep coming (chosen on the win screen) */

@@ -40,7 +40,7 @@ const HUD_H = 30;
 const BAR_H = 36;
 /** the group tabs that sit on top of the build bar */
 const TAB_H = 9;
-const TIER_NAMES = ['', 'Works', 'Wall', 'Labs', 'Spare'];
+const TIER_NAMES = ['', 'Works', 'Wall', 'Labs'];
 const SLOT_W = 30;
 
 export interface PlayOpts {
@@ -409,7 +409,7 @@ export class Play {
       }
     }
     if (g.grid.wasted > 12 && g.wave >= 2 && g.grid.capacity === 0)
-      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it; a Lab (=) turns it into research; anything on tier 4 (Spare) runs on it alone.`, C.amber, 7);
+      this.sayOnce('waste', 60, `${Math.round(g.grid.wasted)} kW is being wasted. A Jar (-) stores it; a Lab (=) turns it into research.`, C.amber, 7);
     if (g.enemies.some((e) => e.def.veiled && !e.seen && e.dist > g.paths[e.route].length * 0.5))
       this.sayOnce('veil', 40, 'A Veil is walking past unseen: your towers near it are below 60% power. Ease the load, Overcharge, or burn it with a Brazier.', C.violet, 7);
     if (!g.research.active && bs.some((b) => b.def.role === 'lab') && g.research.done.size < RESEARCH_ORDER.length)
@@ -499,7 +499,7 @@ export class Play {
       else this.act(this.cmd({ k: 'bait', branch }));
     }
     // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
-    if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
+    if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(3, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
     if (k('KeyU') && target) this.act(this.cmd({ k: 'up', b: target.id }), 'place');
     if (k('KeyY') && target?.def.upgrades?.[target.level - 1]?.alts) this.act(this.cmd({ k: 'up', b: target.id, branch: 1 }), 'place');
     if ((k('Delete') || k('Backspace')) && this.selected) {
@@ -911,8 +911,8 @@ export class Play {
     }
     const waveX = label ? rx - bw - 3 - textWidth('99 left') - 4 : rx - textWidth(wv) - 6;
     if (label && !g.over && ui.button(label, rx - bw, 14, bw, 13, { tip, color: C.gold })) this.callWave();
-    // tiers, in the space between: 1 Works, 2 Wall, 3 Labs (4 only when something sits on it)
-    const tiers = g.grid.tiers[4].demand > 0 || g.tierOff[4] || [...g.buildings.values()].some((b) => b.def.tier && b.tier === 4) ? [1, 2, 3, 4] : [1, 2, 3];
+    // tiers, in the space between: 1 Works, 2 Wall, 3 Labs
+    const tiers = [1, 2, 3];
     const room = Math.min(waveX, ui.w - 130) - tx;
     const tw = Math.max(24, Math.min(40, Math.floor(room / tiers.length) - 3));
     tiers.forEach((t, i) => {
@@ -931,7 +931,7 @@ export class Play {
         ui.tooltip([
           { text: `Tier ${t} (${TIER_NAMES[t]}): ${off ? 'SHED (off)' : `${Math.round(ts.served)} of ${Math.round(ts.demand)} kW served`}` },
           { text: [...counts].map(([n, c]) => `${c} ${n}${c > 1 ? 's' : ''}`).join(', ') || 'Nothing on this tier.' },
-          { text: t === 4 ? 'Spare runs only on power that would be wasted, after the Jars have charged; a Jar never pays for it. Select a building and use its tier buttons. Shift-click to shed (or restore) the whole tier.' : 'Tier 1 is served in full before tier 2 sees a watt, and so on. Select a building and press T to raise it. Shift-click to shed (or restore) the whole tier.', color: C.ash },
+          { text: 'Tier 1 is served in full before tier 2 sees a watt, and so on. Select a building and press T to raise it. Shift-click to shed (or restore) the whole tier.', color: C.ash },
         ]);
         if (ui.clicked) {
           ui.eat();
@@ -1116,8 +1116,6 @@ export class Play {
       return fed ? { text: 'WAITING FOR ROCK: its Extractor is digging', color: C.amber } : { text: 'COLD: no Extractor touching it', color: C.ember };
     }
     if (b.def.role === 'lab' && !g.research.active) return { text: 'IDLE: pick a project (L)', color: C.cyan };
-    // on Spare it runs on spill alone: little or none is the rule, not a fault (§2.3)
-    if (b.tier === 4 && b.overcharge <= 0 && b.sat < 0.99) return { text: `ON SPILL ${Math.round(b.sat * 100)}% (tier 4)`, color: C.ash };
     if (st === 'starved') return { text: `STARVED ${Math.round(b.sat * 100)}%${fullOnTheWay(g, b) ? ': a Node on its way is full' : ''}`, color: C.violet };
     return { text: b.def.role === 'core' ? `BURNING ${g.hearthOutput().toFixed(1)} kW` : `POWERED ${b.def.tier ? Math.round(b.sat * 100) + '%' : ''}`, color: C.gold };
   }
@@ -1260,8 +1258,8 @@ export class Play {
     if (b.def.tier) {
       ui.text('Priority tier (T)', x + 5, y, C.ash);
       y += 10;
-      for (let t = 1; t <= 4; t++) {
-        const tip = t === 4 ? 'Runs only on power that would be wasted, after the Jars have charged. A Jar never pays for it, and it is not part of the wall a brownout is read from.' : 'Tier 1 is served in full before tier 2 sees a watt.';
+      for (let t = 1; t <= 3; t++) {
+        const tip = 'Tier 1 is served in full before tier 2 sees a watt.';
         if (ui.button(`${t}`, x + 5 + (t - 1) * 22, y, 20, 14, { active: b.tier === t, tip: [`Tier ${t}: ${TIER_NAMES[t]}`, tip] })) this.cmd({ k: 'tier', b: b.id, t });
       }
       y += 20;
@@ -1539,8 +1537,8 @@ export class Play {
       ['Click', 'place it / select a building'],
       ['Right-click, Esc', 'cancel / deselect'],
       ['X', 'shed (turn off) the building under the mouse'],
-      ['T / Shift+T', 'raise / lower its tier (4, Spare: wasted power only)'],
-      ['E', 'Overcharge a tower: 3x for 4 s, ahead of the wall'],
+      ['T / Shift+T', 'raise / lower its tier'],
+      ['E', 'Overcharge: 3x for 4 s, ahead of the wall'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
       ['V', 'Lines: each power line and what holds it back'],
       ['O', 'Settings: volume, UI scale, screen flashes'],

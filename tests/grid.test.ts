@@ -92,50 +92,11 @@ describe('grid (§2)', () => {
     expect(lamps[0].sat).toBeCloseTo(38 / 48);
   });
 
-  it('the Spare tier runs on spill: after the Jars have charged, and a Jar never pays for it (§2.3)', () => {
-    // 28 kW made, the Extractor's 2 on tier 1: 26 spare; an empty Jar and two Labs (20 kW)
-    const labsOn = (tier: number) => {
-      const g = new Game();
-      factory(g);
-      const jar = put(g, 'jar', 22, 18);
-      const labs = [put(g, 'lab', 19, 18), put(g, 'lab', 21, 19)];
-      for (const l of labs) setTier(g, l, tier);
-      g.research.active = 'vane';
-      settle(g, 0.2);
-      return { jar: jar.flow, lab: labs[0].sat, wasted: g.grid.wasted };
-    };
-    // on Labs (tier 3) they come first and the Jar charges from the 6 left
-    const t3 = labsOn(3);
-    expect(t3.lab).toBe(1);
-    expect(t3.jar).toBeCloseTo(6, 3);
-    // on Spare the Jar charges its 15 first and the Labs share the 11 left
-    const t4 = labsOn(4);
-    expect(t4.jar).toBeCloseTo(15, 3);
-    expect(t4.lab).toBeCloseTo(11 / 20, 3);
-    expect(t4.wasted).toBeCloseTo(0, 3);
-  });
-
-  it('a Lamp on Spare gets only live spill: a full Jar holds the wall, not it, and it is not the wall', () => {
-    const lampOn = (tier: number) => {
-      const g = new Game();
-      const jar = put(g, 'jar', 22, 18);
-      jar.charge = 600;
-      const lamp = put(g, 'lamp', 24, 13);
-      setTier(g, lamp, tier);
-      park(g, 'moth', BEND_B_DIST);
-      settle(g, 0.5);
-      return { g, jar: jar.flow, lamp: lamp.sat };
-    };
-    // on the Wall the Hearth's 8 and 4 from the Jar
-    const wall = lampOn(2);
-    expect(wall.lamp).toBeCloseTo(1, 3);
-    expect(wall.jar).toBeCloseTo(-4, 3);
-    // on Spare the Hearth's 8 of 12, and the Jar keeps its charge
-    const spare = lampOn(4);
-    expect(spare.lamp).toBeCloseTo(8 / 12, 3);
-    expect(spare.jar).toBe(0);
-    expect(spare.g.grid.wall.demand).toBe(0);
-    expect(spare.g.brownout).toBe(false);
+  it('there are three tiers: a fourth is refused (the fifth review M7 cut Spare)', () => {
+    const g = new Game();
+    const lab = put(g, 'lab', 19, 18);
+    expect(setTier(g, lab, 4)).not.toBeNull();
+    expect(setTier(g, lab, 3)).toBeNull();
   });
 
   it('a knocked-out Node splits the network: everything past it goes dark (§2.5)', () => {
