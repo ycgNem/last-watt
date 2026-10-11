@@ -290,7 +290,12 @@ export class Play {
       case 'bait': {
         const f = g.map.fork!;
         if (e.branch < 0) this.say('Dark Bait lifted: the towers are lit again.', C.amber, 2);
-        else this.say(`Dark Bait: ${e.towers} tower${e.towers === 1 ? '' : 's'} on the ${f.names[e.branch]} put out. The light-drawn turn to the ${f.names[1 - e.branch]}.`, C.violet, 3);
+        else {
+          // say what the fork does now, not what the bait hoped for: towers over both ways still count
+          const go = mothsGo(g);
+          const then = go === 1 - e.branch ? `The light-drawn turn to the ${f.names[go]}.` : go < 0 ? 'The fork is even now: each keeps the road it came on. Put out more, or light the other way.' : `The ${f.names[e.branch]} is still the brighter way.`;
+          this.say(`Dark Bait: ${e.towers} tower${e.towers === 1 ? '' : 's'} on the ${f.names[e.branch]} put out. ${then}`, C.violet, 4);
+        }
         a.sfx(e.branch < 0 ? 'recovered' : 'dry');
         break;
       }
@@ -1350,15 +1355,21 @@ export class Play {
       [burner, 'A Burner (9) touching the Extractor: +20 kW'],
       [false, 'SPACE starts wave 1 when you are ready'],
     ];
-    const w = Math.max(...steps.map(([, t]) => textWidth(t))) + 22, h = 16 + steps.length * 11 + 13;
+    // as wide as its longest step, but never more than about half the screen: a long step wraps
+    const cap = Math.max(200, Math.min(300, Math.floor(ui.w / 2) - 10));
+    const wrapped = steps.map(([done, t]) => [done, wrapText(t, cap - 22)] as const);
+    const w = Math.max(textWidth('New here? The title screen has a TUTORIAL.'), ...wrapped.flatMap(([, ls]) => ls.map((l) => textWidth(l)))) + 22;
+    const rows = wrapped.reduce((a, [, ls]) => a + ls.length, 0);
+    const h = 16 + rows * 11 + 13;
     const { x, y } = this.leftCard(ui, w, h);
     ui.panel(x, y, w, h);
     ui.text('FIRST STEPS', x + 5, y + 4, C.gold);
-    steps.forEach(([done, text], i) => {
-      ui.text(done ? '+' : '-', x + 5, y + 16 + i * 11, done ? C.lime : C.steel);
-      ui.text(text, x + 13, y + 16 + i * 11, done ? C.steel : C.mist);
-    });
-    ui.text('New here? The title screen has a TUTORIAL.', x + 5, y + 16 + steps.length * 11 + 1, C.ash);
+    let row = 0;
+    for (const [done, ls] of wrapped) {
+      ui.text(done ? '+' : '-', x + 5, y + 16 + row * 11, done ? C.lime : C.steel);
+      for (const l of ls) ui.text(l, x + 13, y + 16 + row++ * 11, done ? C.steel : C.mist);
+    }
+    ui.text('New here? The title screen has a TUTORIAL.', x + 5, y + 16 + rows * 11 + 1, C.ash);
   }
 
   private drawTutorial(ui: UI, g: Game) {

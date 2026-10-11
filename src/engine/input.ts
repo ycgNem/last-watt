@@ -35,6 +35,11 @@ export class Input {
     });
     el.addEventListener('mousedown', (e) => {
       if (e.button > 2) return;
+      // a press lands where it happens, moved to or not (a tap on a touch screen, the first click
+      // after switching windows): the last mousemove may be somewhere else
+      const s = scale();
+      this.mouse.x = e.offsetX * s;
+      this.mouse.y = e.offsetY * s;
       this.mouse.down[e.button] = true;
       this.mouse.pressed[e.button] = true;
       if (e.button === 1) this.dragFrom = { x: this.mouse.x, y: this.mouse.y };

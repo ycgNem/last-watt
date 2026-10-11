@@ -192,8 +192,8 @@ export const THE_FORK: MapDef = {
     // far east, past the Loop's last leg
     [[35, 22], [36, 22], [35, 23], [36, 23]],
   ],
-  focus: [17, 16],
-  firstLamps: 'Two Lamps (1) by the Cut above the Hearth (a Node, 7, carries power). Moths take the branch with more lit towers',
+  focus: [16, 17.5],
+  firstLamps: 'Two Lamps (1) beside the road above the Hearth, where both ways come down as one. At the fork Moths take the way with more lit towers',
   jarSpot: [22, 24],
   windMean: 0.55,
   pace: 1,

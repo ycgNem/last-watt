@@ -323,6 +323,12 @@ function forkGame(bait) {
     a.r.cam.x = 15 * 16; a.r.cam.y = 13 * 16;
   }
 }
+STATES.forkopening = async (page) => page.evaluate(() => {
+  const a = window.__app;
+  a.profile.best.wave = 12;
+  a.pickMap(window.__maps.find((m) => m.id === 'fork'));
+  a.newGame();
+});
 STATES.fork = async (page) => page.evaluate(forkGame, false);
 STATES.forkbait = async (page) => page.evaluate(forkGame, true);
 
