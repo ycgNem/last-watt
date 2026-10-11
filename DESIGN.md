@@ -212,6 +212,13 @@ Jar of the wall, filled between waves and spent in one clump. Every other way ab
 tier on reach and keeps tier 2's efficiency: a lower peak in kW for the same kJ over a crossing,
 as with the Lantern.
 
+What tier 3 is worth, measured (`design/tier3check.mts`, the bot plan with every tier-3 project
+added to the end of its research list, main line): on the Switchback 16 lights either way with
+12 towers at tier 3 and the brownout up from 56 s to 98 s; on The Fork 15 either way (8 for the
+human profile) with 7 at tier 3 and 31 → 38 s of brownout; on the station and Two Roads the Labs
+never get that far. Tier 3 is power the grid has to carry, not a free win: the bot's losses
+are Palls at the wall, which a hotter Lamp doesn't fix.
+
 **Arc or Lantern is kW against kJ.** A Lamp 1.5 tiles off the road sees a chord of 2√(r² − 1.5²):
 6.3 tiles at reach 3.5, 9.5 at reach 5, so a Lantern holds each enemy in its light 1.5× as long.
 Per crossing it delivers 12 × 9.5 = 114 kJ·tiles/s against the Arc's 19.4 × 6.3 = 123 (93%), and
