@@ -200,6 +200,17 @@ Research: one project per tower unlocks both ways, at 1.5 × its tier-2 project.
 |---|---|---|
 | **Lamp** (50; research 1350 kJ) | **Arc**: 27 kW at 0.72 → 19.4 kJ/s, reach 3.5 | **Lantern**: 20 kW at 0.6 → 12 kJ/s, **reach 5** |
 | **Floodlight** (200; research 1500 kJ) | **Blaze**: 54 kW at 0.864 → 46.7 kJ/s, 60° cone, catch 0.4 | **Wide**: 40 kW at 0.72 → 28.8 kJ/s, **100° cone**, catch 0.3 |
+| **Beacon** (125; research 900 kJ) | **Drag**: 9 kW, slows **73%** (exposure 2.5 × 1.5 = 3.75 → s = 1 − 1/3.75) | **Halo**: 8 kW, slows 60%, **reach 6** (a road 1.5 off slowed for 11.6 tiles, not 7.4: ×1.57) |
+| **Searchlight** (175; research 1650 kJ) | **Lance**: 68 kW at 0.864 → 58.8 kJ/s on the heaviest | **Long Eye**: 50 kW at 0.72 → 36 kJ/s, **reach 9.5** (a straight 1.5 off: 18.8 tiles of beam, not 13.7: ×1.37) |
+| **Brazier** (150; research 1350 kJ) | **Inferno**: 18 kW a body at 0.936 → 16.8 kJ/s on each (eight bodies ask 144 kW) | **Bonfire**: 13 kW a body at 0.78 → 10.1 kJ/s on each, **reach 3.5** (each body burns 6.3 tiles, not 4.0: ×1.6) |
+| **Starshell** (225; research 1800 kJ) | **Nova**: charges at 22.5 kW, **105 kJ shells** | **Barrage**: charges at 15 kW, **six shells** (420 kJ banked, 28 s at 15 kW), 0.4 s apart |
+
+The Starshell's main line breaks the rule on purpose: 0.96 × 1.2 would put its efficiency above 1
+(a shell landing more than it holds), so the tier's brightness goes into a bigger shell instead
+(1.5× the energy a burst, for 1.5× the charge rate). Its other way is storage: a Barrage is the
+Jar of the wall, filled between waves and spent in one clump. Every other way above spends the
+tier on reach and keeps tier 2's efficiency: a lower peak in kW for the same kJ over a crossing,
+as with the Lantern.
 
 **Arc or Lantern is kW against kJ.** A Lamp 1.5 tiles off the road sees a chord of 2√(r² − 1.5²):
 6.3 tiles at reach 3.5, 9.5 at reach 5, so a Lantern holds each enemy in its light 1.5× as long.
@@ -557,6 +568,10 @@ priced in kJ. Slice: **Lamp tier 2** (900 kJ).
 | Starshell tier 2 (needs Starshell) | 1200 | Flywheel (Jar tier 2, the other way) | 700 |
 | Lamp tier 3 (needs tier 2; Arc or Lantern) | 1350 | | |
 | Floodlight tier 3 (needs tier 2; Blaze or Wide) | 1500 | | |
+| Beacon tier 3 (Drag or Halo) | 900 | | |
+| Searchlight tier 3 (Lance or Long Eye) | 1650 | | |
+| Brazier tier 3 (Inferno or Bonfire) | 1350 | | |
+| Starshell tier 3 (Nova or Barrage) | 1800 | | |
 
 Total 12,000 kJ. One Lab at full power does 10 kJ/s, about 6,000 kJ over a 17-minute run if it
 runs most of the breathers and is shed in the worst of the waves; two Labs about 10,000. So a run

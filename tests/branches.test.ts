@@ -99,3 +99,39 @@ describe('tier 3 (§4.2)', () => {
     expect(lit(true)).toBe(3);
   });
 });
+
+describe('tier 3 for the other towers (§4.2)', () => {
+  const tier3 = (id: 'beacon' | 'searchlight' | 'brazier' | 'starshell', r2: string, r3: string, branch: number) => {
+    const g = new Game();
+    g.money = 1000;
+    for (const r of [id === 'beacon' ? '' : id, r2, r3]) if (r) g.research.done.add(r);
+    const b = put(g, id, 22, 13);
+    expect(upgrade(g, b)).toBeNull();
+    expect(upgrade(g, b, branch)).toBeNull();
+    return { g, b, s: g.spec(b) };
+  };
+
+  it('Beacon: Drag slows 73% at 9 kW; Halo reaches 6 at 8 kW', () => {
+    expect(tier3('beacon', 'beacon2', 'beacon3', 0).s).toMatchObject({ constantDraw: 9, slow: 0.73, range: 4 });
+    expect(tier3('beacon', 'beacon2', 'beacon3', 1).s).toMatchObject({ constantDraw: 8, slow: 0.6, range: 6 });
+  });
+
+  it('Searchlight: Lance 68 kW at 0.864; Long Eye reaches 9.5 at 50 kW', () => {
+    expect(tier3('searchlight', 'search2', 'search3', 0).s).toMatchObject({ firingDraw: 68, efficiency: 0.864, range: 7 });
+    expect(tier3('searchlight', 'search2', 'search3', 1).s).toMatchObject({ firingDraw: 50, efficiency: 0.72, range: 9.5 });
+  });
+
+  it('Brazier: Inferno 18 kW a body at 0.936; Bonfire reaches 3.5 at 13 kW a body', () => {
+    expect(tier3('brazier', 'brazier2', 'brazier3', 0).s).toMatchObject({ perEnemyDraw: 18, efficiency: 0.936, range: 2.5 });
+    expect(tier3('brazier', 'brazier2', 'brazier3', 1).s).toMatchObject({ perEnemyDraw: 13, efficiency: 0.78, range: 3.5 });
+  });
+
+  it('Starshell: Nova charges 105 kJ shells at 22.5 kW; Barrage banks six shells at 15 kW', () => {
+    expect(tier3('starshell', 'star2', 'star3', 0).s).toMatchObject({ chargeDraw: 22.5, shellSize: 105, magazine: 3, efficiency: 0.96 });
+    const { g, b, s } = tier3('starshell', 'star2', 'star3', 1);
+    expect(s).toMatchObject({ chargeDraw: 15, shellSize: 70, magazine: 6, reload: 0.4 });
+    // on the Hearth's 8 kW with nothing to shoot, it fills all six (420 kJ) in under a minute
+    settle(g, 60);
+    expect(b.shell).toBeCloseTo(420, 0);
+  });
+});

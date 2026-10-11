@@ -249,6 +249,15 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       cost: 63, research: 'beacon2', blurb: 'Slows 60% at 6 kW: the time an enemy spends in range rises from 1.7× to 2.5×.',
       stats: { constantDraw: 6, slow: 0.6 },
       why: { cost: '§4 upgrade rule: 50 × 1.25 = 62.5 → 63', constantDraw: '§4 tier rule: 4 × 1.5 = 6 kW', slow: '§4 Beacon tier 2: exposure 1/(1 − s) × 1.5 → s = 0.6' },
+    }, {
+      name: 'Drag', cost: 125, research: 'beacon3', blurb: 'Drag: slows 73% at 9 kW. An enemy spends 3.75× as long in its reach.',
+      stats: { constantDraw: 9, slow: 0.73 },
+      why: { cost: '§4 upgrade rule: 50 × 1.25 × (3 − 1) = 125', constantDraw: '§4.2 Drag: 6 × 1.5 = 9 kW', slow: '§4.2 Drag: exposure 2.5 × 1.5 = 3.75 → s = 1 − 1/3.75 = 0.73' },
+      alts: [{
+        name: 'Halo', cost: 125, research: 'beacon3', blurb: 'Halo: reach 6 instead of 4 at 8 kW, still slowing 60%. A road 1.5 tiles off is slowed for 11.6 tiles, not 7.4.',
+        stats: { constantDraw: 8, range: 6 },
+        why: { cost: '§4 upgrade rule: 50 × 1.25 × (3 − 1) = 125', constantDraw: '§4.2 Halo: 8 kW (a smaller step: the tier goes into reach)', range: '§4.2 Halo: reach 6, the chord 1.5 off a road from 7.4 to 11.6 tiles (×1.57)' },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4 Beacon: 50', tier: '§2.3 default tiers: 2 Wall (towers)',
@@ -263,6 +272,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       cost: 88, research: 'search2', blurb: '45 kW firing at 0.72 → 32.4 kJ/s.',
       stats: { firingDraw: 45, efficiency: 0.72 },
       why: { cost: '§4 upgrade rule: 70 × 1.25 = 87.5 → 88', firingDraw: '§4 tier rule: 30 × 1.5 = 45 kW', efficiency: '§4 tier rule: 0.6 × 1.2 = 0.72' },
+    }, {
+      name: 'Lance', cost: 175, research: 'search3', blurb: 'Lance: 68 kW at 0.86 → 58.8 kJ/s on the heaviest thing in reach. The hungriest tower there is.',
+      stats: { firingDraw: 68, efficiency: 0.864 },
+      why: { cost: '§4 upgrade rule: 70 × 1.25 × (3 − 1) = 175', firingDraw: '§4.2 Lance: 45 × 1.5 = 67.5 → 68 kW', efficiency: '§4.2 Lance: 0.72 × 1.2 = 0.864 → 58.8 kJ/s' },
+      alts: [{
+        name: 'Long Eye', cost: 175, research: 'search3', blurb: 'Long Eye: reach 9.5 instead of 7 at 50 kW and 0.72 → 36 kJ/s. A straight 1.5 tiles off is in its beam for 18.8 tiles.',
+        stats: { firingDraw: 50, efficiency: 0.72, range: 9.5 },
+        why: {
+          cost: '§4 upgrade rule: 70 × 1.25 × (3 − 1) = 175', firingDraw: '§4.2 Long Eye: 50 kW (a smaller step: the tier goes into reach)',
+          efficiency: '§4.2 Long Eye: 0.72, tier 2 kept', range: '§4.2 Long Eye: reach 9.5, the chord 1.5 off a straight from 13.7 to 18.8 tiles (×1.37)',
+        },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Searchlight: 70', tier: '§2.3 default tiers: 2 Wall (towers)',
@@ -278,6 +299,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       cost: 75, research: 'brazier2', blurb: '12 kW per body at 0.78 → 9.4 kJ/s on each enemy in the fire.',
       stats: { perEnemyDraw: 12, efficiency: 0.78 },
       why: { cost: '§4 upgrade rule: 60 × 1.25 = 75', perEnemyDraw: '§4 tier rule: 8 × 1.5 = 12 kW per body', efficiency: '§4 tier rule: 0.65 × 1.2 = 0.78' },
+    }, {
+      name: 'Inferno', cost: 150, research: 'brazier3', blurb: 'Inferno: 18 kW per body at 0.94 → 16.8 kJ/s on each. Eight bodies ask 144 kW: put it on tier 3.',
+      stats: { perEnemyDraw: 18, efficiency: 0.936 },
+      why: { cost: '§4 upgrade rule: 60 × 1.25 × (3 − 1) = 150', perEnemyDraw: '§4.2 Inferno: 12 × 1.5 = 18 kW per body', efficiency: '§4.2 Inferno: 0.78 × 1.2 = 0.936 → 16.8 kJ/s each' },
+      alts: [{
+        name: 'Bonfire', cost: 150, research: 'brazier3', blurb: 'Bonfire: burns everything within 3.5 tiles instead of 2.5, at 13 kW per body and 0.78. Each body burns 1.6× as long.',
+        stats: { perEnemyDraw: 13, efficiency: 0.78, range: 3.5 },
+        why: {
+          cost: '§4 upgrade rule: 60 × 1.25 × (3 − 1) = 150', perEnemyDraw: '§4.2 Bonfire: 13 kW per body (a smaller step: the tier goes into reach)',
+          efficiency: '§4.2 Bonfire: 0.78, tier 2 kept', range: '§4.2 Bonfire: 3.5, the chord 1.5 off a road from 4.0 to 6.3 tiles (×1.6)',
+        },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Brazier: 60', tier: '§2.3 default tiers: 2 Wall (towers)',
@@ -293,6 +326,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       cost: 113, research: 'star2', blurb: 'Charges at 15 kW with 0.96 efficiency: half again as many shells, each 20% brighter.',
       stats: { chargeDraw: 15, efficiency: 0.96 },
       why: { cost: '§4 upgrade rule: 90 × 1.25 = 112.5 → 113', chargeDraw: '§4 tier rule: 10 × 1.5 = 15 kW', efficiency: '§4 tier rule: 0.8 × 1.2 = 0.96' },
+    }, {
+      name: 'Nova', cost: 225, research: 'star3', blurb: 'Nova: 105 kJ shells charged at 22.5 kW. Each burst lands half again as much.',
+      stats: { chargeDraw: 22.5, shellSize: 105 },
+      why: { cost: '§4 upgrade rule: 90 × 1.25 × (3 − 1) = 225', chargeDraw: '§4.2 Nova: 15 × 1.5 = 22.5 kW', shellSize: '§4.2 Nova: 70 × 1.5 = 105 kJ (efficiency is held at 0.96: a shell cannot land more than it holds)' },
+      alts: [{
+        name: 'Barrage', cost: 225, research: 'star3', blurb: 'Barrage: holds six shells instead of three, lobbed 0.4 s apart, still charging at 15 kW. A breather fills it for a long wave.',
+        stats: { chargeDraw: 15, magazine: 6, reload: 0.4 },
+        why: {
+          cost: '§4 upgrade rule: 90 × 1.25 × (3 − 1) = 225', chargeDraw: '§4.2 Barrage: 15 kW, tier 2 kept (the tier goes into storage)',
+          magazine: '§4.2 Barrage: six shells, 420 kJ banked (28 s at 15 kW: the breather and the walk)', reload: '§4.2 Barrage: 0.4 s between lobs (six shells inside a 2.4 s clump)',
+        },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4.1 Starshell: 90', tier: '§2.3 default tiers: 2 Wall (towers)',

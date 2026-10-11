@@ -45,6 +45,26 @@ export const RESEARCH: Record<string, ResearchDef> = {
     blurb: 'Floodlights can take a third tier, one way or the other: Blaze (54 kW, brighter) or Wide (a 100° cone for beside a road).',
     why: { cost: '§7 tier 3: 1.5 × its tier-2 project (1000)' },
   },
+  beacon3: {
+    id: 'beacon3', name: 'Beacon tier 3', branch: 'light', cost: 900, requires: 'beacon2', stacks: true,
+    blurb: 'Beacons can take a third tier, one way or the other: Drag (slows 73%, 9 kW) or Halo (reach 6, 8 kW).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (600)' },
+  },
+  search3: {
+    id: 'search3', name: 'Searchlight tier 3', branch: 'light', cost: 1650, requires: 'search2', stacks: true,
+    blurb: 'Searchlights can take a third tier: Lance (68 kW, 58.8 kJ/s) or Long Eye (reach 9.5, 50 kW).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (1100)' },
+  },
+  brazier3: {
+    id: 'brazier3', name: 'Brazier tier 3', branch: 'light', cost: 1350, requires: 'brazier2', stacks: true,
+    blurb: 'Braziers can take a third tier: Inferno (18 kW a body, 16.8 kJ/s each) or Bonfire (reach 3.5, 13 kW a body).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (900)' },
+  },
+  star3: {
+    id: 'star3', name: 'Starshell tier 3', branch: 'light', cost: 1800, requires: 'star2', stacks: true,
+    blurb: 'Starshells can take a third tier: Nova (105 kJ shells, 22.5 kW) or Barrage (six shells in the magazine).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (1200)' },
+  },
   flood2: {
     id: 'flood2', name: 'Floodlight tier 2', branch: 'light', cost: 1000,
     blurb: 'Floodlights can be upgraded: 36 kW at 0.72 → 25.9 kJ/s across the cone.',
@@ -113,6 +133,6 @@ export const RESEARCH: Record<string, ResearchDef> = {
 };
 
 export const RESEARCH_ORDER = [
-  'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2', 'lamp3', 'flood3',
+  'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2', 'lamp3', 'flood3', 'beacon3', 'search3', 'brazier3', 'star3',
   'vane', 'bellows', 'deepbit', 'bank', 'flywheel', 'pulse', 'reroute', 'longline',
 ];
