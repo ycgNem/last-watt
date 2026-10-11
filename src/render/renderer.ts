@@ -587,6 +587,7 @@ export class Renderer {
       else tag('NO FUEL', C.ember);
     }
     else if (b.net < 0 && b.def.role !== 'core') tag('NO POWER', C.violet);
+    else if ((b.def.role === 'tower' || b.def.role === 'beacon') && (g.networks[b.net]?.gen ?? 0) <= 0 && (g.networks[b.net]?.stored ?? 0) <= 0) tag('NO SUPPLY', C.violet);
     // a Flywheel wears a wheel that spins with its charge
     if (b.def.role === 'storage' && b.branch > 0) {
       const cap = g.spec(b).capacity ?? 1;
@@ -612,6 +613,17 @@ export class Renderer {
         ctx.fillStyle = b.branch > 0 && i === pips - 1 ? C.ice : C.gold;
         ctx.fillRect(this.sx(Math.round(px) + 1), this.sy(Math.round(p.y)), 2 * z, 2 * z);
       }
+    }
+    // a tower firing on less than full power: a thin bar of its share under it, amber down to the
+    // starved line and violet below (the third review: 60-99% looked like 100% on the map)
+    if ((b.def.role === 'tower' || b.def.role === 'beacon') && b.net >= 0 && !b.off && b.demand > 0 && b.sat < 0.99 && b.overcharge <= 0) {
+      const bx = Math.round(p.x + p.w / 2 - 6), by = Math.round(p.y + p.h + (b.def.kind === 'mortar' ? 3 : 1));
+      ctx.fillStyle = C.ink;
+      ctx.fillRect(this.sx(bx - 1), this.sy(by - 1), 14 * z, 3 * z);
+      ctx.fillStyle = C.iron;
+      ctx.fillRect(this.sx(bx), this.sy(by), 12 * z, z);
+      ctx.fillStyle = b.sat < RULES.starvedBelow.v ? C.violet : C.amber;
+      ctx.fillRect(this.sx(bx), this.sy(by), Math.max(1, Math.round(12 * b.sat)) * z, z);
     }
     // a Starshell's shell, filling: a brass bar under it
     if (b.def.kind === 'mortar' && b.net >= 0 && !b.off) {
