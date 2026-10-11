@@ -36,3 +36,24 @@ describe.each(MAPS)('map $name', (map) => {
     expect(g.over).toBe('lose');
   });
 });
+
+describe('wave 1 is the placement lesson on every map (§6)', () => {
+  it("the Switchback's FIRST STEPS layout leaks nothing in wave 1, and a Lamp on a straight still leaks (the sixth review M5)", async () => {
+    const { mapById } = await import('../src/data/map');
+    const { run } = await import('../src/sim/commands');
+    const leaks = (second: [number, number]) => {
+      const g = new Game({ map: mapById('switchback'), seed: 7 });
+      for (const [id, x, y] of [['extractor', 23, 24], ['burner', 21, 24], ['node', 16, 17], ['lamp', 12, 19], ['lamp', ...second]] as const) run(g, { k: 'place', id, x, y });
+      for (let i = 0; i < 9 * 60; i++) g.step();
+      run(g, { k: 'wave' });
+      while (!g.wavePaid.has(1) && !g.over) {
+        g.step();
+        g.drainEvents();
+      }
+      return g.stats.leaks;
+    };
+    expect(leaks([12, 16])).toBe(0);
+    expect(leaks([12, 13])).toBe(0);
+    expect(leaks([14, 19])).toBeGreaterThan(0);
+  });
+});

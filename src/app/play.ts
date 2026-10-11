@@ -29,7 +29,7 @@ import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
 import { fullOnTheWay, lineReports, linkRoom, strandedBy } from '../sim/lines';
 import { wavePressure } from '../sim/pressure';
-import { cuttable, snuffable, waveThreats } from '../sim/threats';
+import { cuttable, roadDist, snuffable, waveThreats } from '../sim/threats';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -38,7 +38,11 @@ import type { MapDef } from '../data/map';
 
 interface Msg { text: string; color: string; t: number; life: number }
 /** a card on the left: a new enemy, or a lesson the first time something happens (lessons.ts) */
-interface Intel { enemy?: EnemyId; lesson?: LessonId; t: number }
+interface Intel { enemy?: EnemyId; lesson?: LessonId; t: number; open?: boolean }
+
+/** a card is read in full for its first seconds, then folds to its title line (the sixth review
+ *  M4: cards covered a third of the map) until it goes */
+const CARD_FULL = 4, CARD_LIFE = 30;
 
 const HUD_H = 30;
 const BAR_H = 36;
@@ -165,7 +169,7 @@ export class Play {
     for (const m of this.msgs) m.t += dt;
     this.msgs = this.msgs.filter((m) => m.t < m.life);
     if (!this.paused && !this.holding) for (const c of this.intel) c.t += dt;
-    this.intel = this.intel.filter((c) => c.t < 14);
+    this.intel = this.intel.filter((c) => c.t < CARD_LIFE);
     this.handleEvents();
     this.handleInput(dt);
     this.hints(dt);
@@ -1204,12 +1208,33 @@ export class Play {
         out.push({ text: `Asks ${d.constantDraw} kW always.` }, { text: `Slows by ${Math.round((d.slow ?? 0) * b.sat * 100)}% (${Math.round((d.slow ?? 0) * 100)}% × its share of power).`, color: C.amber });
         break;
       case 'extractor': {
-        const feeds = [...g.buildings.values()].filter((u) => u.def.role === 'generator' && u.def.fuel === 'rock' && touches(g.rect(u), g.rect(b))).length;
+        // only Burners on the grid count (the sixth review: an off-network one was counted)
+        const fed = [...g.buildings.values()].filter((u) => u.def.role === 'generator' && u.def.fuel === 'rock' && u.net >= 0 && !u.off && touches(g.rect(u), g.rect(b)));
+        const feeds = fed.length;
         const what = d.makesCoke ? 'coke' : 'rock';
         out.push({ text: `Asks ${d.workDraw} kW while digging. 1 ${what} / ${d.rockInterval} s at full power.` });
         if (d.makesCoke) out.push({ text: `Each coke is ${RULES.cokeDensity.v} rocks of heat: it feeds ${(RULES.cokeDensity.v * 10 / (d.rockInterval ?? 8)).toFixed(1)} Burners, if that many touch it.`, color: C.amber });
-        out.push({ text: `Holding ${b.stock}/${d.stockCap} ${what}. Next ${Math.round(b.progress * 100)}%.` });
+        out.push({ text: `Holding ${b.stock}/${d.stockCap} ${d.makesCoke ? 'coke' : 'rocks'}. Next ${Math.round(b.progress * 100)}%.` });
         out.push(feeds ? { text: feeds > 1 ? `Feeding ${feeds} Burners next to it.` : 'Feeding a Burner next to it.', color: C.amber } : { text: `No Burner touching it: its ${what} goes nowhere.`, color: C.ember });
+        // the Mining choice, at this deposit (the sixth review M2): what each way would net here
+        if (b.level === 1 && feeds) {
+          const here = (spec: { rockInterval?: number; workDraw?: number; makesCoke?: boolean }) => {
+            // rock-equivalents a second it digs, against what the Burners touching it can burn
+            const supply = ((spec.makesCoke ? RULES.cokeDensity.v : 1) / (spec.rockInterval ?? 8));
+            let kw = 0, left = supply;
+            for (const u of fed) {
+              const us = g.spec(u);
+              const per = (us.output ?? 0) / ((us.rockHeat ?? 1) * (us.efficiency ?? 1));
+              const take = Math.min(per, left);
+              kw += take * (us.rockHeat ?? 0) * (us.efficiency ?? 0);
+              left -= take;
+            }
+            return Math.round(kw - (spec.workDraw ?? 0));
+          };
+          const deep = specOf(b.def, 2, 0), coke = specOf(b.def, 2, 1);
+          const near = fed.filter((u) => roadDist(g, u) <= (ENEMIES.snuffer.snuffRadius ?? 0)).length;
+          out.push({ text: `Here, net of its draw: ${here(d)} kW as it is; a Deep bit ${here(deep)}, a Coker ${here(coke)}${near ? `. ${near} of these Burners stand in a Snuffer's reach: only coke burns through one` : ''}.`, color: C.ash });
+        }
         break;
       }
       case 'generator': {
@@ -1508,17 +1533,29 @@ export class Play {
     for (const c of this.intel.slice(-2)) {
       const e = c.enemy ? ENEMIES[c.enemy] : undefined;
       const l = c.lesson ? LESSONS[c.lesson] : undefined;
-      const w = 196;
-      const body = wrapText(e ? e.blurb : l!.body, w - 44);
-      const ans = wrapText(e ? e.answer : l!.answer, w - 10);
-      const h = 14 + Math.max(body.length * LINE_H, 22) + ans.length * LINE_H + 8;
+      const fw = 196;
+      const title = e ? `NEW: ${e.name.toUpperCase()}` : l!.title;
+      const kj = e ? `${e.health} kJ` : '';
+      const cw = Math.min(fw, 5 + textWidth(title) + 8 + (kj ? textWidth(kj) + 6 : 0) + textWidth('hover') + 18);
+      const body = wrapText(e ? e.blurb : l!.body, fw - 44);
+      const ans = wrapText(e ? e.answer : l!.answer, fw - 10);
+      const full = 14 + Math.max(body.length * LINE_H, 22) + ans.length * LINE_H + 8;
+      // in full while new, while the game is held, or while the mouse is on it; else its title only
+      const x0 = 4, y0 = this.leftBottom + 2;
+      c.open = c.t < CARD_FULL || this.paused || this.holding || ui.hover(x0, y0, c.open ? fw : cw, c.open ? full : 14);
+      const h = c.open ? full : 14, w = c.open ? fw : cw;
       const { x, y } = this.leftCard(ui, w, h);
       // full alpha while paused, so a card never hangs half-faded over the map
-      ui.ctx.globalAlpha = this.paused || this.holding ? 1 : Math.min(1, (14 - c.t) * 1.5);
+      ui.ctx.globalAlpha = this.paused || this.holding ? 1 : Math.min(1, (CARD_LIFE - c.t) * 1.5);
       ui.panel(x, y, w, h, { border: e ? C.violet : C.cyan, alpha: 0.95 });
-      ui.text(e ? `NEW: ${e.name.toUpperCase()}` : l!.title, x + 5, y + 4, C.gold);
-      if (e) ui.textR(`${e.health} kJ`, x + w - 18, y + 4, C.steel);
-      if (ui.button('x', x + w - 13, y + 3, 10, 9)) c.t = 14;
+      ui.text(title, x + 5, y + 4, C.gold);
+      if (e) ui.textR(kj, x + w - 18, y + 4, C.steel);
+      if (ui.button('x', x + w - 13, y + 3, 10, 9)) c.t = CARD_LIFE;
+      if (!c.open) {
+        ui.textR('hover', x + w - 18 - (kj ? textWidth(kj) + 6 : 0), y + 4, C.iron);
+        ui.ctx.globalAlpha = 1;
+        continue;
+      }
       if (e) {
         const m = drawFrame(ui.ctx, e.id, Math.floor(this.clock * 4), x + 6, y + 15, 1, 'lit', 0);
         if (!m) ui.icon(e.id, x + 8, y + 16);

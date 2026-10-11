@@ -92,9 +92,11 @@ export function waveBounty(n: number, map?: MapDef): number {
   return sum;
 }
 
-/** seconds between a wave's enemies on this map: the table's spacing × the map's pace (§11) */
+/** seconds between a wave's enemies on this map: the table's spacing × the map's pace (§11). Wave 1
+ *  is the placement lesson (§6): a map may loosen it, never tighten it (the sixth review M5: the
+ *  Switchback's FIRST STEPS layout leaked 2 at pace 0.9 on every seed) */
 export function spacingOf(g: Game, w: { n: number; spacing: number }): number {
-  return w.spacing * g.map.pace;
+  return w.spacing * (w.n === 1 ? Math.max(1, g.map.pace) : g.map.pace);
 }
 
 /** start the next wave now (Space, or the breather running out) */

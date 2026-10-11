@@ -149,6 +149,27 @@ const STATES = {
     const at = await page.evaluate(() => { const a = window.__app; return { x: (a.play.stripLeft + 12) * a.ui.scale, y: 40 * a.ui.scale }; });
     await page.mouse.move(at.x, at.y);
   },
+  // cards folded to their title lines after their first seconds (the sixth review M4)
+  cardchips: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    window.__place(g, 'lamp', 24, 13); window.__place(g, 'node', 21, 10); window.__place(g, 'lamp', 24, 7);
+    p.intel.push({ enemy: 'shade', t: 6 }, { lesson: 'brownout', t: 6 });
+    p.msgs = [];
+  }),
+  // the Mining choice at a deposit by the road: what each way nets here (the sixth review M2)
+  mining: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('deepbit');
+    g.money = 300;
+    window.__place(g, 'node', 21, 11);
+    const ex = window.__place(g, 'extractor', 16, 9);
+    for (const [x, y] of [[17, 7], [14, 9], [17, 10]]) window.__place(g, 'burner', x, y);
+    for (let i = 0; i < 60 * 3; i++) { p.tick(); g.drainEvents(); }
+    p.msgs = [];
+    p.selectedId = ex.id;
+  }),
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
