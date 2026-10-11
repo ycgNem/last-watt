@@ -550,8 +550,18 @@ first; Pulse empties the Jars. A Jar cut off by a Shade can't pay. Slice set:
   the Bank it changes nothing. Its value is in the player's timing, which the bot does not have.
   The default bot plans do not research it.
 
-Milestone 6, still to build: **Reroute** (temporarily bridge a gap between two nodes), **Dark Bait** (brown out
-a sector on purpose so light-seeking enemies turn toward a lit kill zone).
+- **Reroute** (research, G; Milestone 6, second session): **100 kJ** from the Jars (the
+  fullest first, any network) brings a cut Node back at once and guards it from Shades for **8
+  s**. Numbers: a cut Node darkens what hangs off it for 10 s; one far Lamp is 12 kW × 10 s =
+  120 kJ of light lost, so 100 kJ of storage is worth paying for a branch with a tower on it and
+  not for a lone Node. A Shade at 1.0 t/s spends about 5 s on the stretch of road that can cut
+  a given Node (its 2.5-tile reach either side), so 8 s covers one Shade's pass with some slack,
+  not a whole wave of them. It is §8's "temporarily bridge a gap" made simple: the gap is the
+  cut Node itself. Research 600 kJ, cheaper than Pulse: it saves a branch, not a wave.
+
+Milestone 6, still to build: **Dark Bait** (brown out a sector on purpose so light-seeking
+enemies turn toward a lit kill zone). It needs enemies that choose between roads, which no map
+has yet.
 
 ## 9. The gaffer's skill tree (embers, between runs)
 

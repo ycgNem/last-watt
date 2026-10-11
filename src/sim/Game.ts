@@ -176,7 +176,7 @@ export class Game {
     const b: Building = {
       id: this.nextId++, def, x, y, tier: def.tier ?? 1, off: false, level: 1, net: -1, demand: 0, sat: 0, satAvg: 1,
       output: 0, fuel: 0, burnLeft: 0, snuffed: 0, progress: 0, stock: 0, charge: 0, flow: 0, target: -1, dps: 0,
-      overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0, fuse: 0,
+      overcharge: 0, cool: 0, sweep: 0, bodies: 0, shell: 0, offline: 0, fuse: 0, guard: 0,
     };
     // skills that act on a new building (§9)
     if (def.role === 'generator' && def.fuel === 'rock' && this.skills.has('kindling')) b.fuel = SKILL_RULES.kindling.v;

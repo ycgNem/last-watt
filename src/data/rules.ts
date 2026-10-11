@@ -13,6 +13,8 @@ export const RULES = {
   pulseMin: { v: 300, why: '§8 Pulse: needs 300 kJ stored on a network (half a Jar)' },
   pulseEff: { v: 0.6, why: '§8 Pulse: the flash leaves each tower at a Floodlight efficiency, 0.6' },
   pulseRadius: { v: 3, why: '§8 Pulse: the flash reaches 3 tiles round each tower' },
+  rerouteCost: { v: 100, why: '§8 Reroute: 100 kJ from the Jars (less than the 120 kJ of light a cut Lamp branch loses in 10 s)' },
+  rerouteTime: { v: 8, why: '§8 Reroute: guarded 8 s (a Shade at 1.0 t/s spends about 5 s on the stretch of road that can cut a Node)' },
   starvedBelow: { v: 0.6, why: 'STYLE.md rule 1: starved = satisfaction < 0.6' },
   veilSight: { v: 0.6, why: '§5.1 Veil: seen only by a tower above the starved line (0.6)' },
   brownoutEnds: { v: 0.75, why: '§2 brownout ends when the wall is back above 0.75 for 2 s (hysteresis so it does not flap)' },

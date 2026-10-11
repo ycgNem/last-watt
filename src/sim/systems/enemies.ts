@@ -20,7 +20,7 @@ export function enemiesSystem(g: Game) {
     e.y = p.y;
     if (e.def.knockRadius) {
       for (const b of g.buildings.values()) {
-        if (b.def.role !== 'node') continue;
+        if (b.def.role !== 'node' || b.guard > 0) continue;
         if (pointRectDist(e.x, e.y, g.rect(b)) <= e.def.knockRadius) {
           if (!pressed.has(b.id)) {
             pressed.add(b.id);

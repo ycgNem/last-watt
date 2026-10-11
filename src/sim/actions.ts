@@ -161,6 +161,40 @@ export function pulse(g: Game): string | null {
   return null;
 }
 
+/** every Jar's charge, on any network */
+function allJars(g: Game) {
+  return [...g.buildings.values()].filter((b) => b.def.role === 'storage' && b.net >= 0);
+}
+
+export function rerouteProblem(g: Game, b: Building): string | null {
+  if (!g.research.done.has('reroute')) return 'Research Reroute first (Lab)';
+  if (b.def.role !== 'node') return 'Only Nodes reroute';
+  if (b.guard > 0) return 'Already rerouted';
+  const stored = allJars(g).reduce((a, j) => a + j.charge, 0);
+  if (stored < RULES.rerouteCost.v) return `Needs ${RULES.rerouteCost.v} kJ in your Jars (${Math.floor(stored)} now)`;
+  return null;
+}
+
+/** Reroute (§8): 100 kJ from the Jars (the fullest first) brings a cut Node back at once and
+ *  guards it from Shades for 8 s */
+export function reroute(g: Game, b: Building): string | null {
+  const why = rerouteProblem(g, b);
+  if (why) return why;
+  let need = RULES.rerouteCost.v;
+  for (const j of allJars(g).sort((a, c) => c.charge - a.charge)) {
+    const take = Math.min(j.charge, need);
+    j.charge -= take;
+    need -= take;
+    if (need <= 0) break;
+  }
+  if (b.offline > 0) g.netDirty = true;
+  b.offline = 0;
+  b.fuse = 0;
+  b.guard = RULES.rerouteTime.v;
+  g.emit({ t: 'reroute', id: b.id, x: b.x + 0.5, y: b.y + 0.5 });
+  return null;
+}
+
 export function researchProblem(g: Game, id: string): string | null {
   const r = RESEARCH[id];
   if (!r) return 'No such project';

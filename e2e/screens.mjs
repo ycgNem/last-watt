@@ -132,6 +132,20 @@ const STATES = {
     for (let i = 0; i < 60 * 34; i++) { p.tick(); g.drainEvents(); }
     p.msgs = [];
   }),
+  reroute: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    g.research.done.add('reroute');
+    window.__place(g, 'jar', 22, 18).charge = 400;
+    window.__place(g, 'node', 21, 10);
+    const n = window.__place(g, 'node', 24, 10);
+    window.__place(g, 'lamp', 24, 7);
+    n.offline = 7;
+    g.netDirty = true;
+    for (let i = 0; i < 3; i++) p.tick();
+    p.paused = true;
+    p.selectedId = n.id;
+  }),
   continue: async (page) => {
     await page.evaluate(() => {
       const a = window.__app;

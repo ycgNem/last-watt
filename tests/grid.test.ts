@@ -1,7 +1,7 @@
 // The grid arithmetic of DESIGN.md §2 and the unit numbers of §3, §4, §6, §8.
 import { describe, expect, it } from 'vitest';
 import { Game, park, put, factory, settle } from './helpers';
-import { overcharge, pulse, pulseProblem, toggleOff, setTier, toggleTier, upgrade } from '../src/sim/actions';
+import { overcharge, pulse, pulseProblem, reroute, rerouteProblem, toggleOff, setTier, toggleTier, upgrade } from '../src/sim/actions';
 import { startNextWave, wavePay } from '../src/sim/systems/waves';
 import { ENEMIES } from '../src/data/enemies';
 
@@ -485,5 +485,42 @@ describe('Pulse (§8)', () => {
     settle(g, 0.05);
     expect(pulse(g)).toMatch(/300 kJ/);
     expect(jar.charge).toBeGreaterThan(590);
+  });
+});
+
+describe('Reroute (§8)', () => {
+  // a Shade standing still at (4, 6.5) on the first straight, a Node beside it
+  const stand = (g: Game) =>
+    g.enemies.push({ id: g.nextId++, def: { ...ENEMIES.shade, speed: 0, health: 1e9 }, hp: 1e9, dist: 5, x: 4, y: 6.5, slow: 0, face: 1, hit: 0, wave: 0, seen: false, route: 0 });
+
+  it('brings a cut Node back at once for 100 kJ and guards it 8 s; then the Shade cuts it again', () => {
+    const g = new Game();
+    g.research.done.add('reroute');
+    const jar = put(g, 'jar', 22, 18);
+    jar.charge = 300;
+    const node = put(g, 'node', 4, 8);
+    stand(g);
+    settle(g, 0.1);
+    expect(node.offline).toBeGreaterThan(0);
+    const kj = jar.charge;
+    expect(reroute(g, node)).toBeNull();
+    expect(kj - jar.charge).toBeCloseTo(100);
+    expect(node.offline).toBe(0);
+    settle(g, 7.9);
+    expect(node.offline).toBe(0);
+    settle(g, 0.2);
+    expect(node.offline).toBeGreaterThan(0);
+  });
+
+  it('needs research, a Node and 100 kJ', () => {
+    const g = new Game();
+    const node = put(g, 'node', 21, 10);
+    expect(rerouteProblem(g, node)).toMatch(/Research/);
+    g.research.done.add('reroute');
+    expect(rerouteProblem(g, node)).toMatch(/100 kJ/);
+    put(g, 'jar', 22, 18).charge = 150;
+    settle(g, 0.05);
+    expect(rerouteProblem(g, node)).toBeNull();
+    expect(rerouteProblem(g, g.hearth)).toMatch(/Only Nodes/);
   });
 });

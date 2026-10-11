@@ -563,6 +563,7 @@ export class Renderer {
       drawText(ctx, text, this.sx(x), this.sy(y), color, z);
     };
     if (b.off) tag('OFF', C.ash);
+    else if (b.def.role === 'node' && b.guard > 0) tag(`GUARDED ${Math.ceil(b.guard)}s`, C.cyan);
     else if (b.def.role === 'node' && b.offline > 0) {
       tag(`CUT ${Math.ceil(b.offline)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);
     } else if (b.snuffed > 0 && b.net >= 0) tag(`SNUFFED ${Math.ceil(b.snuffed)}s`, Math.floor(this.time * 6) % 2 === 0 ? C.ember : C.wine);

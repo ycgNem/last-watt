@@ -83,6 +83,11 @@ export const RESEARCH: Record<string, ResearchDef> = {
     blurb: 'A gaffer verb (Q): every Jar empties at once; 60% of it lands, split across the enemies within 3 tiles of a lit tower.',
     why: { cost: '§7 / §8 Pulse: 900 kJ (a verb that spends storage, priced like a tier 2)' },
   },
+  reroute: {
+    id: 'reroute', name: 'Reroute', branch: 'power', cost: 600,
+    blurb: 'A gaffer verb (G): pay 100 kJ from your Jars to bring a cut Node back at once and guard it from Shades for 8 s.',
+    why: { cost: '§7 / §8 Reroute: 600 kJ (a cheaper verb than Pulse: it saves a branch, not a wave)' },
+  },
   longline: {
     id: 'longline', name: 'Long line', branch: 'power', cost: 500,
     blurb: 'Nodes can be upgraded: reach 6 tiles, losing 1 kW on the line.',
@@ -92,5 +97,5 @@ export const RESEARCH: Record<string, ResearchDef> = {
 
 export const RESEARCH_ORDER = [
   'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2',
-  'vane', 'bellows', 'deepbit', 'bank', 'pulse', 'longline',
+  'vane', 'bellows', 'deepbit', 'bank', 'pulse', 'reroute', 'longline',
 ];

@@ -11,7 +11,7 @@ import type { Audio } from '../engine/audio';
 import type { Input } from '../engine/input';
 import { TILE, type Renderer } from '../render/renderer';
 import { drawFrame } from '../render/art';
-import { overchargeProblem, pulseProblem, placeProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
+import { overchargeProblem, pulseProblem, placeProblem, rerouteProblem, researchProblem, sellValue, upgradeProblem } from '../sim/actions';
 import { Game } from '../sim/Game';
 import { covers, touches } from '../sim/geom';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
@@ -249,9 +249,14 @@ export class Play {
         this.sayOnce('recovered', 25, 'Brownout over: the wall is back above 75%.', C.amber, 3);
         a.sfx('recovered');
         break;
+      case 'reroute':
+        r.fx.push({ kind: 'ring', x: e.x, y: e.y, t: 0, life: 0.5, color: C.cyan });
+        a.sfx('upgrade');
+        break;
       case 'knock':
         r.burst(e.x, e.y, 14, C.ice, 2, 0.5, 'spark');
         a.sfx('knock');
+        if (g.research.done.has('reroute')) this.sayOnce('reroute', 40, 'A Node was cut: select it and press G to Reroute it (100 kJ from your Jars).', C.cyan, 6);
         this.sayOnce('knock', 40, 'A Shade cut a Node near the path: everything that hung off it is dark for 10 s. Build Nodes further back (red shows the Shade\'s reach when you place one), or give power a second route.', C.ice, 9);
         break;
       case 'snuff':
@@ -423,6 +428,7 @@ export class Play {
     if (k('KeyX') && target) this.act(this.cmd({ k: 'off', b: target.id }));
     if (k('KeyE') && target) this.act(this.cmd({ k: 'oc', b: target.id }));
     if (k('KeyQ') && g.research.done.has('pulse')) this.act(this.cmd({ k: 'pulse' }));
+    if (k('KeyG') && target?.def.role === 'node') this.act(this.cmd({ k: 'reroute', b: target.id }));
     // T raises a building's priority one tier, Shift+T lowers it (no wrapping)
     if (k('KeyT') && target && target.def.tier) this.act(this.cmd({ k: 'tier', b: target.id, t: inp.shift ? Math.min(4, target.tier + 1) : Math.max(1, target.tier - 1) }), 'click');
     if (k('KeyU') && target) this.act(this.cmd({ k: 'up', b: target.id }), 'place');
@@ -1026,6 +1032,7 @@ export class Play {
     if (isTower) h += 16;
     if (up) h += 16;
     if (b.def.role === 'lab') h += 16;
+    if (b.def.role === 'node' && g.research.done.has('reroute')) h += 16;
     if (b.def.role !== 'core') h += 16;
     h += 4;
     ui.panel(x, y0, w, h, { border: C.steel });
@@ -1065,6 +1072,11 @@ export class Play {
     }
     if (b.def.role === 'lab') {
       if (ui.button('RESEARCH BOARD (L)', x + 5, y, w - 10, 14, { color: C.cyan, active: this.board })) this.board = !this.board;
+      y += 16;
+    }
+    if (b.def.role === 'node' && g.research.done.has('reroute')) {
+      const why = rerouteProblem(g, b);
+      if (ui.button(`REROUTE (G) ${RULES.rerouteCost.v} kJ`, x + 5, y, w - 10, 14, { disabled: !!why, color: b.offline > 0 ? C.gold : C.bone, active: b.offline > 0 && !why, tip: ['Reroute', `${RULES.rerouteCost.v} kJ from your Jars: a cut Node is back at once, and no Shade can cut it for ${RULES.rerouteTime.v} s.`, ...(why ? [why] : [b.offline > 0 ? 'It is cut now: everything hanging off it is dark.' : 'Use it before a Shade arrives, or after one cuts it.'])] })) this.act(this.cmd({ k: 'reroute', b: b.id }));
       y += 16;
     }
     if (b.def.role !== 'core') {
@@ -1254,6 +1266,7 @@ export class Play {
       ['T', 'raise its priority one tier'],
       ['E', 'Overcharge a tower (needs a charged Jar)'],
       ['Q', 'Pulse: every Jar onto the enemies at the wall'],
+      ['G', 'Reroute: a cut Node back at once (100 kJ)'],
       ['U', 'upgrade (after its research)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],

@@ -38,8 +38,10 @@ export interface Building {
    *  seconds before it can be Overcharged again */
   target: number;
   dps: number;
-  /** node: seconds a Shade has been in reach without a break (Slow Fuse, §9) */
+  /** node: seconds a Shade has been in reach without a break (Slow Fuse, §9), and seconds a
+   *  Reroute still guards it from Shades (§8) */
   fuse: number;
+  guard: number;
   overcharge: number;
   cool: number;
   /** searchlight: seconds left swinging onto its target */
@@ -145,6 +147,7 @@ export type GameEvent =
   | { t: 'snuff'; id: number; x: number; y: number }
   | { t: 'overcharge'; id: number; x: number; y: number }
   | { t: 'pulse'; at: { x: number; y: number }[]; kj: number; hit: number }
+  | { t: 'reroute'; id: number; x: number; y: number }
   | { t: 'shoot'; id: number; x: number; y: number }
   | { t: 'burst'; x: number; y: number; r: number; hit: number }
   | { t: 'research'; id: string }

@@ -5,5 +5,6 @@ import { DT, type Game } from '../Game';
 export function abilitiesSystem(g: Game) {
   for (const b of g.buildings.values()) {
     if (b.overcharge > 0) b.overcharge = Math.max(0, b.overcharge - DT);
+    if (b.guard > 0) b.guard = Math.max(0, b.guard - DT);
   }
 }
