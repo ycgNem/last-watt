@@ -5,7 +5,7 @@ import { BUILDINGS, BUILD_CODES, BUILD_KEYS, BUILD_ORDER, specOf, upgradeAt, typ
 import { C } from '../data/palette';
 import { RESEARCH, RESEARCH_ORDER } from '../data/research';
 import { RULES } from '../data/rules';
-import { LAST_WAVE, waveDef } from '../data/waves';
+import { LAST_WAVE, seqHealth, waveDef } from '../data/waves';
 import { ENEMIES, ENEMY_BY_CODE, ENEMY_ORDER, type EnemyId } from '../data/enemies';
 import type { Audio } from '../engine/audio';
 import type { Input } from '../engine/input';
@@ -26,6 +26,7 @@ import { STEPS, Tutorial } from './tutorial';
 import { clearRun, saveRun } from './runsave';
 import { drawSettings } from './settings';
 import { fullOnTheWay, lineReports, linkRoom, strandedBy } from '../sim/lines';
+import { wavePressure } from '../sim/pressure';
 import { baitable, branchLight, mothsGo } from '../sim/fork';
 import { run, type Command } from '../sim/commands';
 import { noBest, type Profile } from './save';
@@ -964,7 +965,14 @@ export class Play {
     const groups = per.length ? per : [counts];
     const label = n === g.wave ? 'THIS WAVE' : 'NEXT';
     const groupW = (m: Map<string, number>) => kinds.filter((id) => m.has(ENEMIES[id].code)).reduce((a, id) => a + 17 + textWidth(`${m.get(ENEMIES[id].code)}`) + 4, 0);
-    const width = textWidth(label) + 8 + groups.reduce((a, m, i) => a + groupW(m) + (per.length ? textWidth(names![i]) + 4 + (i ? 6 : 0) : 0), 0);
+    // the telegraph (the fifth review's M6): the wave's kJ and its step over the last one, so wave
+    // 11's ×1.5 is on screen before it comes, not after
+    const pr = wavePressure(g, w);
+    const prev = n > 1 ? waveDef(n - 1, g.map) : undefined;
+    const step = prev ? pr.kj / seqHealth(prev.seq) : 0;
+    const kjText = `${pr.kj} kJ`, stepText = step >= 1.05 ? `×${step.toFixed(1)}` : '';
+    const kjW = 6 + textWidth(kjText) + (stepText ? 3 + textWidth(stepText) : 0);
+    const width = textWidth(label) + 8 + groups.reduce((a, m, i) => a + groupW(m) + (per.length ? textWidth(names![i]) + 4 + (i ? 6 : 0) : 0), 0) + kjW;
     const x = ui.w - width - 4, y = HUD_H + 2;
     this.stripLeft = x;
     ui.layer = 1;
@@ -983,11 +991,16 @@ export class Play {
         cx += 17 + ui.text(`${c}`, cx + 16, y + 6, C.mist) + 4;
       }
     });
+    cx += 2 + ui.text(kjText, cx + 2, y + 6, C.steel);
+    if (stepText) ui.text(stepText, cx + 3, y + 6, step >= 1.4 ? C.amber : C.steel);
     if (ui.hover(x, y, width, 18)) {
-      const kj = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
+      const kj = pr.kj;
+      const palls = counts.get(ENEMIES.pall.code) ?? 0;
       const roadLine = (m: Map<string, number>, i: number) => `${names![i] === 'W' ? 'West' : names![i] === 'E' ? 'East' : names![i]} road: ${kinds.filter((id) => m.has(ENEMIES[id].code)).map((id) => `${m.get(ENEMIES[id].code)} ${ENEMIES[id].name}${m.get(ENEMIES[id].code)! > 1 ? 's' : ''}`).join(', ')}`;
       ui.tooltip([
-        { text: `Wave ${n}: ${kj} kJ of dark, one every ${spacingOf(g, w).toFixed(2)} s` },
+        { text: `Wave ${n}: ${kj} kJ of dark${prev ? `, ${step.toFixed(1)}× the last` : ''}, one every ${spacingOf(g, w).toFixed(2)} s` },
+        { text: `Over ${Math.round(pr.span)} s: ${Math.round(pr.inflow)} kJ/s, against your towers' ${Math.round(pr.wall)} all firing${pr.wallFull > pr.wall + 0.5 ? ` (${Math.round(pr.wallFull)} at full power)` : ''}. Enemies stay in reach for seconds: a wall holds more than it deals.`, color: pr.wall < pr.wallFull * 0.75 ? C.amber : C.mist },
+        ...(palls ? [{ text: `${palls} Pall${palls > 1 ? 's' : ''}: what costs lights late. Burst (E), fire or shells.`, color: C.violet }] : []),
         ...per.map((m, i) => ({ text: roadLine(m, i), color: C.gold })),
         ...kinds.map((id) => ({ text: `${ENEMIES[id].name} (${ENEMIES[id].health} kJ): ${ENEMIES[id].blurb}`, color: C.mist })),
         { text: `Clearing it pays ${wavePay(n)}.`, color: C.gold },

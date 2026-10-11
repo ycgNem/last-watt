@@ -102,6 +102,21 @@ const STATES = {
     g.wave = 3; g.wavePaid.add(1); g.wavePaid.add(2); g.wavePaid.add(3); g.waveTimer = 12; g.money = 30;
     while (p.tutorial.i < 16) p.tutorial.advance();
   }),
+  // the NEXT strip's telegraph, hovered, before wave 11 (the fifth review's M6)
+  telegraph: async (page) => {
+    await page.evaluate(() => {
+      const p = window.__app.newGame();
+      const g = p.game;
+      window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+      window.__place(g, 'lamp', 24, 13); window.__place(g, 'node', 21, 10); window.__place(g, 'lamp', 24, 7); window.__place(g, 'floodlight', 22, 16);
+      g.wave = 10;
+      for (let n = 1; n <= 10; n++) { g.waveStarted.add(n); g.wavePaid.add(n); }
+      g.waveTimer = 15;
+    });
+    await page.waitForTimeout(120);
+    const at = await page.evaluate(() => { const a = window.__app; return { x: (a.play.stripLeft + 12) * a.ui.scale, y: 40 * a.ui.scale }; });
+    await page.mouse.move(at.x, at.y);
+  },
   board: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;

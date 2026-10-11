@@ -517,6 +517,20 @@ hypotheses for the Milestone 1 bot to confirm.
 | 7 | 68.4 | 355 | 47.5 | 1.20 | 1.25 |
 | 8 | 69.3 | 485 | 60.5 | 0.95 | 1.0 |
 
+**The rule past wave 4, measured (the fifth review's M6).** `design/telegraph.mts` logs, at each
+wave's start, its inflow (kJ over its span) against the wall's kJ/s (every tower firing × its
+efficiency, on the power the grid makes after the Works: `src/sim/pressure.ts`). The 1.2 holds for
+waves 1–4 only. Later the ratio says nothing about leaks: wave 8 comes at 2.4× the station plan's
+wall (3.2–3.6× on the Switchback and the Fork) and leaks 0; waves 11–12 at 1.2–2.2× leak 0 for
+every plan that Overcharges. An enemy is in a wall's reach for many seconds, and the lights a run
+loses late are Palls (wave 5 on the Fork, 8 and 12 on Two Roads, 10–12 for a player without
+verbs). So the NEXT strip telegraphs **what is true**: the wave's kJ and its step over the last
+(amber at ×1.4 or more), and in its tooltip the inflow beside the wall's kJ/s, with no verdict
+drawn from them, and the number of Palls in the wave as the thing that costs lights. *Rejected:*
+moving two Palls from wave 12 into waves 9 and 10 (the critic's "800 kJ earlier"). The station's
+plan and human profile still lost nothing, the no-verbs player went from losing to 10 lights, Two
+Roads got easier (11 → 16), and the Switchback's human profile lost at wave 10 (was 12 lights).
+
 **Supply ceiling (open).** Wave 8's ~60 kJ/s wall needs 100–120 kW at efficiency 0.5–0.6. One
 Extractor per deposit fuels at most 3.75 Burners (75 kW) plus the Hearth's 8. Either deposits
 take more than one Extractor, or the last waves are meant to lean on Jars and Overcharge. The
