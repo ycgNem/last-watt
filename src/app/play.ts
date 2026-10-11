@@ -256,6 +256,10 @@ export class Play {
         this.sayOnce('recovered', 25, 'Brownout over: the wall is back above 75%.', C.amber, 3);
         a.sfx('recovered');
         break;
+      case 'tap':
+        r.fx.push({ kind: 'ring', x: e.x, y: e.y, t: 0, life: 0.4, color: C.violet });
+        this.sayOnce('tap', 40, 'A Siphon is drinking from that line: 12 kW, before any tower. Kill it there, or have spare kW and Jars to cover it.', C.violet, 7);
+        break;
       case 'reroute':
         r.fx.push({ kind: 'ring', x: e.x, y: e.y, t: 0, life: 0.5, color: C.cyan });
         a.sfx('upgrade');
@@ -1379,6 +1383,7 @@ export class Play {
       ['Money earned', `${s.moneyEarned} (${s.wavePay} wave pay)`],
       ['Damage delivered', `${Math.round(s.kjDelivered)} kJ`],
       ['Power wasted', `${Math.round(s.wastedKj)} kJ`],
+      ...(s.stolenKj > 0 ? [['Drunk by Siphons', `${Math.round(s.stolenKj)} kJ`] as [string, string]] : []),
       ['Time in brownout', `${Math.round(s.brownoutSeconds)} s`],
       ['Overcharges / research', `${s.overcharges} / ${s.researched}`],
     ];

@@ -51,6 +51,23 @@ export function enemiesSystem(g: Game) {
         }
       }
     }
+    if (e.def.drainRadius) {
+      // a Siphon taps the nearest building on a line within reach (never the Hearth itself)
+      let best = 0, bd = Infinity;
+      for (const b of g.buildings.values()) {
+        if (b.net < 0 || b.def.role === 'core') continue;
+        const d = pointRectDist(e.x, e.y, g.rect(b));
+        if (d <= e.def.drainRadius && d < bd) {
+          bd = d;
+          best = b.id;
+        }
+      }
+      if (best && best !== e.tap) {
+        const b = g.buildings.get(best)!;
+        g.emit({ t: 'tap', id: best, x: b.x + b.def.size / 2, y: b.y + b.def.size / 2 });
+      }
+      e.tap = best;
+    }
     if (e.dist >= len) {
       e.hp = -Infinity;
       removed = true;

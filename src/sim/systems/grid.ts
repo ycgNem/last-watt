@@ -57,7 +57,7 @@ export function rebuildNetworks(g: Game) {
       index.set(r, nets.length);
       nets.push({
         id: nets.length, nodes: [], members: [], gen: 0, loss: 0, demand: 0, discharge: 0, charged: 0, wasted: 0,
-        stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, hasHearth: false,
+        stored: 0, capacity: 0, tiers: emptyTiers(), wall: { demand: 0, served: 0, sat: 1 }, hasHearth: false, drain: 0, stolen: 0,
       });
     }
     const n = nets[index.get(r)!];
@@ -151,7 +151,17 @@ export function gridSystem(g: Game, dry = false) {
       if (b.def.role === 'generator') b.output = 0;
     }
   }
+  // Siphons ask their kW of the line they tap, before any consumer (§5.1)
+  const drains = new Map<number, number>();
+  for (const e of g.enemies) {
+    if (!e.tap || !e.def.drainKw) continue;
+    const b = g.buildings.get(e.tap);
+    if (b && b.net >= 0) drains.set(b.net, (drains.get(b.net) ?? 0) + e.def.drainKw);
+  }
+  let stolen = 0;
   for (const n of g.networks) {
+    n.drain = drains.get(n.id) ?? 0;
+    n.stolen = 0;
     n.tiers = emptyTiers();
     n.gen = 0;
     n.loss = 0;
@@ -185,6 +195,8 @@ export function gridSystem(g: Game, dry = false) {
         if (b.def.role === 'tower' || b.def.role === 'beacon') total.peak += fullDraw(g, b);
       }
     }
+    // a Siphon's drink is demand like any other, so Jars give for it, but it is served first
+    n.demand += n.drain;
     // long lines lose their kW before anyone sees it (§3.2)
     const made = Math.max(0, n.gen - n.loss);
     let supply = made;
@@ -221,6 +233,9 @@ export function gridSystem(g: Game, dry = false) {
     // tier by tier: Overcharges (tier 0) first, then tier 1 is served fully before tier 2 sees
     // anything (§2.3, §8)
     let rem = supply;
+    n.stolen = Math.min(rem, n.drain);
+    rem -= n.stolen;
+    stolen += n.stolen;
     for (let t = 0; t <= 4; t++) {
       const ts = n.tiers[t];
       ts.sat = ts.demand > 0 ? Math.min(1, rem / ts.demand) : 1;
@@ -272,6 +287,7 @@ export function gridSystem(g: Game, dry = false) {
   }
   g.grid = total;
   g.stats.wastedKj += total.wasted * DT;
+  g.stats.stolenKj += stolen * DT;
 
   // brownout: the wall below the starved line; it ends only once the wall is clearly back
   const wall = total.wall;

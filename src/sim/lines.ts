@@ -7,7 +7,7 @@ import { fullDraw } from './systems/grid';
 import type { Building } from './types';
 
 /** what holds a line back, worst first */
-export type Neck = 'nopower' | 'fuel' | 'short' | 'peak' | 'waste' | 'loss' | 'ok';
+export type Neck = 'siphon' | 'nopower' | 'fuel' | 'short' | 'peak' | 'waste' | 'loss' | 'ok';
 
 export interface LineReport {
   net: number;
@@ -55,7 +55,11 @@ export function lineReports(g: Game): LineReport[] {
     let neck: Neck = 'ok';
     let text: string;
     let fix: string;
-    if (rockOut > 0) {
+    if (n.drain > 0) {
+      neck = 'siphon';
+      text = `Siphons drink ${r(n.stolen)} kW`;
+      fix = 'Kill them: Overcharge, or a Brazier';
+    } else if (rockOut > 0) {
       neck = 'fuel';
       text = `${rockOut} Burner${rockOut > 1 ? 's have' : ' has'} no rock`;
       fix = 'An Extractor touching each, on glowing rock';

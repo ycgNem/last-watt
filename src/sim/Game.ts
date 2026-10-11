@@ -74,7 +74,7 @@ export class Game {
   events: GameEvent[] = [];
   stats: RunStats = {
     kills: 0, leaks: 0, leaksByWave: [], lightsLostBy: {}, moneyEarned: 0, wavePay: 0, kjDelivered: 0,
-    wastedKj: 0, brownoutSeconds: 0, overcharges: 0, pulses: 0, knocks: 0, snuffs: 0, researched: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
+    wastedKj: 0, brownoutSeconds: 0, overcharges: 0, pulses: 0, knocks: 0, snuffs: 0, stolenKj: 0, researched: 0, firstBrownout: -1, firstKnock: -1, firstOvercharge: -1,
   };
   over: null | 'win' | 'lose' = null;
   hearthId = 0;

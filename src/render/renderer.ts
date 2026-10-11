@@ -47,7 +47,7 @@ export interface Overlay {
 
 /** a colour per power line in the Lines view, and a colour per bottleneck */
 const LINE_COLORS = [C.gold, C.cyan, C.lime, C.orange, C.ice, C.tan];
-const NECK_COLORS: Record<Neck, string> = { nopower: C.violet, fuel: C.ember, short: C.ember, peak: C.amber, waste: C.sky, loss: C.amber, ok: C.lime };
+const NECK_COLORS: Record<Neck, string> = { siphon: C.violet, nopower: C.violet, fuel: C.ember, short: C.ember, peak: C.amber, waste: C.sky, loss: C.amber, ok: C.lime };
 
 export class Renderer {
   ctx: CanvasRenderingContext2D;
@@ -287,6 +287,7 @@ export class Renderer {
     this.drawBeams(g);
     for (const b of bs) this.drawMarks(g, b);
     const es = [...g.enemies].sort((a, b) => a.y - b.y);
+    this.drawTaps(g);
     for (const e of es) this.drawEnemy(e, lights);
     if (ov.selected && g.buildings.has(ov.selected.id)) this.drawSelection(g, ov.selected, C.gold);
     if (ov.hover && ov.hover !== ov.selected && g.buildings.has(ov.hover.id)) this.drawSelection(g, ov.hover, C.ash, true);
@@ -662,6 +663,31 @@ export class Renderer {
       ctx.fillRect(this.sx(bx), this.sy(by), bw * z, z);
       ctx.fillStyle = lit ? C.gold : C.steel;
       ctx.fillRect(this.sx(bx), this.sy(by), Math.max(1, Math.round((bw * e.hp) / e.def.health)) * z, z);
+    }
+  }
+
+  /** a Siphon's tether to the building it drinks from: violet pixels running toward it (§5.1) */
+  private drawTaps(g: Game) {
+    const z = this.cam.z;
+    const ctx = this.ctx;
+    for (const e of g.enemies) {
+      if (!e.tap) continue;
+      const b = g.buildings.get(e.tap);
+      if (!b) continue;
+      const x0 = e.x * TILE, y0 = e.y * TILE - 4;
+      const x1 = (b.x + b.def.size / 2) * TILE, y1 = (b.y + b.def.size / 2) * TILE;
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      const steps = Math.max(2, Math.floor(len / 2));
+      const phase = (this.time * 12) % 4;
+      for (let i = 0; i <= steps; i++) {
+        const f = i / steps;
+        // pulses run from the building to the Siphon: the power is going the wrong way
+        const on = Math.floor(i - phase + 400) % 4 === 0;
+        ctx.fillStyle = on ? C.mist : C.violet;
+        ctx.globalAlpha = on ? 0.95 : 0.7;
+        ctx.fillRect(this.sx(Math.round(x0 + (x1 - x0) * f)), this.sy(Math.round(y0 + (y1 - y0) * f)), z, z);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 

@@ -76,6 +76,8 @@ export interface Enemy {
   route: number;
   /** a Veil some tower could see this tick */
   seen: boolean;
+  /** a Siphon: the building whose line it drinks from this tick (0 or absent: none) */
+  tap?: number;
 }
 
 /** a Starshell in the air */
@@ -117,6 +119,9 @@ export interface Network {
   /** the towers and Beacons on this network */
   wall: TierStat;
   hasHearth: boolean;
+  /** kW Siphons ask of it this tick, and kW they got (§5.1) */
+  drain: number;
+  stolen: number;
 }
 
 export interface GridStats {
@@ -145,6 +150,7 @@ export type GameEvent =
   | { t: 'brownout'; sat: number }
   | { t: 'recovered' }
   | { t: 'knock'; id: number; x: number; y: number }
+  | { t: 'tap'; id: number; x: number; y: number }
   | { t: 'restore'; id: number }
   | { t: 'snuff'; id: number; x: number; y: number }
   | { t: 'overcharge'; id: number; x: number; y: number }
@@ -175,6 +181,8 @@ export interface RunStats {
   pulses: number;
   knocks: number;
   snuffs: number;
+  /** kJ Siphons drank */
+  stolenKj: number;
   researched: number;
   /** first-time markers (tick numbers) for the moments that matter */
   firstBrownout: number;

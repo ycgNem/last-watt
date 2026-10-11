@@ -270,13 +270,13 @@ the first time it appears. Flits come in clumps of eight, 0.3 s apart inside a c
 | 3 | 10 Moth, 2 Shade | 480 | 78 | 30 | **2.4 s** |
 | 4 | 12 Moth, 3 Shade, 8 Flit (new) | 742 | 118 | 35 | 2.2 s |
 | 5 | 10 Moth, 1 Pall, 8 Flit | 812 | 126 | 40 | 1.6 s |
-| 6 | 16 Moth, 4 Shade, 16 Flit | 1,064 | 168 | 45 | 1.2 s |
+| 6 | 10 Moth, 4 Shade, 16 Flit, 2 Siphon (new) | 1,124 | 174 | 45 | 1.2 s |
 | 7 | 14 Moth, 6 Veil (new), 2 Shade | 1,020 | 164 | 50 | 1.4 s |
 | 8 | 24 Moth, 12 Shade, 2 Pall | 2,600 | 408 | 55 | 0.6 s |
 | 9 | 20 Moth, 4 Snuffer (new), 4 Veil, 24 Flit | 1,856 | 290 | 60 | 0.85 s |
-| 10 | 26 Moth, 7 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit | 2,634 | 412 | 65 | 0.65 s |
+| 10 | 22 Moth, 7 Shade, 4 Veil, 2 Snuffer, 1 Pall, 16 Flit, 2 Siphon | 2,754 | 428 | 65 | 0.65 s |
 | 11 | 38 Moth, 13 Shade, 4 Veil, 3 Pall, 16 Flit | 4,014 | 628 | 70 | 0.42 s |
-| 12 | 46 Moth, 11 Shade, 8 Veil, 4 Snuffer, 5 Pall, 32 Flit | 6,018 | 932 | 75 | 0.38 s |
+| 12 | 42 Moth, 11 Shade, 8 Veil, 4 Snuffer, 5 Pall, 32 Flit, 2 Siphon | 6,138 | 948 | 75 | 0.38 s |
 
 Total: about 3,400 bounty and 570 wave pay. A run is about 17 minutes.
 
@@ -296,6 +296,7 @@ Each one interacts with the grid in a different way, as Milestone 4 asks:
 |---|---|---|---|---|---|
 | **Flit** | 14 kJ | 2.6 t/s | 2 | none: it is a **throughput** test. A clump of eight 0.3 s apart brings 14 / 0.3 = 47 kJ/s, about eight Lamps' worth, for 2.4 s. Single beams can't keep up; cones, fire and bursts can. | 1 |
 | **Veil** | 70 kJ | 1.3 t/s | 11 | **sight**: only a tower whose share of power (smoothed over 0.5 s) is at or above **0.6**, the starved line, can find it; an Overcharged tower always can, and a Brazier's heat needs no sight. A brownout lets Veils walk through. | 2 |
+| **Siphon** | 120 kJ | 0.9 t/s | 18 | **demand**: taps the nearest building on a network within **2 tiles** of it and drinks **12 kW** (one firing Lamp) from that line, served before every tier, Overcharge included. It is demand like any other, so spare kW and a charged Jar on that line cover it and a tight line browns out; shedding doesn't help. A Siphon walking a bend at 0.9 t/s is in reach of the bend's towers for about 8 s, about 100 kJ stolen per bend, so it is a margin test: kill it fast where it drinks (Overcharge, a Brazier) or have the kW. Waves 6, 10 and 12 carry two each, in place of Moths; the bot's results held (15 / 17 lights) and its no-Jar control fell from 9 to 4. | 2 |
 | **Snuffer** | 160 kJ | 0.8 t/s | 24 | **generation**: puts out any Burner within **3.5 tiles**: the burning rock is lost and the Burner stays cold while it is near and 8 s after. At 3.5 tiles the north deposit's Burners beside the first straight are in reach and the south deposit's are not, so the factory has a safe side. Vanes and the Hearth can't be snuffed. | 3 |
 
 Bounty is still round(health × 0.15). **Derivative flags** (written in `DECISIONS.md`): the

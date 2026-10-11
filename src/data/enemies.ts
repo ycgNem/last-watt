@@ -1,6 +1,6 @@
 // The things of the Dim (DESIGN.md §5). Health is energy: kJ of delivered damage to kill.
 
-export type EnemyId = 'moth' | 'flit' | 'shade' | 'veil' | 'snuffer' | 'pall';
+export type EnemyId = 'moth' | 'flit' | 'shade' | 'veil' | 'snuffer' | 'pall' | 'siphon';
 
 export interface EnemyDef {
   id: EnemyId;
@@ -24,6 +24,10 @@ export interface EnemyDef {
   snuffTime?: number;
   /** Veil: only a tower above the sight line (or Overcharged, or a Brazier's heat) can find it */
   veiled?: boolean;
+  /** Siphon: taps the nearest building on a network within this many tiles and drinks drainKw
+   *  from that line, ahead of every tier */
+  drainRadius?: number;
+  drainKw?: number;
   /** Pall: takes its Floodlight share and every share behind it */
   shadow?: boolean;
   /** fraction of a single (narrow) beam's damage that lands; the rest is drunk */
@@ -75,6 +79,16 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
       snuffRadius: '§5.1 Snuffer: Burners within 3.5 tiles (the north deposit is in reach, the south is not)', snuffTime: '§5.1 Snuffer: cold for 8 s',
     },
   },
+  siphon: {
+    id: 'siphon', name: 'Siphon', code: 'D', blurb: 'Taps any powered building within 2 tiles as it walks and drinks 12 kW from that line, ahead of every tower.',
+    answer: 'Kill it where it drinks: Overcharge it, or burn it in a Brazier. Spare kW or a charged Jar on that line shrugs it off; a tight line browns out.',
+    health: 120, speed: 0.9, bounty: 18, leak: 2, drainRadius: 2, drainKw: 12,
+    why: {
+      health: '§5.1 Siphon: 120 kJ (between the Shade and the Snuffer: it lives long enough at a bend to cost something)', speed: '§5.1 Siphon: 0.9 t/s',
+      bounty: '§1 bounty = round(120 × 0.15) = 18', leak: '§5.1 Siphon: 2 lights',
+      drainRadius: '§5.1 Siphon: 2 tiles from a footprint (every tower at a bend is in reach)', drainKw: '§5.1 Siphon: 12 kW, one firing Lamp, served before every tier',
+    },
+  },
   pall: {
     id: 'pall', name: 'Pall', code: 'P', blurb: 'Slow, heavy dark. Drinks 3/4 of a narrow beam; in a Floodlight\'s cone it shadows everything behind it.',
     answer: 'A Floodlight: a Pall alone in the cone drinks the whole beam. Overcharge it there. Lamps and Searchlights barely scratch it.',
@@ -85,6 +99,6 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   },
 };
 
-export const ENEMY_ORDER: EnemyId[] = ['moth', 'flit', 'shade', 'veil', 'snuffer', 'pall'];
+export const ENEMY_ORDER: EnemyId[] = ['moth', 'flit', 'shade', 'siphon', 'veil', 'snuffer', 'pall'];
 
 export const ENEMY_BY_CODE: Record<string, EnemyDef> = Object.fromEntries(Object.values(ENEMIES).map((e) => [e.code, e]));

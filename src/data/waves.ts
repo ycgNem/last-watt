@@ -29,20 +29,20 @@ export const WAVES: WaveDef[] = [
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 5, seq: 'MMMMMPMMMMM' + F8, spacing: 1.6, composition: { M: 10, P: 1, F: 8 }, note: 'A Pall: 400 kJ of dark. Floodlights and Overcharge.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
-  { n: 6, seq: 'MMMMSMMMM' + F8 + 'SMMMMSMMMMS' + F8, spacing: 1.2, composition: { M: 16, S: 4, F: 16 },
-    why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
+  { n: 6, seq: 'MMDMSMM' + F8 + 'SMMDMSMMS' + F8, spacing: 1.2, composition: { M: 10, S: 4, F: 16, D: 2 }, note: 'Siphons: they drink 12 kW from any line they pass.',
+    why: { n: '§5 wave table (Siphons from wave 6: two in place of six Moths)', spacing: '§6 bot-tuned' } },
   { n: 7, seq: 'MMVMMVMMSMMVMMVSMMVMMV', spacing: 1.4, composition: { M: 14, V: 6, S: 2 }, note: 'Veils: only towers above 60% power can see them.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 8, seq: 'MMSMMSMMSPMMSMMSMMSPMMSMMSMMS' + 'MMSMMSMMS', spacing: 0.6, composition: { M: 24, S: 12, P: 2 },
     why: { n: '§5 wave table (the slice\'s wave 7, a third more Moths and Shades)', spacing: '§6 bot-tuned' } },
   { n: 9, seq: 'MMNMMVMM' + F8 + 'MMVMMNMMVMM' + F8 + 'MMVMMN' + F8 + 'MMN', spacing: 0.85, composition: { M: 20, N: 4, V: 4, F: 24 }, note: 'Snuffers: they put out Burners near the path.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
-  { n: 10, seq: 'MMSMMVMMSMMVMMN' + F8 + 'MMSMMVMMSMMVMMN' + 'P' + F8 + 'MMSMMSMMS', spacing: 0.65, composition: { M: 26, S: 7, V: 4, N: 2, P: 1, F: 16 },
+  { n: 10, seq: 'MMSMMVMMSMMVMMN' + F8 + 'MMSDVMMSDVMMN' + 'P' + F8 + 'MMSMMSMMS', spacing: 0.65, composition: { M: 22, S: 7, V: 4, N: 2, P: 1, F: 16, D: 2 },
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
   { n: 11, seq: 'MMMSMMMSMMMSP' + F8 + 'MMMSVMMMSVMMMSP' + F8 + 'MMMSVMMMSVMMMSPMMM' + 'MMSMMSMMSMMS', spacing: 0.42, composition: { M: 38, S: 13, V: 4, P: 3, F: 16 },
     why: { n: '§5 wave table (the slice\'s wave 8 with Veils and Flits)', spacing: '§6 bot-tuned' } },
-  { n: 12, seq: 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMNP' + F8 + 'MMSMMSMMS', spacing: 0.38,
-    composition: { M: 46, S: 11, V: 8, N: 4, P: 5, F: 32 }, note: 'The last wave. Five Palls.',
+  { n: 12, seq: 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSMMVMMSMMVMMN' + F8 + 'PMMSDVMMSDVMMNP' + F8 + 'MMSMMSMMS', spacing: 0.38,
+    composition: { M: 42, S: 11, V: 8, N: 4, P: 5, F: 32, D: 2 }, note: 'The last wave. Five Palls.',
     why: { n: '§5 wave table', spacing: '§6 bot-tuned' } },
 ];
 
@@ -55,7 +55,7 @@ export function seqHealth(seq: string): number {
   return sum;
 }
 
-const ENDLESS_BLOCK = 'PMMSMMVMMSMMVMMN' + F8;
+const ENDLESS_BLOCK = 'PMMSDVMMSMMVMMN' + F8;
 
 /** endless wave n (> LAST_WAVE): the last wave's kJ × growth^(n − last), §5.3 */
 export function endlessWave(n: number): WaveDef {
