@@ -50,6 +50,22 @@ export function wavesSystem(g: Game) {
   }
 }
 
+/** the road each spawn of a sequence takes, by the spawner's own rule: each kind alternates roads,
+ *  starting on road (wave mod roads), and a Flit clump keeps to one road (the strip tells the
+ *  player what comes down each road, §11) */
+export function roadsOf(seq: string, wave: number, roads: number): number[] {
+  const routes: Record<string, number> = {};
+  const out: number[] = [];
+  for (let i = 0; i < seq.length; i++) {
+    const c = seq[i];
+    const route = routes[c] ?? wave % roads;
+    out.push(route);
+    const clump = !!ENEMY_BY_CODE[c].packGap && seq[i + 1] === c;
+    if (!clump) routes[c] = (route + 1) % roads;
+  }
+  return out;
+}
+
 /** money for clearing wave n, leaks or not (§5.2) */
 export function wavePay(n: number): number {
   return RULES.wavePayBase.v + RULES.wavePayPer.v * n;

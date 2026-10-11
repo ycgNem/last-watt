@@ -71,6 +71,16 @@ class App {
     this.resize();
   }
 
+  /** back to the title from a run (saved first by the run itself) */
+  toTitle() {
+    this.play = null;
+    this.readSave();
+    this.title = new Game({ map: this.map });
+    this.focusTitle();
+    this.screen = 'title';
+    this.resize();
+  }
+
   /** look for a run saved mid-way */
   readSave() {
     const { run, problem } = loadRun();
@@ -92,7 +102,7 @@ class App {
       console.warn('replay failed:', err);
       return;
     }
-    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), { game: g, map, seed: s.seed, profile: this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings() });
+    this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), { game: g, map, seed: s.seed, profile: this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings(), onTitle: () => this.toTitle() });
     this.play.paused = true;
     this.play.say(`Continued: ${map.name}, wave ${g.wave}. Paused: P to play on.`, C.gold, 6);
     this.screen = 'play';
@@ -184,7 +194,7 @@ class App {
     if (!withBot && !tutorial) this.saved = null;
     const seed = withBot ? 1 : Math.floor(Math.random() * 1000);
     this.play = new Play(this.r, this.ui, this.input, this.audio, () => this.newGame(), {
-      tutorial, seed, map: withBot ? undefined : this.map, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings(),
+      tutorial, seed, map: withBot ? undefined : this.map, profile: withBot ? undefined : this.profile, onProfile: (p) => saveProfile(p), onSettings: () => this.applySettings(), onTitle: () => this.toTitle(),
     });
     if (withBot) this.play.bot = new Bot();
     this.screen = 'play';

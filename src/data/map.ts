@@ -33,6 +33,8 @@ export interface MapDef {
   spawnAt: number;
   /** this map's own sequences for some waves, in place of the table's (§11) */
   waves?: Record<number, string>;
+  /** a short name for each road, when there are several (the NEXT strip says what takes which) */
+  roadNames?: string[];
   why: Record<string, string>;
 }
 
@@ -143,6 +145,7 @@ export const TWO_ROADS: MapDef = {
   ],
   focus: [19.5, 17],
   firstLamps: 'Two Lamps (1) beside the last stretch, where both roads come down as one',
+  roadNames: ['W', 'E'],
   jarSpot: [21, 22],
   windMean: 0.55,
   pace: 1.4,

@@ -170,6 +170,10 @@ export interface RunStats {
   kills: number;
   leaks: number;
   leaksByWave: number[];
+  /** lights lost in each wave */
+  lightsByWave: number[];
+  /** every leak in order: what, in which wave, how many lights, and the wall's share of power then */
+  leakLog: { enemy: string; wave: number; lights: number; wall: number; overcharged: boolean }[];
   /** lights lost to each kind of enemy */
   lightsLostBy: Record<string, number>;
   moneyEarned: number;

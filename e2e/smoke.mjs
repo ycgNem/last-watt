@@ -13,7 +13,7 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(base);
 await page.waitForFunction(() => window.__app && window.__app.screen === 'title', null, { timeout: 15000 });
 // PLAY button
-const begin = await page.evaluate(() => { const ui = window.__app.ui; return { x: (ui.w / 2) * ui.scale, y: (Math.round(ui.h * 0.58) + 9) * ui.scale }; });
+const begin = await page.evaluate(() => { const ui = window.__app.ui; return { x: (ui.w / 2) * ui.scale, y: (Math.min(Math.round(ui.h * 0.7), ui.h - 100) + 9) * ui.scale }; });
 await page.mouse.click(begin.x, begin.y);
 await page.waitForFunction(() => window.__app.screen === 'play');
 const tileXY = (tx, ty) => page.evaluate(([x, y]) => { const r = window.__app.r; return { x: r.sx(x * 16), y: r.sy(y * 16) }; }, [tx, ty]);

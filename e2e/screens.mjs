@@ -192,6 +192,12 @@ const STATES = {
     p.paused = true;
     p.msgs = [];
   }),
+  menu: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    p.game.wave = 3;
+    p.menu = true;
+    p.msgs = [];
+  }),
   siphon: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
@@ -286,9 +292,10 @@ const STATES = {
     a.pickMap(window.__maps[2]);
     const p = a.newGame();
     const g = p.game;
-    window.__place(g, 'lamp', 17, 17); window.__place(g, 'lamp', 18, 15); window.__place(g, 'lamp', 14, 17); window.__place(g, 'lamp', 21, 15);
+    window.__place(g, 'extractor', 18, 25); window.__place(g, 'burner', 16, 25).fuel = 5;
+    window.__place(g, 'lamp', 16, 16); window.__place(g, 'lamp', 19, 16); window.__place(g, 'lamp', 16, 14); window.__place(g, 'lamp', 19, 14);
     g.research.done.add('starshell');
-    window.__place(g, 'node', 17, 15); window.__place(g, 'starshell', 17, 13);
+    window.__place(g, 'node', 13, 16); window.__place(g, 'node', 23, 16); window.__place(g, 'floodlight', 16, 12); window.__place(g, 'starshell', 13, 13);
     g.wave = 4;
     window.__next(g);
     for (let i = 0; i < 60 * 24; i++) { p.tick(); g.drainEvents(); }

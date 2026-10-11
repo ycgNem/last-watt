@@ -80,6 +80,8 @@ export function enemiesSystem(g: Game) {
       g.stats.leaks++;
       g.stats.leaksByWave[e.wave] = (g.stats.leaksByWave[e.wave] ?? 0) + 1;
       g.stats.lightsLostBy[e.def.id] = (g.stats.lightsLostBy[e.def.id] ?? 0) + e.def.leak;
+      g.stats.lightsByWave[e.wave] = (g.stats.lightsByWave[e.wave] ?? 0) + e.def.leak;
+      g.stats.leakLog.push({ enemy: e.def.id, wave: e.wave, lights: e.def.leak, wall: g.grid.wall.sat, overcharged: [...g.buildings.values()].some((b) => b.overcharge > 0) });
       g.emit({ t: 'leak', x: e.x, y: e.y, lights: e.def.leak, enemy: e.def.id });
     }
   }

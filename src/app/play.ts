@@ -17,7 +17,7 @@ import { covers, touches } from '../sim/geom';
 import { coneCatchers } from '../sim/systems/towers';
 import { windShade } from '../sim/systems/economy';
 import { fullDraw, gridSystem, rebuildNetworks } from '../sim/systems/grid';
-import { wavePay } from '../sim/systems/waves';
+import { wavePay, roadsOf } from '../sim/systems/waves';
 import type { Building, GameEvent } from '../sim/types';
 import { UI } from '../ui/ui';
 import { textWidth, wrapText, LINE_H } from '../ui/font';
@@ -52,6 +52,8 @@ export interface PlayOpts {
   onProfile?: (p: Profile) => void;
   /** settings changed: apply them (volume, scale, flashes) */
   onSettings?: () => void;
+  /** back to the title (the run is saved first; CONTINUE picks it up) */
+  onTitle?: () => void;
 }
 
 export class Play {
@@ -67,6 +69,8 @@ export class Play {
   help = false;
   board = false;
   settingsOpen = false;
+  /** the Esc menu (holds the game) */
+  menu = false;
   /** the Lines view (V) */
   lines = false;
   bot: Bot | null = null;
@@ -129,7 +133,7 @@ export class Play {
 
   /** one fixed sim tick (called by the loop) */
   tick() {
-    if (this.paused || this.game.over || this.holding || this.board || this.settingsOpen) return;
+    if (this.paused || this.game.over || this.holding || this.board || this.settingsOpen || this.menu) return;
     if (this.bot && this.game.tick % 6 === 0) this.bot.act(this.game);
     // a tutorial build step holds the breather, so the player isn't racing the next wave
     if (this.tutorial?.step?.spot && this.game.waveTimer > 0) this.game.waveTimer += DT;
@@ -232,6 +236,11 @@ export class Play {
       }
       case 'wave': {
         const w = waveDef(e.n, g.map)!;
+        if (this.profile && !this.bot) {
+          const reached = Math.min(e.n, LAST_WAVE);
+          for (const b of [this.profile.best, (this.profile.maps[g.map.id] ??= noBest())]) b.wave = Math.max(b.wave, reached);
+          this.opts.onProfile?.(this.profile);
+        }
         this.say(`WAVE ${e.n}${g.endless ? '' : ` of ${LAST_WAVE}`}${w.note ? ': ' + w.note : ''}`, C.gold, 7);
         a.sfx('wave');
         break;
@@ -398,6 +407,7 @@ export class Play {
     }
     if (g.over) {
       if (k('KeyR') || k('Enter')) this.onRestart();
+      else if (k('KeyT')) this.opts.onTitle?.();
       return;
     }
     if (k('KeyP')) this.paused = !this.paused;
@@ -405,10 +415,11 @@ export class Play {
     if (k('KeyL')) this.board = !this.board;
     if (k('Escape')) {
       if (this.help) this.help = false;
+      else if (this.settingsOpen) this.settingsOpen = false;
       else if (this.board) this.board = false;
       else if (this.buildId) this.buildId = null;
       else if (this.selectedId) this.selectedId = 0;
-      else this.paused = !this.paused;
+      else this.menu = !this.menu;
     }
     if (this.tutorial?.step?.next && (k('Enter') || (this.holding && k('Space')))) {
       this.tutorial.advance();
@@ -495,6 +506,38 @@ export class Play {
     if (typeof r === 'string') return r;
     this.saveSoon = 0;
     return null;
+  }
+
+  /** the Esc menu: resume, settings, help, or back to the title with the run saved */
+  private drawMenu(ui: UI) {
+    ui.layer = 7;
+    const w = 150, h = 92;
+    const x = Math.round(ui.w / 2 - w / 2), y = Math.round((ui.h - BAR_H) / 2 - h / 2);
+    ui.panel(x, y, w, h, { border: C.gold, alpha: 0.97 });
+    ui.textC('PAUSED', ui.w / 2, y + 5, C.gold);
+    const bw = w - 16;
+    if (ui.button('RESUME (ESC)', x + 8, y + 17, bw, 14, { color: C.gold })) this.menu = false;
+    if (ui.button('SETTINGS (O)', x + 8, y + 34, bw, 14)) {
+      this.menu = false;
+      this.settingsOpen = true;
+    }
+    if (ui.button('KEYS AND HELP (H)', x + 8, y + 51, bw, 14)) {
+      this.menu = false;
+      this.help = true;
+    }
+    const saves = !this.tutorial && !this.bot && !!this.profile;
+    if (ui.button('TO THE TITLE', x + 8, y + 70, bw, 14, { color: C.ember, tip: ['To the title', saves ? 'The run is saved: CONTINUE on the title picks it up where you left it.' : 'This run is not saved (the tutorial).'] })) {
+      if (saves) this.saveNow();
+      this.opts.onTitle?.();
+    }
+  }
+
+  /** save the run now (leaving for the title) */
+  saveNow() {
+    const g = this.game;
+    if (this.tutorial || this.bot || !this.profile || g.over) return;
+    this.savedTick = g.tick;
+    saveRun({ map: g.map.id, seed: g.seed, skills: [...g.skills], tick: g.tick, wave: g.wave, lights: g.lights, log: g.log });
   }
 
   /** the run in progress into localStorage: its seed, skills and command log (app/runsave.ts) */
@@ -678,11 +721,12 @@ export class Play {
     this.leftRight = 0;
     this.leftBottom = HUD_H + 2;
     if (this.tutorial?.step) this.drawTutorial(ui, g);
-    else if (g.wave === 0 && !this.bot) this.drawFirstSteps(ui, g);
+    else if (g.wave === 0 && !this.bot && !g.over) this.drawFirstSteps(ui, g);
     this.drawIntel(ui);
     if (!g.over) this.drawMessages(ui);
     if (this.board) this.drawBoard(ui, g);
     if (this.help) this.drawHelp(ui);
+    if (this.menu && !g.over) this.drawMenu(ui);
     if (this.settingsOpen && this.profile) {
       this.settingsOpen = drawSettings(ui, this.profile, this.audio.muted, (s, mute) => {
         this.profile!.settings = s;
@@ -781,10 +825,12 @@ export class Play {
         label = `NEXT ${key}`;
         tip = [`Wave ${g.wave + 1} in ${Math.ceil(g.waveTimer)} s`, 'The field is clear: Jars charge and Labs research on spare power. Space starts the next wave now.'];
       } else {
+        // mid-wave there is nothing to call (the next wave comes 20 s after this one clears): just
+        // the walk to contact, then what is left
         const c = this.contactIn();
-        ui.textR(c !== null ? `contact ${c}s` : `${left} left`, rx - bw - 3, 17, c !== null ? C.gold : C.steel);
-        label = `CALL ${key}`;
-        tip = [`Call wave ${g.wave + 1} on top of this one`, 'The next wave comes 20 s after this one is cleared. Calling it now stacks the two.'];
+        ui.textR(c !== null ? `contact ${c}s` : `${left} left`, rx, 16, c !== null ? C.gold : C.steel);
+        label = '';
+        tip = [];
       }
     } else {
       label = '';
@@ -836,23 +882,42 @@ export class Play {
     const counts = new Map<string, number>();
     for (const c of w.seq) counts.set(c, (counts.get(c) ?? 0) + 1);
     const kinds = ENEMY_ORDER.filter((id) => counts.has(ENEMIES[id].code));
+    // on a map with several roads, what comes down each one (the spawner's own rule)
+    const names = g.map.roadNames;
+    const per: Map<string, number>[] = [];
+    if (names && g.paths.length > 1) {
+      const roads = roadsOf(w.seq, n, g.paths.length);
+      for (let r = 0; r < g.paths.length; r++) per.push(new Map());
+      [...w.seq].forEach((c, i) => per[roads[i]].set(c, (per[roads[i]].get(c) ?? 0) + 1));
+    }
+    const groups = per.length ? per : [counts];
     const label = n === g.wave ? 'THIS WAVE' : 'NEXT';
-    const width = textWidth(label) + 8 + kinds.reduce((a, id) => a + 17 + textWidth(`${counts.get(ENEMIES[id].code)}`) + 4, 0);
+    const groupW = (m: Map<string, number>) => kinds.filter((id) => m.has(ENEMIES[id].code)).reduce((a, id) => a + 17 + textWidth(`${m.get(ENEMIES[id].code)}`) + 4, 0);
+    const width = textWidth(label) + 8 + groups.reduce((a, m, i) => a + groupW(m) + (per.length ? textWidth(names![i]) + 4 + (i ? 6 : 0) : 0), 0);
     const x = ui.w - width - 4, y = HUD_H + 2;
     this.stripLeft = x;
     ui.layer = 1;
     ui.panel(x, y, width, 18, { alpha: 0.88 });
     ui.text(label, x + 4, y + 6, C.steel);
     let cx = x + 4 + textWidth(label) + 4;
-    for (const id of kinds) {
-      ui.icon(id, cx, y + 1);
-      const c = counts.get(ENEMIES[id].code)!;
-      cx += 17 + ui.text(`${c}`, cx + 16, y + 6, C.mist) + 4;
-    }
+    groups.forEach((m, gi) => {
+      if (per.length) {
+        if (gi) cx += 6;
+        cx += ui.text(names![gi], cx, y + 6, C.gold) + 4;
+      }
+      for (const id of kinds) {
+        const c = m.get(ENEMIES[id].code);
+        if (!c) continue;
+        ui.icon(id, cx, y + 1);
+        cx += 17 + ui.text(`${c}`, cx + 16, y + 6, C.mist) + 4;
+      }
+    });
     if (ui.hover(x, y, width, 18)) {
       const kj = [...w.seq].reduce((a, c) => a + ENEMY_BY_CODE[c].health, 0);
+      const roadLine = (m: Map<string, number>, i: number) => `${names![i] === 'W' ? 'West' : names![i] === 'E' ? 'East' : names![i]} road: ${kinds.filter((id) => m.has(ENEMIES[id].code)).map((id) => `${m.get(ENEMIES[id].code)} ${ENEMIES[id].name}${m.get(ENEMIES[id].code)! > 1 ? 's' : ''}`).join(', ')}`;
       ui.tooltip([
-        { text: `Wave ${n}: ${kj} kJ of dark, one every ${w.spacing.toFixed(2)} s` },
+        { text: `Wave ${n}: ${kj} kJ of dark, one every ${(w.spacing * g.map.pace).toFixed(2)} s` },
+        ...per.map((m, i) => ({ text: roadLine(m, i), color: C.gold })),
         ...kinds.map((id) => ({ text: `${ENEMIES[id].name} (${ENEMIES[id].health} kJ): ${ENEMIES[id].blurb}`, color: C.mist })),
         { text: `Clearing it pays ${wavePay(n)}.`, color: C.gold },
       ]);
@@ -1368,6 +1433,7 @@ export class Play {
       ['U / Y', 'upgrade (Y: the other way, at a choice)'],
       ['L', 'research board'],
       ['Del', 'sell the selected building (half back)'],
+      ['Esc', 'cancel, deselect, or the menu (title, settings)'],
       ['Space', 'start the next wave now'],
       ['WASD, middle-drag', 'pan; wheel zooms; C recentres'],
       ['Shift-click', 'a tier bar (top): shed the whole tier'],
@@ -1389,6 +1455,25 @@ export class Play {
   /** one line on why a run was lost, by rule (the second review's ask) */
   private diagnose(): string {
     const g = this.game, s = g.stats;
+    // the leaks that took the last quarter of the lights decide what the run died of
+    const total = s.leakLog.reduce((a, l) => a + l.lights, 0);
+    const tail: typeof s.leakLog = [];
+    let sum = 0;
+    for (let i = s.leakLog.length - 1; i >= 0 && sum < Math.max(1, total / 4); i--) {
+      tail.push(s.leakLog[i]);
+      sum += s.leakLog[i].lights;
+    }
+    const by = (k: string) => tail.filter((l) => l.enemy === k).reduce((a, l) => a + l.lights, 0);
+    if (sum === 0) return 'More towers at the bends, and keep them fed.';
+    const veilsStarved = tail.filter((l) => l.enemy === 'veil' && l.wall < RULES.veilSight.v);
+    if (veilsStarved.length && by('veil') >= sum / 3)
+      return veilsStarved.some((l) => l.overcharged)
+        ? 'Veils walked past while your wall was under 60%: your Overcharges took the power their towers needed to see them.'
+        : 'Veils walked past while your wall was under 60%: more Burners, fewer towers firing at once, or Pulse less (it empties the Jars that carry the wall).';
+    if (by('pall') >= sum / 2) return 'Palls took the last of it: a Floodlight with the Pall alone in its cone, and an Overcharge, before it reaches the bend.';
+    if (by('siphon') >= sum / 3) return 'Siphons got through: kill them where they drink (an Overcharge, a Brazier), or have spare kW on the line they tap.';
+    if (by('flit') >= sum / 3) return 'Flit clumps got through: a cone looking down a straight, a Starshell, or a Brazier behind a Beacon.';
+    if (by('shade') >= sum / 3) return 'Shades got through: their 90 kJ needs two towers on them, or an Overcharge as they pass.';
     const lost = Object.values(s.lightsLostBy).reduce((a, b) => a + b, 0) || 1;
     if ((s.lightsLostBy.pall ?? 0) / lost >= 0.4) return 'Palls took most of it: a Floodlight with the Pall alone in its cone, and an Overcharge, before it reaches the bend.';
     if (s.brownoutSeconds > 60) return `Your wall spent ${Math.round(s.brownoutSeconds)} s starved: more Burners, or Jars to carry the peaks.`;
@@ -1402,15 +1487,16 @@ export class Play {
     const win = g.over === 'win';
     const s = g.stats;
     const lost = s.lightsLostBy;
+    // the worst wave is the one that cost the most lights, not the most leaks
     let worst = 1;
-    for (let i = 1; i < s.leaksByWave.length; i++) if ((s.leaksByWave[i] ?? 0) > (s.leaksByWave[worst] ?? 0)) worst = i;
+    for (let i = 1; i < s.lightsByWave.length; i++) if ((s.lightsByWave[i] ?? 0) > (s.lightsByWave[worst] ?? 0)) worst = i;
     const rows: [string, string][] = [
       ['Waves', win ? `all ${LAST_WAVE}` : g.endless ? `endless: reached wave ${g.wave}` : `reached ${g.wave} of ${LAST_WAVE}`],
       ['Lights left', `${g.lights} of ${RULES.startLights.v}`],
       ['Kills / leaks', `${s.kills} / ${s.leaks}`],
       ...(win ? [] : ([
         ['Lights lost to', ENEMY_ORDER.filter((id) => lost[id]).map((id) => `${ENEMIES[id].name}s ${lost[id]}`).join(', ') || 'nothing'],
-        ['Worst wave', `wave ${worst}: ${s.leaksByWave[worst] ?? 0} got through`],
+        ['Worst wave', `wave ${worst}: ${s.lightsByWave[worst] ?? 0} lights (${s.leaksByWave[worst] ?? 0} got through)`],
       ] as [string, string][])),
       ['Money earned', `${s.moneyEarned} (${s.wavePay} wave pay)`],
       ['Damage delivered', `${Math.round(s.kjDelivered)} kJ`],
@@ -1435,13 +1521,17 @@ export class Play {
     });
     whyLines.forEach((l, i) => ui.text(l, x + 14, y + 32 + rows.length * 10 + 4 + i * LINE_H, C.gold));
     if (win) {
-      if (ui.button('KEEP GOING: ENDLESS', ui.w / 2 - 118, y + h - 22, 120, 15, { color: C.gold, tip: ['Endless', 'Waves keep coming, each 14% heavier. How long can the Hearth hold?'] })) {
+      if (ui.button('KEEP GOING: ENDLESS', ui.w / 2 - 158, y + h - 22, 120, 15, { color: C.gold, tip: ['Endless', 'Waves keep coming, each 14% heavier. How long can the Hearth hold?'] })) {
         this.cmd({ k: 'endless' });
         this.recorded = false;
         this.say('Endless: the dark keeps coming. Each wave 14% heavier.', C.gold, 6);
       }
-      if (ui.button('PLAY AGAIN (R)', ui.w / 2 + 8, y + h - 22, 100, 15)) this.onRestart();
-    } else if (ui.button('PLAY AGAIN (R)', ui.w / 2 - 50, y + h - 22, 100, 15, { color: C.gold })) this.onRestart();
+      if (ui.button('PLAY AGAIN (R)', ui.w / 2 - 32, y + h - 22, 90, 15)) this.onRestart();
+      if (this.opts.onTitle && ui.button('TITLE (T)', ui.w / 2 + 64, y + h - 22, 70, 15)) this.opts.onTitle();
+    } else {
+      if (ui.button('PLAY AGAIN (R)', ui.w / 2 - 96, y + h - 22, 100, 15, { color: C.gold })) this.onRestart();
+      if (this.opts.onTitle && ui.button('TITLE (T)', ui.w / 2 + 10, y + h - 22, 86, 15)) this.opts.onTitle();
+    }
   }
 }
 
