@@ -378,12 +378,29 @@ export function gridSystem(g: Game, dry = false) {
       n.stolen += drainAt[i] * share;
     }
     stolen += n.stolen;
-    // each Node's load: what its link carried this tick (+ into the branch past it)
+    // each Node's load: what its link carried this tick (+ into the branch past it). It is FULL
+    // only when that holds the branch back (the fifth review): at its limit inward while something
+    // past it still lacks power (a Jar's charging too), or outward while power past it goes to
+    // waste that something on this side lacks. A link carrying exactly what its branch asks is not.
+    const short = zeros(), spare = zeros();
+    for (let i = 0; i < k; i++) {
+      for (let tt = 0; tt <= 3; tt++) short[i] += Math.max(0, dem[tt][i] - got[tt][i]);
+      short[i] += want[i] * (1 - sc[i]);
+      spare[i] = Math.max(0, src[i]);
+    }
+    for (const i of t.post) {
+      const p = t.parent[i];
+      if (p >= 0) {
+        short[p] += short[i];
+        spare[p] += spare[i];
+      }
+    }
     for (let i = 0; i < k; i++) {
       const c = g.buildings.get(t.ids[i]);
       if (c) {
         c.carry = flow[i];
-        c.full = i > 0 && Math.abs(flow[i]) >= t.cap[i] - 0.5;
+        const atCap = i > 0 && Math.abs(flow[i]) >= t.cap[i] - 0.5;
+        c.full = atCap && (flow[i] > 0 ? short[i] > 0.5 : spare[i] > 0.5 && short[0] - short[i] > 0.5);
       }
     }
     n.wall = { demand: 0, served: 0, sat: 1 };

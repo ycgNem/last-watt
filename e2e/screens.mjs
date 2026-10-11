@@ -355,6 +355,12 @@ function nodeFull(select) {
 }
 STATES.nodefull = async (page) => page.evaluate(nodeFull, true);
 
+// a starved Lamp past the full Node, selected: the dotted way home names its neck (fifth review)
+STATES.feedpath = async (page) => {
+  await page.evaluate(nodeFull, false);
+  await page.evaluate(() => { const p = window.__app.play; p.selectedId = [...p.game.buildings.values()].find((b) => b.def.id === 'lamp' && b.x === 18).id; });
+};
+
 STATES.nodefulllines = async (page) => {
   await page.evaluate(nodeFull, false);
   await page.evaluate(() => { window.__app.play.lines = true; });

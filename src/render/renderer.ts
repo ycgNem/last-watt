@@ -287,6 +287,7 @@ export class Renderer {
     // above the dark
     if (ov.coverage) this.drawCoverage(g, ov);
     this.drawWires(g);
+    if (ov.selected && g.buildings.has(ov.selected.id)) this.drawFeed(g, ov.selected);
     this.drawBeams(g);
     this.tagRects = [];
     for (const b of bs) this.drawMarks(g, b);
@@ -783,6 +784,31 @@ export class Renderer {
       drawText(ctx, l.text, px + 3 * z, py + 11 * z, NECK_COLORS[l.neck], z);
       drawText(ctx, l.fix, px + 3 * z, py + 20 * z, C.ash, z);
     });
+  }
+
+  /** what feeds a selected building (the fifth review): a dotted line to the Node it draws through
+   *  and on along that Node's way home, each link violet where it is full, so a starved tower
+   *  points at its neck on the map. Under the tags, over the wires. */
+  private drawFeed(g: Game, b: Building) {
+    const n = g.networks[b.net];
+    let i = n?.at?.get(b.id);
+    if (!n?.tree || i === undefined || b.def.role === 'node' || b.def.role === 'core') return;
+    const end = (c: Building) => {
+      const pc = this.placeSprite(c);
+      return { x: pc.lx, y: c.def.role === 'core' ? pc.y + 20 : pc.ly + 1 };
+    };
+    let from = { x: (b.x + b.def.size / 2) * TILE, y: (b.y + b.def.size / 2) * TILE };
+    let full = false;
+    for (let guard = 0; i >= 0 && guard < 64; guard++) {
+      const c = g.buildings.get(n.tree.ids[i]);
+      if (!c) break;
+      const to = end(c);
+      this.pixelLine(from.x, from.y, to.x, to.y, full ? C.violet : C.gold, 1, 2, 2);
+      // the next segment is this conductor's own link to its parent
+      full = c.full;
+      from = to;
+      i = n.tree.parent[i];
+    }
   }
 
   private drawSelection(g: Game, b: Building, color: string, faint = false) {

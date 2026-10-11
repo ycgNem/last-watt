@@ -59,6 +59,16 @@ describe('Node capacity (§3.3)', () => {
     expect(n1.full).toBe(false);
   });
 
+  it('a link carrying exactly what its branch asks is not FULL: only one that holds it back is', () => {
+    const g = new Game();
+    strongHearth(g);
+    const { n1, labs } = farLabs(g, 6);
+    settle(g, 0.2);
+    expect(n1.carry).toBeCloseTo(60, 3);
+    expect(n1.full).toBe(false);
+    for (const l of labs) expect(l.sat).toBe(1);
+  });
+
   it('a second route splits the branch: Labs nearer a Node of their own draw through it', () => {
     const g = new Game();
     strongHearth(g);
