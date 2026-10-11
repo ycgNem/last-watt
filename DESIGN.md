@@ -150,7 +150,7 @@ Tier 2 for every tower (second session), all from the rule: Floodlight 36 kW at 
 (100); Searchlight 45 kW at 0.72 → 32.4 (88); Brazier 12 kW a body at 0.6 → 7.2 each (75);
 Starshell charges at 15 kW at 0.96 (113). The Beacon's "damage" is its slow: an enemy in range
 spends 1 / (1 − s) as long there, 1.67× at s = 0.4; tier 2 multiplies that by 1.5 → 2.5× → **s =
-0.6** at 6 kW (63). Tier 3 and the branches stay in Milestone 4's backlog.
+0.6** at 6 kW (63). Tier 3, with its branches, is §4.2.
 
 ### 4.1 The wall half (Milestone 4, as built)
 
@@ -188,6 +188,35 @@ Why these numbers:
   power that would otherwise be wasted. The catch rule is the Floodlight's: area light lands on
   what's in it.
 
+
+### 4.2 Tier 3 and its branches (Milestone 4, as built)
+
+Tier 3 is a choice, made once, between two (draw, efficiency, range, cone) tuples. The main line
+is the tier rule again (draw × 1.5, efficiency × 1.2); the other way spends the tier on geometry
+instead of brightness and keeps tier 2's efficiency. Cost is the rule's base × 1.25 × 2 either way.
+Research: one project per tower unlocks both ways, at 1.5 × its tier-2 project.
+
+| Tower | Main line | The other way |
+|---|---|---|
+| **Lamp** (50; research 1350 kJ) | **Arc**: 27 kW at 0.72 → 19.4 kJ/s, reach 3.5 | **Lantern**: 20 kW at 0.6 → 12 kJ/s, **reach 5** |
+| **Floodlight** (200; research 1500 kJ) | **Blaze**: 54 kW at 0.864 → 46.7 kJ/s, 60° cone, catch 0.4 | **Wide**: 40 kW at 0.72 → 28.8 kJ/s, **100° cone**, catch 0.3 |
+
+**Arc or Lantern is kW against kJ.** A Lamp 1.5 tiles off the road sees a chord of 2√(r² − 1.5²):
+6.3 tiles at reach 3.5, 9.5 at reach 5, so a Lantern holds each enemy in its light 1.5× as long.
+Per crossing it delivers 12 × 9.5 = 114 kJ·tiles/s against the Arc's 19.4 × 6.3 = 123 (93%), and
+it asks 20 kW at a time instead of 27: the grid sees a lower peak. It is not cheaper in energy
+(it fires longer at a lower efficiency: 191 against 171 kJ drawn per crossing per tile/s of speed),
+so the choice is the model's own: a factory short of **kW** at the peak takes Lanterns; one with
+kW to spare and Jars behind it takes Arcs, which also Overcharge to 81 kW.
+
+**Blaze or Wide is where it stands.** A cone works where enemies line up inside its angle (§4):
+at the outside of a bend or looking down a straight. Beside a road, 1.5 tiles off it and pointed
+across, a 60° cone lights 2 × 1.5 × tan 30° = 1.7 tiles of road; a 100° cone lights 3.6 (×2.1),
+so a Wide holds a crowd strung along a straight in its light where a Blaze holds two bodies. Each
+enemy catches 0.3 (not 0.4): a lone enemy gets 8.6 kJ/s from a Wide against 18.7 from a Blaze, and
+four or more share the beam either way. A Blaze belongs down a straight or outside a bend; a Wide
+beside one. (The first draft claimed a Wide covers both legs of a bend from the inside: it does
+not; from the inside corner the near legs are about 124° apart.)
 
 ## 5. Enemies
 
@@ -496,7 +525,9 @@ priced in kJ. Slice: **Lamp tier 2** (900 kJ).
 | Beacon tier 2 | 600 | | |
 | Searchlight tier 2 (needs Searchlight) | 1100 | | |
 | Brazier tier 2 (needs Brazier) | 900 | | |
-| Starshell tier 2 (needs Starshell) | 1200 | | |
+| Starshell tier 2 (needs Starshell) | 1200 | Flywheel (Jar tier 2, the other way) | 700 |
+| Lamp tier 3 (needs tier 2; Arc or Lantern) | 1350 | | |
+| Floodlight tier 3 (needs tier 2; Blaze or Wide) | 1500 | | |
 
 Total 12,000 kJ. One Lab at full power does 10 kJ/s, about 6,000 kJ over a 17-minute run if it
 runs most of the breathers and is shed in the worst of the waves; two Labs about 10,000. So a run

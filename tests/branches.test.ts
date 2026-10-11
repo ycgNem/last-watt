@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game, park, put, settle } from './helpers';
 import { upgrade, upgradeProblem } from '../src/sim/actions';
+import { coneCatchers } from '../src/sim/systems/towers';
 
 function fourLamps(g: Game) {
   put(g, 'node', 23, 10);
@@ -66,5 +67,35 @@ describe('upgrade branches', () => {
     settle(g, 1);
     expect(f.charge).toBeCloseTo(300 * Math.exp(-0.02), 0);
     expect(g.stats.wastedKj - wasted).toBeGreaterThan(5.5);
+  });
+});
+
+describe('tier 3 (§4.2)', () => {
+  it('a Lamp at tier 3 is an Arc or a Lantern', () => {
+    const g = new Game();
+    g.money = 1000;
+    for (const r of ['lamp2', 'lamp3']) g.research.done.add(r);
+    const a = put(g, 'lamp', 24, 7), l = put(g, 'lamp', 24, 13);
+    upgrade(g, a); upgrade(g, a);
+    upgrade(g, l); upgrade(g, l, 1);
+    expect([g.spec(a).firingDraw, g.spec(a).efficiency, g.spec(a).range]).toEqual([27, 0.72, 3.5]);
+    expect([g.spec(l).firingDraw, g.spec(l).efficiency, g.spec(l).range]).toEqual([20, 0.6, 5]);
+    expect(upgradeProblem(g, l)).toBe('Fully upgraded');
+  });
+
+  it('beside a straight, a Wide Floodlight lights a body a Blaze misses', () => {
+    const lit = (wide: boolean) => {
+      const g = new Game();
+      g.money = 1000;
+      for (const r of ['flood2', 'flood3']) g.research.done.add(r);
+      const f = put(g, 'floodlight', 10, 7);
+      upgrade(g, f); upgrade(g, f, wide ? 1 : 0);
+      const target = park(g, 'moth', 12); // (11, 6.5): straight across
+      park(g, 'moth', 11.2); // 28° off
+      park(g, 'moth', 10.5); // 45° off
+      return coneCatchers(g, f, target).length;
+    };
+    expect(lit(false)).toBe(2);
+    expect(lit(true)).toBe(3);
   });
 });

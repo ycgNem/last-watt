@@ -173,7 +173,7 @@ export class Renderer {
   }
 
   private spriteOf(b: Building): string {
-    if (b.level > 1 && b.branch === 0 && SHEETS.has(`${b.def.id}2`)) return `${b.def.id}2`;
+    if (b.level > 1 && SHEETS.has(`${b.def.id}2`) && b.def.role !== 'storage') return `${b.def.id}2`;
     return b.def.id;
   }
 
@@ -597,12 +597,17 @@ export class Renderer {
         ctx.fillRect(this.sx(cx + dx), this.sy(cy + dy), z, z);
       }
     }
-    // a tier-2 building with no tier-2 sprite of its own wears a brass pip
-    else if (b.level > 1 && !SHEETS.has(`${b.def.id}2`)) {
-      ctx.fillStyle = C.ink;
-      ctx.fillRect(this.sx(Math.round(p.x + p.w / 2) - 2), this.sy(Math.round(p.y) - 1), 4 * z, 4 * z);
-      ctx.fillStyle = C.gold;
-      ctx.fillRect(this.sx(Math.round(p.x + p.w / 2) - 1), this.sy(Math.round(p.y)), 2 * z, 2 * z);
+    // a tier with no sprite of its own wears a brass pip: one for tier 2 without a tier-2
+    // sprite, one more for tier 3 (bright for the main line, ice for the other way)
+    else {
+      const pips = b.level - (SHEETS.has(`${b.def.id}2`) ? 2 : 1);
+      for (let i = 0; i < pips; i++) {
+        const px = Math.round(p.x + p.w / 2) - 2 + (i - (pips - 1) / 2) * 5;
+        ctx.fillStyle = C.ink;
+        ctx.fillRect(this.sx(Math.round(px)), this.sy(Math.round(p.y) - 1), 4 * z, 4 * z);
+        ctx.fillStyle = b.branch > 0 && i === pips - 1 ? C.ice : C.gold;
+        ctx.fillRect(this.sx(Math.round(px) + 1), this.sy(Math.round(p.y)), 2 * z, 2 * z);
+      }
     }
     // a Starshell's shell, filling: a brass bar under it
     if (b.def.kind === 'mortar' && b.net >= 0 && !b.off) {

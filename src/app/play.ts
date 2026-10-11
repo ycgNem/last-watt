@@ -1268,7 +1268,16 @@ export class Play {
   private drawBoard(ui: UI, g: Game) {
     ui.layer = 6;
     const w = Math.min(ui.w - 16, 420), colW = (w - 18) / 2;
-    const rows = Math.max(...(['light', 'power'] as const).map((br) => RESEARCH_ORDER.filter((id) => RESEARCH[id].branch === br).length));
+    const rowsOf = (br: 'light' | 'power') => RESEARCH_ORDER.filter((id) => RESEARCH[id].branch === br && !RESEARCH[id].stacks).map((id) => {
+      // a done project gives its row to the one stacked on it (tier 3 after tier 2)
+      let at = id;
+      for (;;) {
+        const next = g.research.done.has(at) ? RESEARCH_ORDER.find((s) => RESEARCH[s].stacks && RESEARCH[s].requires === at) : undefined;
+        if (!next) return at;
+        at = next;
+      }
+    });
+    const rows = Math.max(rowsOf('light').length, rowsOf('power').length);
     const rowH = 20;
     const h = 46 + rows * rowH + 4;
     const x = Math.round(ui.w / 2 - w / 2), y = Math.max(HUD_H + 2, Math.round((ui.h - BAR_H - TAB_H) / 2 - h / 2));
@@ -1288,7 +1297,7 @@ export class Play {
     (['light', 'power'] as const).forEach((br, col) => {
       const cx = x + 6 + col * (colW + 6);
       ui.text(br === 'light' ? 'LIGHT' : 'POWER', cx, y + 36, br === 'light' ? C.amber : C.cyan);
-      RESEARCH_ORDER.filter((id) => RESEARCH[id].branch === br).forEach((id, i) => {
+      rowsOf(br).forEach((id, i) => {
         const r = RESEARCH[id];
         const ry = y + 46 + i * rowH;
         const done = g.research.done.has(id);

@@ -193,6 +193,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
         cost: '§4 upgrade rule: 20 × 1.25 × (2 − 1) = 25', firingDraw: '§4 tier rule: 12 × 1.5 = 18 kW',
         efficiency: '§4 tier rule: 0.5 × 1.2 = 0.6 (damage 6 × 1.8 = 10.8 kJ/s)',
       },
+    }, {
+      name: 'Arc', cost: 50, research: 'lamp3', blurb: 'Arc: 27 kW firing at 0.72 → 19.4 kJ/s. Brighter, hungrier: the tier rule again.',
+      stats: { firingDraw: 27, efficiency: 0.72 },
+      why: { cost: '§4 upgrade rule: 20 × 1.25 × (3 − 1) = 50', firingDraw: '§4.2 Arc: 18 × 1.5 = 27 kW', efficiency: '§4.2 Arc: 0.6 × 1.2 = 0.72 → 19.4 kJ/s' },
+      alts: [{
+        name: 'Lantern', cost: 50, research: 'lamp3', blurb: 'Lantern: reach 5 instead of 3.5, at 20 kW and 0.6 → 12 kJ/s. Dimmer, but each enemy is in its light half as long again, for 7 kW less than an Arc.',
+        stats: { firingDraw: 20, efficiency: 0.6, range: 5 },
+        why: {
+          cost: '§4 upgrade rule: 20 × 1.25 × (3 − 1) = 50', firingDraw: '§4.2 Lantern: 20 kW (the tier still raises demand, by a little)',
+          efficiency: '§4.2 Lantern: 0.6, tier 2 kept: the tier goes into reach', range: '§4.2 Lantern: reach 5, the chord 1.5 tiles off a road from 6.3 to 9.5 tiles (×1.5)',
+        },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4 Lamp: 20', tier: '§2.3 default tiers: 2 Wall (towers)',
@@ -208,6 +220,19 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       cost: 100, research: 'flood2', blurb: '36 kW firing at 0.72 → 25.9 kJ/s across the cone.',
       stats: { firingDraw: 36, efficiency: 0.72 },
       why: { cost: '§4 upgrade rule: 80 × 1.25 = 100', firingDraw: '§4 tier rule: 24 × 1.5 = 36 kW', efficiency: '§4 tier rule: 0.6 × 1.2 = 0.72' },
+    }, {
+      name: 'Blaze', cost: 200, research: 'flood3', blurb: 'Blaze: 54 kW at 0.86 → 46.7 kJ/s across the cone. The tier rule again: a crowd killer that needs a factory behind it.',
+      stats: { firingDraw: 54, efficiency: 0.864 },
+      why: { cost: '§4 upgrade rule: 80 × 1.25 × (3 − 1) = 200', firingDraw: '§4.2 Blaze: 36 × 1.5 = 54 kW', efficiency: '§4.2 Blaze: 0.72 × 1.2 = 0.864 → 46.7 kJ/s' },
+      alts: [{
+        name: 'Wide', cost: 200, research: 'flood3', blurb: 'Wide: a 100° cone (was 60°) for beside a road, where it lights twice the stretch; each enemy catches 30%. 40 kW at 0.72.',
+        stats: { firingDraw: 40, efficiency: 0.72, halfAngle: 50, catch: 0.3 },
+        why: {
+          cost: '§4 upgrade rule: 80 × 1.25 × (3 − 1) = 200', firingDraw: '§4.2 Wide: 40 kW (a smaller step than Blaze: the tier goes into angle)',
+          efficiency: '§4.2 Wide: 0.72, tier 2 kept', halfAngle: '§4.2 Wide: 50° either side; 1.5 tiles off a road it lights 2 × 1.5 × tan 50° = 3.6 tiles of it, against 1.7 at 30°',
+          catch: '§4.2 Wide: each enemy catches 0.3, four or more share all of it',
+        },
+      }],
     }],
     why: {
       size: '§4; STYLE.md tower footprint 2x2', cost: '§4 Floodlight: 80', tier: '§2.3 default tiers: 2 Wall (towers)',

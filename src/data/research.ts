@@ -9,6 +9,8 @@ export interface ResearchDef {
   branch: 'light' | 'power';
   cost: number;
   requires?: string;
+  /** it takes its prerequisite's row on the board once that is done (tier 3 after tier 2) */
+  stacks?: boolean;
   why: Record<string, string>;
 }
 
@@ -32,6 +34,16 @@ export const RESEARCH: Record<string, ResearchDef> = {
     id: 'starshell', name: 'Starshell', branch: 'light', cost: 1200,
     blurb: 'Stores a 60 kJ shell and lobs it at crowds 2–7 tiles away.',
     why: { cost: '§7 unlocks: 1200 kJ (the strongest crowd answer costs the most)' },
+  },
+  lamp3: {
+    id: 'lamp3', name: 'Lamp tier 3', branch: 'light', cost: 1350, requires: 'lamp2', stacks: true,
+    blurb: 'Lamps can take a third tier, one way or the other: Arc (27 kW, brighter) or Lantern (reach 5, 20 kW).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (900)' },
+  },
+  flood3: {
+    id: 'flood3', name: 'Floodlight tier 3', branch: 'light', cost: 1500, requires: 'flood2', stacks: true,
+    blurb: 'Floodlights can take a third tier, one way or the other: Blaze (54 kW, brighter) or Wide (a 100° cone for beside a road).',
+    why: { cost: '§7 tier 3: 1.5 × its tier-2 project (1000)' },
   },
   flood2: {
     id: 'flood2', name: 'Floodlight tier 2', branch: 'light', cost: 1000,
@@ -101,6 +113,6 @@ export const RESEARCH: Record<string, ResearchDef> = {
 };
 
 export const RESEARCH_ORDER = [
-  'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2',
+  'lamp2', 'searchlight', 'brazier', 'starshell', 'flood2', 'beacon2', 'search2', 'brazier2', 'star2', 'lamp3', 'flood3',
   'vane', 'bellows', 'deepbit', 'bank', 'flywheel', 'pulse', 'reroute', 'longline',
 ];

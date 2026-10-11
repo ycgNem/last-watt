@@ -173,6 +173,25 @@ const STATES = {
     p.paused = true;
     p.msgs = [];
   }),
+  tier3: async (page) => page.evaluate(() => {
+    const p = window.__app.newGame();
+    const g = p.game;
+    for (const r of ['lamp2', 'lamp3', 'flood2', 'flood3']) g.research.done.add(r);
+    g.money = 400;
+    window.__place(g, 'extractor', 16, 19); window.__place(g, 'burner', 16, 20).fuel = 5;
+    window.__place(g, 'node', 21, 10);
+    const a = window.__place(g, 'lamp', 24, 7);
+    window.__upgrade(g, a);
+    const l = window.__place(g, 'lamp', 24, 13);
+    window.__upgrade(g, l); window.__upgrade(g, l, 1);
+    const f = window.__place(g, 'floodlight', 10, 7);
+    window.__upgrade(g, f); window.__upgrade(g, f, 1);
+    g.money = 400;
+    for (let i = 0; i < 3; i++) p.tick();
+    p.selectedId = a.id;
+    p.paused = true;
+    p.msgs = [];
+  }),
   reroute: async (page) => page.evaluate(() => {
     const p = window.__app.newGame();
     const g = p.game;
